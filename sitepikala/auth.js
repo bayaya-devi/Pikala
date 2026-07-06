@@ -47,6 +47,19 @@ function setLanguage(lang) {
   localStorage.setItem('pikala-lang', lang);
 }
 
+function detectPreferredLanguage() {
+  const queryLang = new URLSearchParams(window.location.search).get('lang');
+  if (queryLang) return queryLang;
+
+  const saved = localStorage.getItem('pikala-lang');
+  if (saved) return saved;
+
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  if (browserLang.startsWith('fr')) return 'fr';
+  if (browserLang.startsWith('ar')) return 'ar';
+  return 'en';
+}
+
 function showToast(message) {
   if (!toast || !toastText) return;
   toastText.textContent = message;
@@ -128,5 +141,4 @@ form?.addEventListener('submit', (event) => {
   redirectTo(page === 'signup' ? 'abonement.html' : 'Pageuser.html');
 });
 
-const queryLang = new URLSearchParams(window.location.search).get('lang');
-setLanguage(queryLang || localStorage.getItem('pikala-lang') || 'fr');
+setLanguage(detectPreferredLanguage());

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pikala</title>
+
+<style>
+body {
+  margin: 0;
+  height: 100vh;
+  font-family: 'DM Sans', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* background logo */
+.bg {
+  position: absolute;
+  inset: 0;
+  background: url("logo.jpeg") no-repeat center;
+  background-size: 60%;
+  opacity: 1;
+  z-index: 0;
+  bottom: 140px
+}
+
+/* overlay gradient */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.9),
+    rgba(114,195,26,0.08)
+  );
+  z-index: 1;
+}
+
+/* container */
+.content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+
+
+/* bouton start */
+.start-btn {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  border: none;
+  background: #72c31a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 40px 30px rgba(114,195,26,0.35);
+  transition: 0.3s ease;
+  margin: auto;
+  position: absolute;
+  bottom: -180px;
+  left :-30px;
+}
+
+/* hover */
+.start-btn:hover {
+  transform: scale(1.1);
+  background: #4a8f0e;
+}
+
+/* icône */
+.start-btn span {
+  font-size: 30px;
+  color: white;
+}
+
+/* animation douce */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+.start-btn {
+  animation: float 2.5s infinite ease-in-out;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="bg"></div>
+<div class="overlay"></div>
+
+<div class="content">
+
+  <a href="index.html">
+    <button class="start-btn">
+      <span>▶</span>
+    </button>
+  </a>
+
+</div>
+
+</body>
+</html>

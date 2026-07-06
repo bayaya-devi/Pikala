@@ -1,0 +1,185 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pikala propose des vélos en libre-service pour explorer Rabat simplement, rapidement et de façon responsable.">
+  <title>Pikala - Explorez Rabat à vélo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip">Aller au contenu</a>
+
+  <header class="site-header" data-header>
+    <a class="brand" href="index.html" aria-label="Pikala accueil">
+      <img src="logo.jpeg" alt="Logo Pikala">
+    </a>
+
+    <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav">
+      <span></span><span></span><span></span>
+      <span class="sr-only">Menu</span>
+    </button>
+
+    <nav class="site-nav" id="site-nav" data-site-nav aria-label="Navigation principale">
+      <a href="#comment" data-i18n="navHow">Comment ça marche</a>
+      <a href="#stations" data-i18n="navStations">Stations</a>
+      <a href="#tarifs" data-i18n="navPricing">Tarifs</a>
+      <a href="#contact" data-i18n="navContact">Contact</a>
+      <div class="language-switch" aria-label="Choix de langue">
+        <button type="button" class="active" data-lang="fr">FR</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ar">AR</button>
+      </div>
+      <a class="nav-login" href="connexion.html" data-auth-link="login" data-i18n="navLogin">Connexion</a>
+      <a class="nav-cta" href="inscription.html" data-auth-link="signup" data-i18n="navSignup">Créer un compte</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero section-shell">
+      <div class="hero-media" aria-hidden="true">
+        <img src="multi.jpeg" alt="" loading="eager">
+      </div>
+      <div class="hero-copy reveal">
+        <p class="eyebrow" data-i18n="heroEyebrow">Vélos en libre-service à Rabat</p>
+        <h1 data-i18n="heroTitle">Explorez Rabat autrement, à vélo.</h1>
+        <p class="hero-text" data-i18n="heroText">Pikala vous aide à rejoindre les quartiers, jardins et monuments de Rabat avec une expérience simple, rapide et plus responsable.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="inscription.html" data-auth-link="signup" data-i18n="heroPrimary">Commencer</a>
+          <a class="button ghost" href="#stations" data-i18n="heroSecondary">Voir les stations</a>
+        </div>
+      </div>
+      <div class="hero-card reveal" data-delay="120">
+        <p class="card-label" data-i18n="today">Aujourd'hui</p>
+        <strong><span data-count="124">0</span> <span data-i18n="bikesAvailable">vélos disponibles</span></strong>
+        <span data-i18n="openHours">Stations actives de 8h à 20h</span>
+      </div>
+    </section>
+
+    <section class="stats-band" aria-label="Chiffres clés">
+      <div class="stat reveal"><strong data-count="18">0</strong><span data-i18n="statStations">stations</span></div>
+      <div class="stat reveal" data-delay="80"><strong data-count="124">0</strong><span data-i18n="statBikes">vélos</span></div>
+      <div class="stat reveal" data-delay="160"><strong data-count="4">0</strong><span data-i18n="statRoutes">itinéraires</span></div>
+      <div class="stat reveal" data-delay="240"><strong data-count="7">0</strong><span data-i18n="statDays">jours sur 7</span></div>
+    </section>
+
+    <section class="section-shell split" id="comment">
+      <div class="section-intro reveal">
+        <p class="eyebrow" data-i18n="howEyebrow">Simple et rapide</p>
+        <h2 data-i18n="howTitle">Votre trajet en trois étapes.</h2>
+        <p data-i18n="howText">Le parcours doit rester clair : choisir une station, scanner le vélo, puis profiter du trajet.</p>
+      </div>
+      <div class="steps">
+        <article class="step-card reveal">
+          <span>01</span>
+          <h3 data-i18n="step1Title">Trouvez une station</h3>
+          <p data-i18n="step1Text">Consultez les vélos disponibles près de vous depuis votre espace utilisateur.</p>
+        </article>
+        <article class="step-card reveal" data-delay="100">
+          <span>02</span>
+          <h3 data-i18n="step2Title">Scannez le QR</h3>
+          <p data-i18n="step2Text">Débloquez le vélo en quelques secondes avec le scanner intégré.</p>
+        </article>
+        <article class="step-card reveal" data-delay="200">
+          <span>03</span>
+          <h3 data-i18n="step3Title">Roulez librement</h3>
+          <p data-i18n="step3Text">Découvrez Rabat à votre rythme, puis déposez le vélo dans une station.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-shell destinations" id="stations">
+      <div class="section-heading reveal">
+        <p class="eyebrow" data-i18n="stationsEyebrow">Stations et parcours</p>
+        <h2 data-i18n="stationsTitle">Des lieux faciles à rejoindre.</h2>
+      </div>
+      <div class="destination-grid">
+        <article class="destination-card reveal">
+          <img src="oudaya.jpeg" alt="Kasbah des Oudayas à Rabat" loading="lazy">
+          <div><h3 data-i18n="place1">Kasbah des Oudayas</h3><p data-i18n="place1Bikes">8 vélos disponibles</p></div>
+        </article>
+        <article class="destination-card reveal" data-delay="90">
+          <img src="hasan.jpeg" alt="Tour Hassan à Rabat" loading="lazy">
+          <div><h3 data-i18n="place2">Tour Hassan</h3><p data-i18n="place2Bikes">3 vélos disponibles</p></div>
+        </article>
+        <article class="destination-card reveal" data-delay="180">
+          <img src="parc.jpeg" alt="Parc verdoyant à Rabat" loading="lazy">
+          <div><h3 data-i18n="place3">Jardins et parcs</h3><p data-i18n="place3Bikes">12 vélos disponibles</p></div>
+        </article>
+        <article class="destination-card reveal" data-delay="270">
+          <img src="plage.jpeg" alt="Corniche et plage de Rabat" loading="lazy">
+          <div><h3 data-i18n="place4">Corniche</h3><p data-i18n="place4Bikes">5 vélos disponibles</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="tarifs" id="tarifs">
+      <div class="section-shell pricing-layout">
+        <div class="section-intro light reveal">
+          <p class="eyebrow" data-i18n="pricingEyebrow">Tarif clair</p>
+          <h2 data-i18n="pricingTitle">Une formule simple pour commencer.</h2>
+          <p data-i18n="pricingText">Garde la tarification lisible, avec un appel à l’action direct vers l’inscription.</p>
+        </div>
+        <article class="price-card reveal" data-delay="120">
+          <p class="card-label" data-i18n="planName">Abonnement Pikala</p>
+          <div class="price"><strong>99</strong><span data-i18n="priceUnit">MAD / mois</span></div>
+          <ul>
+            <li data-i18n="plan1">Accès aux vélos en libre-service</li>
+            <li data-i18n="plan2">Scanner QR intégré</li>
+            <li data-i18n="plan3">Signalement rapide des problèmes</li>
+            <li data-i18n="plan4">Support 7j/7</li>
+          </ul>
+          <a class="button primary dark" href="inscription.html" data-auth-link="signup" data-i18n="pricingCta">Créer mon compte</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-shell app-preview">
+      <div class="phone reveal" aria-label="Aperçu de l'espace utilisateur">
+        <div class="phone-top"></div>
+        <div class="phone-map">
+          <span class="pin one"></span><span class="pin two"></span><span class="pin three"></span>
+        </div>
+        <div class="phone-panel">
+          <strong data-i18n="phoneStation">Station Kasbah</strong>
+          <p data-i18n="place1Bikes">8 vélos disponibles</p>
+          <button type="button" data-i18n="scan">Scanner</button>
+        </div>
+      </div>
+      <div class="section-intro reveal" data-delay="120">
+        <p class="eyebrow" data-i18n="appEyebrow">Espace utilisateur</p>
+        <h2 data-i18n="appTitle">Une expérience mobile plus fluide.</h2>
+        <p data-i18n="appText">La page utilisateur existante peut ensuite reprendre ce style : navigation basse, carte, scanner QR et profil, avec des transitions plus douces.</p>
+        <a class="button ghost dark-text" href="Pageuser.html" data-i18n="appCta">Voir l'espace utilisateur</a>
+      </div>
+    </section>
+
+    <section class="contact-band" id="contact">
+      <div class="section-shell contact-inner reveal">
+        <h2 data-i18n="contactTitle">Prêt à explorer Rabat ?</h2>
+        <p data-i18n="contactText">Créer un compte prend moins d'une minute.</p>
+        <div class="hero-actions centered">
+          <a class="button primary" href="inscription.html" data-auth-link="signup" data-i18n="contactSignup">S’inscrire</a>
+          <a class="button ghost" href="mailto:contact@pikala.ma" data-i18n="contactEmail">Nous contacter</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <img src="logo.jpeg" alt="Pikala">
+      <p data-i18n="footerText">Vélos en libre-service à Rabat.</p>
+    </div>
+    <nav aria-label="Liens secondaires">
+      <a href="#comment" data-i18n="navHow">Comment ça marche</a>
+      <a href="#tarifs" data-i18n="navPricing">Tarifs</a>
+      <a href="connexion.html" data-auth-link="login" data-i18n="navLogin">Connexion</a>
+    </nav>
+  </footer>
+</body>
+</html>

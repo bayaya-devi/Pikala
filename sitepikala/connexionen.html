@@ -1,0 +1,853 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pikala â€” Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --green: #72c31a;
+  --green-dark: #4a8f0e;
+  --green-light: #eaf5d2;
+  --charcoal: #2d2d2d;
+  --gray: #6b7280;
+  --light: #f9f9f6;
+  --white: #ffffff;
+  --border: rgba(0,0,0,0.10);
+  --shadow-green: 0 4px 24px rgba(114,195,26,0.28);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  color: var(--charcoal);
+  background: var(--light);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* â”€â”€ NAV â”€â”€ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.42rem 5%;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.nav-logo img {
+  height: 62px;
+  max-height: 100%;
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.nav-logo:hover img { opacity: 0.85; }
+
+.nav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gray);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-back:hover { color: var(--green); }
+
+.nav-back svg {
+  width: 16px; height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* â”€â”€ LAYOUT â”€â”€ */
+.page-wrap {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  padding-top: 70px;
+}
+
+/* â”€â”€ PANNEAU GAUCHE â€” VISUEL â”€â”€ */
+.visual-panel {
+  background: linear-gradient(145deg, #eaf5d2 0%, #d4edd0 50%, #b8e08a 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 5rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Motif de points (identique Ã  la homepage) */
+.visual-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+/* Cercle dÃ©coratif */
+.visual-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -120px;
+  right: -80px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: rgba(114,195,26,0.18);
+  pointer-events: none;
+}
+
+.visual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.38rem 1rem;
+  border-radius: 50px;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.visual-badge::before {
+  content: '';
+  width: 7px; height: 7px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+
+.visual-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+  line-height: 1.15;
+  color: var(--charcoal);
+  margin-bottom: 1.2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.visual-title span { color: var(--green); }
+
+.visual-sub {
+  font-size: 1rem;
+  color: var(--gray);
+  line-height: 1.7;
+  max-width: 380px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Stats (reprise de la homepage) */
+.visual-stats {
+  display: flex;
+  gap: 2.5rem;
+  margin-top: 3.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.stat-item { text-align: left; }
+
+.stat-number {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--green);
+  display: block;
+}
+
+.stat-label { font-size: 0.78rem; color: var(--gray); }
+
+/* Carte flottante dÃ©corative */
+.float-card {
+  position: absolute;
+  bottom: 80px;
+  right: 32px;
+  background: white;
+  border-radius: 16px;
+  padding: 1rem 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--charcoal);
+  z-index: 2;
+  animation: floatCard 3s ease-in-out infinite;
+}
+
+@keyframes floatCard {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.float-card-icon {
+  width: 38px; height: 38px;
+  background: var(--green-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+/* â”€â”€ PANNEAU DROIT â€” FORMULAIRE â”€â”€ */
+.form-panel {
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 5rem;
+}
+
+.form-box {
+  width: 100%;
+  max-width: 420px;
+  animation: fadeUp 0.6s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.form-greeting {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 0.6rem;
+}
+
+.form-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.form-sub {
+  font-size: 0.92rem;
+  color: var(--gray);
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
+}
+
+/* Champs */
+.field {
+  margin-bottom: 1.3rem;
+}
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--charcoal);
+  margin-bottom: 0.45rem;
+}
+
+.field-wrap {
+  position: relative;
+}
+
+.field-wrap svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 17px; height: 17px;
+  stroke: var(--gray);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transition: stroke 0.2s;
+}
+
+.field-wrap input {
+  width: 100%;
+  padding: 0.82rem 1rem 0.82rem 2.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  color: var(--charcoal);
+  background: var(--light);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.field-wrap input:focus {
+  border-color: var(--green);
+  background: var(--white);
+  box-shadow: 0 0 0 4px rgba(114,195,26,0.12);
+}
+
+.field-wrap input:focus + svg,
+.field-wrap:focus-within svg {
+  stroke: var(--green);
+}
+
+/* Icone Å“il (mot de passe) */
+.eye-toggle {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--gray);
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.eye-toggle:hover { color: var(--green); }
+
+.eye-toggle svg {
+  position: static;
+  transform: none;
+  width: 17px; height: 17px;
+  stroke: currentColor;
+}
+
+/* Ligne mdp oubliÃ© */
+.forgot-row {
+  text-align: right;
+  margin-top: -0.6rem;
+  margin-bottom: 1.6rem;
+}
+
+.forgot-link {
+  font-size: 0.83rem;
+  color: var(--gray);
+  text-decoration: none;
+  transition: color 0.2s;
+  font-weight: 500;
+}
+
+.forgot-link:hover { color: var(--green); }
+
+/* Bouton principal */
+.btn-submit {
+  width: 100%;
+  padding: 0.95rem;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-green);
+  transition: background 0.2s, transform 0.18s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lang-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+}
+
+.lang-float a {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 30px;
+  border: none;
+  background: var(--green);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(114,195,26,0.35);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.lang-float a:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(114,195,26,0.45);
+}
+
+.btn-submit:hover {
+  background: var(--green-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(114,195,26,0.38);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+.btn-submit svg {
+  width: 18px; height: 18px;
+  stroke: white;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 1.8rem 0;
+  color: var(--gray);
+  font-size: 0.8rem;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Inscription */
+.register-row {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--gray);
+}
+
+.register-row a {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.register-row a:hover { color: var(--green-dark); }
+
+/* â”€â”€ MODAL MDP OUBLIÃ‰ â”€â”€ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: white;
+  border-radius: 24px;
+  padding: 2.5rem;
+  max-width: 400px;
+  width: 90%;
+  transform: translateY(20px);
+  transition: transform 0.25s;
+  position: relative;
+}
+
+.modal-overlay.open .modal {
+  transform: translateY(0);
+}
+
+.modal-close {
+  position: absolute;
+  top: 18px; right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray);
+  transition: color 0.2s;
+  padding: 4px;
+}
+
+.modal-close:hover { color: var(--charcoal); }
+
+.modal-close svg {
+  width: 20px; height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.modal-icon {
+  width: 54px; height: 54px;
+  background: var(--green-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  margin-bottom: 1.2rem;
+}
+
+.modal h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: var(--charcoal);
+  margin-bottom: 0.5rem;
+}
+
+.modal p {
+  font-size: 0.9rem;
+  color: var(--gray);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.modal .field { margin-bottom: 1.4rem; }
+
+.modal .btn-submit { margin-top: 0; }
+
+/* Message succÃ¨s modal */
+.modal-success {
+  text-align: center;
+  display: none;
+  padding: 1rem 0;
+}
+
+.modal-success .success-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.modal-success h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: var(--charcoal);
+  margin-bottom: 0.5rem;
+}
+
+.modal-success p {
+  font-size: 0.88rem;
+  color: var(--gray);
+  margin-bottom: 0;
+}
+
+/* â”€â”€ TOAST â”€â”€ */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--charcoal);
+  color: white;
+  padding: 0.8rem 1.6rem;
+  border-radius: 50px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  z-index: 300;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; }
+
+/* â”€â”€ RESPONSIVE â”€â”€ */
+@media (max-width: 820px) {
+  .page-wrap { grid-template-columns: 1fr; }
+  .visual-panel { display: none; }
+  .form-panel { padding: 3rem 2rem; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="logo.jpeg" alt="Pikala">
+  </a>
+  <a href="index.html" class="nav-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to website
+  </a>
+</nav>
+<div class="lang-float">
+  <a href="connexion.html">FR</a>
+  <a href="connexionen.html">EN</a>
+</div>
+<!-- PAGE -->
+<div class="page-wrap">
+
+  <!-- PANNEAU GAUCHE -->
+  <div class="visual-panel">
+    <span class="visual-badge">Rabat â€¢ Morocco</span>
+
+    <h1 class="visual-title">
+      Ride free,<br>
+      explore <span>Rabat</span>
+    </h1>
+
+    <p class="visual-sub">
+      Log in to your Pikala account and enjoy unlimited bike rides for just 200 MAD/month.
+    </p>
+
+    <div class="visual-stats">
+      <div class="stat-item">
+        <span class="stat-number">500+</span>
+        <span class="stat-label">Bikes available</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">12</span>
+        <span class="stat-label">Stations in Rabat</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">200 MAD</span>
+        <span class="stat-label">Per month</span>
+      </div>
+    </div>
+
+    <!-- Floating card -->
+    <div class="float-card">
+      <div class="float-card-icon">ðŸš²</div>
+      <div>
+        <div style="font-size:0.82rem; color:var(--gray); font-weight:400;">Bike available</div>
+        <div>Kasbah des Oudayas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANNEAU DROIT â€” FORMULAIRE -->
+  <div class="form-panel">
+    <div class="form-box">
+
+      <p class="form-greeting">Welcome back!</p>
+      <h2 class="form-title">Happy to see<br>you again</h2>
+      <p class="form-sub">Sign in to access your Pikala bikes and ride freely.</p>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" novalidate>
+
+        <!-- Email -->
+        <div class="field">
+          <label for="email">Email address</label>
+          <div class="field-wrap">
+            <input type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required>
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="field-wrap">
+            <input type="password" id="password" name="password" placeholder="Your password" autocomplete="current-password" required>
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <button type="button" class="eye-toggle" onclick="togglePassword()" title="Show / hide">
+              <svg id="eyeIcon" viewBox="0 0 24 24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Forgot password -->
+        <div class="forgot-row">
+          <a href="#" class="forgot-link" onclick="openForgot(event)">Forgot your password?</a>
+        </div>
+
+        <!-- Sign in button -->
+        <button type="submit" class="btn-submit">
+          Sign in
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+      </form>
+
+      <div class="divider">or</div>
+
+      <p class="register-row">
+        Don't have an account yet?
+        <a href="inscriptionen.html">Create my account</a>
+      </p>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MDP OUBLIÃ‰ -->
+<div class="modal-overlay" id="forgotModal" onclick="closeForgotOutside(event)">
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeForgot()" title="Close">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <!-- Reset form -->
+    <div id="forgotForm">
+      <div class="modal-icon">ðŸ”‘</div>
+      <h3>Forgot your password?</h3>
+      <p>Enter the email address linked to your Pikala account. We'll send you a link to reset your password.</p>
+
+      <div class="field">
+        <label for="resetEmail">Email address</label>
+        <div class="field-wrap">
+          <input type="email" id="resetEmail" placeholder="you@example.com" autocomplete="email">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        </div>
+      </div>
+
+      <button class="btn-submit" onclick="handleReset()">
+        Send reset link
+        <svg viewBox="0 0 24 24" stroke="white" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+
+    <!-- Success message -->
+    <div class="modal-success" id="forgotSuccess">
+      <div class="success-icon">âœ…</div>
+      <h4>Email sent!</h4>
+      <p>Check your inbox. The reset link is valid for 30 minutes.</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-dot"></span>
+  <span id="toastMsg">Successfully signed in!</span>
+</div>
+
+<script>
+/* Toggle affichage mdp */
+let pwVisible = false;
+function togglePassword() {
+  pwVisible = !pwVisible;
+  const input = document.getElementById('password');
+  input.type = pwVisible ? 'text' : 'password';
+  const icon = document.getElementById('eyeIcon');
+  icon.innerHTML = pwVisible
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+/* Soumission formulaire */
+function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !password) {
+    showToast('Please fill in all fields.');
+    return;
+  }
+
+  const btn = e.target.querySelector('.btn-submit');
+  btn.textContent = 'Signing inâ€¦';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.innerHTML = 'Sign in <svg viewBox="0 0 24 24" stroke="white" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+    showToast('Signed in â€” Welcome!');
+  }, 1400);
+}
+
+/* Modal mdp oubliÃ© */
+function openForgot(e) {
+  e.preventDefault();
+  document.getElementById('forgotModal').classList.add('open');
+  document.getElementById('forgotForm').style.display = '';
+  document.getElementById('forgotSuccess').style.display = 'none';
+}
+
+function closeForgot() {
+  document.getElementById('forgotModal').classList.remove('open');
+}
+
+function closeForgotOutside(e) {
+  if (e.target === document.getElementById('forgotModal')) closeForgot();
+}
+
+function handleReset() {
+  const email = document.getElementById('resetEmail').value.trim();
+  if (!email) { showToast('Please enter your email address.'); return; }
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('forgotSuccess').style.display = 'block';
+}
+
+/* Toast */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* Fermer modal avec Ã‰chap */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeForgot();
+});
+</script>
+
+</body>
+</html>

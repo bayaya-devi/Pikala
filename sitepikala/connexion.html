@@ -1,0 +1,76 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Connectez-vous à votre espace Pikala pour accéder aux vélos, à la carte et au scanner QR.">
+  <title>Connexion - Pikala</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+  <script src="auth.js" defer></script>
+</head>
+<body data-page="login">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-label="Pikala à Rabat">
+      <a class="brand-link" href="index.html">
+        <img src="logo.jpeg" alt="Pikala">
+        <span>Pikala</span>
+      </a>
+      <img src="oudaya.jpeg" alt="Kasbah des Oudayas">
+      <div class="visual-copy reveal">
+        <p class="eyebrow" data-i18n="loginEyebrow">Connexion</p>
+        <h1 data-i18n="loginVisualTitle">Reprenez la route en quelques secondes.</h1>
+        <p data-i18n="loginVisualText">Votre espace Pikala rassemble les stations, le scanner QR et vos trajets dans une expérience mobile simple.</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-topbar">
+        <a class="back-link" href="index.html" data-i18n="back">Retour au site</a>
+        <div class="language-switch" aria-label="Choix de langue">
+          <button type="button" class="active" data-lang="fr">FR</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ar">AR</button>
+        </div>
+      </div>
+
+      <div class="form-wrap reveal delay">
+        <p class="eyebrow" data-i18n="loginEyebrow">Connexion</p>
+        <h2 data-i18n="loginTitle">Heureux de vous revoir.</h2>
+        <p class="form-sub" data-i18n="loginSub">Connectez-vous pour accéder à vos vélos, votre carte et votre profil Pikala.</p>
+
+        <form class="auth-form" data-auth-form novalidate>
+          <div class="field">
+            <label for="email" data-i18n="email">Adresse e-mail</label>
+            <div class="input-wrap">
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="vous@exemple.com" required>
+              <span class="input-icon" aria-hidden="true">@</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password" data-i18n="password">Mot de passe</label>
+            <div class="input-wrap">
+              <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+              <button class="password-toggle" type="button" data-toggle-password="#password">Voir</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="check-row"><input type="checkbox" name="remember"> <span data-i18n="remember">Se souvenir de moi</span></label>
+            <a href="#" data-i18n="forgot">Mot de passe oublié ?</a>
+          </div>
+
+          <button class="submit-btn" type="submit" data-i18n="loginSubmit">Me connecter</button>
+        </form>
+
+        <p class="switch-row"><span data-i18n="loginSwitch">Pas encore de compte ?</span> <a href="inscription.html" data-i18n="loginSwitchLink">Créer un compte</a></p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" role="status" aria-live="polite" data-toast><span data-toast-text></span></div>
+</body>
+</html>

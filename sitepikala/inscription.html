@@ -1,0 +1,99 @@
+﻿<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Créez votre compte Pikala pour explorer Rabat à vélo avec les stations et le scanner QR.">
+  <title>Inscription - Pikala</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+  <script src="auth.js" defer></script>
+</head>
+<body data-page="signup">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-label="Pikala à Rabat">
+      <a class="brand-link" href="index.html">
+        <img src="logo.jpeg" alt="Pikala">
+        <span>Pikala</span>
+      </a>
+      <img src="multi.jpeg" alt="Vélos Pikala à Rabat">
+      <div class="visual-copy reveal">
+        <p class="eyebrow" data-i18n="signupEyebrow">Inscription</p>
+        <h1 data-i18n="signupVisualTitle">Votre prochain trajet commence ici.</h1>
+        <p data-i18n="signupVisualText">Un compte Pikala vous donne accès aux stations, au scanner QR et aux signalements rapides.</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-topbar">
+        <a class="back-link" href="index.html" data-i18n="back">Retour au site</a>
+        <div class="language-switch" aria-label="Choix de langue">
+          <button type="button" class="active" data-lang="fr">FR</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ar">AR</button>
+        </div>
+      </div>
+
+      <div class="form-wrap reveal delay">
+        <p class="eyebrow" data-i18n="signupEyebrow">Inscription</p>
+        <h2 data-i18n="signupTitle">Créez votre compte Pikala.</h2>
+        <p class="form-sub" data-i18n="signupSub">Quelques informations suffisent pour commencer à explorer Rabat à vélo.</p>
+
+        <form class="auth-form" data-auth-form novalidate>
+          <div class="form-grid">
+            <div class="field">
+              <label for="firstName" data-i18n="firstName">Prénom</label>
+              <div class="input-wrap"><input id="firstName" name="firstName" type="text" autocomplete="given-name" required></div>
+            </div>
+            <div class="field">
+              <label for="lastName" data-i18n="lastName">Nom</label>
+              <div class="input-wrap"><input id="lastName" name="lastName" type="text" autocomplete="family-name" required></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="email" data-i18n="email">Adresse e-mail</label>
+            <div class="input-wrap">
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="vous@exemple.com" required>
+              <span class="input-icon" aria-hidden="true">@</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="phone" data-i18n="phone">Téléphone</label>
+            <div class="input-wrap"><input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+212 6 00 00 00 00"></div>
+          </div>
+
+          <div class="field">
+            <label for="password" data-i18n="password">Mot de passe</label>
+            <div class="input-wrap">
+              <input id="password" name="password" type="password" autocomplete="new-password" placeholder="••••••••" required>
+              <button class="password-toggle" type="button" data-toggle-password="#password">Voir</button>
+            </div>
+            <div class="strength" data-strength><span></span><span></span><span></span><span></span></div>
+            <div class="strength-label" data-strength-label></div>
+          </div>
+
+          <div class="field">
+            <label for="confirmPassword" data-i18n="confirmPassword">Confirmer le mot de passe</label>
+            <div class="input-wrap">
+              <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="••••••••" required>
+              <button class="password-toggle" type="button" data-toggle-password="#confirmPassword">Voir</button>
+            </div>
+          </div>
+
+          <label class="check-row"><input id="terms" name="terms" type="checkbox" required> <span data-i18n="termsText">J’accepte les conditions générales et la politique de confidentialité.</span></label>
+
+          <button class="submit-btn" type="submit" data-i18n="signupSubmit">Créer mon compte</button>
+        </form>
+
+        <p class="switch-row"><span data-i18n="signupSwitch">Déjà un compte ?</span> <a href="connexion.html" data-i18n="signupSwitchLink">Me connecter</a></p>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" role="status" aria-live="polite" data-toast><span data-toast-text></span></div>
+</body>
+</html>

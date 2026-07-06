@@ -5,8 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="refresh" content="3; url=index.html">
 <title>Pikala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&display=swap" rel="stylesheet">
 
 <style>
+:root {
+  --green: #72c31a;
+  --green-dark: #3f7f10;
+  --paper: #fbfbf7;
+  --white: #ffffff;
+  --shadow: 0 24px 80px rgba(28, 42, 20, 0.18);
+}
+
 body {
   margin: 0;
   height: 100vh;
@@ -15,7 +26,7 @@ body {
   justify-content: center;
   align-items: center;
   overflow: hidden;
-  background: #fff;
+  background: var(--paper);
 }
 
 /* background logo */
@@ -23,7 +34,7 @@ body {
   position: absolute;
   inset: 0;
   background: url("logo.jpeg") no-repeat center;
-  background-size: 60%;
+  background-size: min(58vw, 560px);
   opacity: 1;
   z-index: 0;
   bottom: 140px;
@@ -36,7 +47,7 @@ body {
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(255,255,255,0.9),
+    rgba(251,251,247,0.92),
     rgba(114,195,26,0.08)
   );
   z-index: 1;
@@ -63,12 +74,12 @@ body {
   height: 75px;
   border-radius: 50%;
   border: none;
-  background: #72c31a;
+  background: var(--green);
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 40px 30px rgba(114,195,26,0.35);
+  box-shadow: var(--shadow), 0 18px 38px rgba(114,195,26,0.25);
   transition: 0.3s ease;
   margin: 0 auto;
   position: static;
@@ -78,13 +89,18 @@ body {
 /* hover */
 .start-btn:hover {
   transform: scale(1.1);
-  background: #4a8f0e;
+  background: var(--green-dark);
+}
+
+.start-btn:focus-visible {
+  outline: 4px solid rgba(114,195,26,0.28);
+  outline-offset: 6px;
 }
 
 /* icône */
 .start-btn span {
   font-size: 30px;
-  color: white;
+  color: var(--white);
 }
 
 /* animation douce */

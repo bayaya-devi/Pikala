@@ -1,144 +1,364 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="3; url=index.html">
-<title>Pikala</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="4; url=index.html">
+  <title>Pikala - Chargement</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --green: #72c31a;
+      --green-dark: #3f7f10;
+      --ink: #20251f;
+      --muted: #65705f;
+      --paper: #fbfbf7;
+      --white: #ffffff;
+      --line: rgba(32, 37, 31, 0.12);
+      --shadow: 0 28px 90px rgba(28, 42, 20, 0.18);
+    }
 
-<style>
-:root {
-  --green: #72c31a;
-  --green-dark: #3f7f10;
-  --paper: #fbfbf7;
-  --white: #ffffff;
-  --shadow: 0 24px 80px rgba(28, 42, 20, 0.18);
-}
+    * { box-sizing: border-box; }
 
-body {
-  margin: 0;
-  height: 100vh;
-  font-family: 'DM Sans', sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  background: var(--paper);
-}
+    body {
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      font-family: "DM Sans", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(114, 195, 26, 0.18), transparent 28rem),
+        linear-gradient(180deg, var(--white) 0%, var(--paper) 72%);
+    }
 
-/* background logo */
-.bg {
-  position: absolute;
-  inset: 0;
-  background: url("logo.jpeg") no-repeat center;
-  background-size: min(58vw, 560px);
-  opacity: 1;
-  z-index: 0;
-  bottom: 140px;
-  animation: logoIntro 0.9s ease both;
-}
+    .loader {
+      position: relative;
+      width: min(920px, 92vw);
+      min-height: min(640px, 92vh);
+      display: grid;
+      grid-template-rows: 1fr auto;
+      align-items: end;
+      padding: clamp(1.4rem, 4vw, 3rem);
+    }
 
-/* overlay gradient */
-.overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(251,251,247,0.92),
-    rgba(114,195,26,0.08)
-  );
-  z-index: 1;
-}
+    .brand-mark {
+      position: absolute;
+      top: clamp(1.5rem, 6vh, 4rem);
+      left: 50%;
+      width: min(440px, 72vw);
+      transform: translateX(-50%);
+      filter: drop-shadow(0 24px 48px rgba(32, 37, 31, 0.1));
+      opacity: 0;
+      animation: logoReveal 0.9s ease 0.15s forwards;
+    }
 
-/* container */
-.content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  padding-bottom: 12vh;
-  animation: contentIntro 0.8s ease 0.25s both;
-}
+    .scene {
+      position: relative;
+      min-height: 240px;
+      display: grid;
+      align-items: end;
+      padding-bottom: 5.2rem;
+    }
 
+    .road {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 4.35rem;
+      height: 3px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(32, 37, 31, 0.22), transparent);
+      overflow: hidden;
+    }
 
-/* bouton start */
-.start-btn {
-  width: 75px;
-  height: 75px;
-  border-radius: 50%;
-  border: none;
-  background: var(--green);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: var(--shadow), 0 18px 38px rgba(114,195,26,0.25);
-  transition: 0.3s ease;
-  margin: 0 auto;
-  position: static;
-  text-decoration: none;
-}
+    .road::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(90deg, transparent 0 34px, rgba(114, 195, 26, 0.65) 34px 52px, transparent 52px 86px);
+      animation: roadMove 0.75s linear infinite;
+    }
 
-/* hover */
-.start-btn:hover {
-  transform: scale(1.1);
-  background: var(--green-dark);
-}
+    .bike-wrap {
+      --bike-scale: 1;
+      position: absolute;
+      left: 50%;
+      bottom: 4.05rem;
+      width: 230px;
+      height: 128px;
+      transform: translateX(-50%);
+      animation: bikeRide 3.8s cubic-bezier(0.42, 0, 0.2, 1) infinite;
+    }
 
-.start-btn:focus-visible {
-  outline: 4px solid rgba(114,195,26,0.28);
-  outline-offset: 6px;
-}
+    .speed {
+      position: absolute;
+      left: 8px;
+      top: 16px;
+      width: 88px;
+      height: 32px;
+    }
 
-/* icône */
-.start-btn span {
-  font-size: 30px;
-  color: var(--white);
-}
+    .speed span {
+      position: absolute;
+      right: 0;
+      height: 5px;
+      border-radius: 999px;
+      background: var(--green);
+      transform-origin: right center;
+      animation: streak 0.7s ease-in-out infinite;
+    }
 
-/* animation douce */
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-  100% { transform: translateY(0px); }
-}
+    .speed span:nth-child(1) { top: 0; width: 74px; }
+    .speed span:nth-child(2) { top: 13px; width: 54px; animation-delay: 0.12s; }
+    .speed span:nth-child(3) { top: 26px; width: 34px; animation-delay: 0.24s; }
 
-@keyframes logoIntro {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
+    .wheel {
+      position: absolute;
+      bottom: 0;
+      width: 74px;
+      height: 74px;
+      border: 10px solid var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
 
-@keyframes contentIntro {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+    .wheel::before,
+    .wheel::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-top: 3px solid rgba(32, 37, 31, 0.42);
+      top: 50%;
+      transform-origin: center;
+    }
 
-.start-btn {
-  animation: float 2.5s infinite ease-in-out;
-}
+    .wheel::after { transform: rotate(90deg); }
+    .wheel.front { right: 6px; }
+    .wheel.back { left: 12px; }
 
-</style>
+    .frame,
+    .handle,
+    .seat,
+    .fork,
+    .chain {
+      position: absolute;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 0 7px 18px rgba(32, 37, 31, 0.14);
+    }
+
+    .frame.main {
+      left: 62px;
+      bottom: 58px;
+      width: 102px;
+      transform: rotate(0deg);
+    }
+
+    .frame.down {
+      left: 54px;
+      bottom: 36px;
+      width: 78px;
+      transform: rotate(-56deg);
+      transform-origin: left center;
+    }
+
+    .frame.top {
+      left: 94px;
+      bottom: 82px;
+      width: 86px;
+      transform: rotate(0deg);
+    }
+
+    .frame.back-bar {
+      left: 54px;
+      bottom: 36px;
+      width: 78px;
+      transform: rotate(36deg);
+      transform-origin: left center;
+    }
+
+    .fork {
+      right: 48px;
+      bottom: 36px;
+      width: 64px;
+      transform: rotate(-75deg);
+      transform-origin: right center;
+    }
+
+    .chain {
+      left: 92px;
+      bottom: 31px;
+      width: 88px;
+    }
+
+    .seat {
+      left: 84px;
+      bottom: 92px;
+      width: 54px;
+    }
+
+    .handle {
+      right: 10px;
+      bottom: 94px;
+      width: 44px;
+      transform: rotate(0deg);
+    }
+
+    .handle::after {
+      content: "";
+      position: absolute;
+      right: -6px;
+      top: -18px;
+      width: 9px;
+      height: 36px;
+      border-radius: 999px;
+      background: var(--ink);
+      transform: rotate(10deg);
+    }
+
+    .dot {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--ink);
+      bottom: 29px;
+    }
+
+    .dot.back { left: 63px; }
+    .dot.front { right: 39px; }
+
+    .copy {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      justify-items: center;
+      gap: 1rem;
+      text-align: center;
+      animation: copyReveal 0.8s ease 0.45s both;
+    }
+
+    .loading-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(0.98rem, 2vw, 1.1rem);
+      font-weight: 700;
+    }
+
+    .enter-link {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      padding: 0 1.15rem;
+      border: 1px solid rgba(114, 195, 26, 0.32);
+      border-radius: 999px;
+      background: var(--green);
+      color: var(--white);
+      text-decoration: none;
+      font-weight: 900;
+      box-shadow: var(--shadow), 0 16px 34px rgba(114, 195, 26, 0.28);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .enter-link:hover {
+      transform: translateY(-2px);
+      background: var(--green-dark);
+    }
+
+    .enter-link:focus-visible {
+      outline: 4px solid rgba(114, 195, 26, 0.3);
+      outline-offset: 5px;
+    }
+
+    @keyframes logoReveal {
+      from { opacity: 0; transform: translate(-50%, 16px) scale(0.96); }
+      to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
+    @keyframes bikeRide {
+      0% { transform: translateX(calc(-50% - 34vw)) scale(var(--bike-scale)); opacity: 0; }
+      12% { opacity: 1; }
+      52% { transform: translateX(-50%) scale(var(--bike-scale)); opacity: 1; }
+      88% { opacity: 1; }
+      100% { transform: translateX(calc(-50% + 34vw)) scale(var(--bike-scale)); opacity: 0; }
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes roadMove {
+      from { transform: translateX(0); }
+      to { transform: translateX(-86px); }
+    }
+
+    @keyframes streak {
+      0%, 100% { opacity: 0.3; transform: scaleX(0.72); }
+      50% { opacity: 1; transform: scaleX(1); }
+    }
+
+    @keyframes copyReveal {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .loader { min-height: 100vh; padding: 1.2rem; }
+      .brand-mark { width: min(340px, 78vw); top: 12vh; }
+      .scene { min-height: 260px; padding-bottom: 6rem; }
+      .bike-wrap { --bike-scale: 0.82; width: 190px; }
+      .loading-text { max-width: 18rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <main class="loader" aria-label="Chargement de Pikala">
+    <img class="brand-mark" src="logo.jpeg" alt="Pikala">
 
-<div class="bg"></div>
-<div class="overlay"></div>
+    <section class="scene" aria-hidden="true">
+      <div class="road"></div>
+      <div class="bike-wrap">
+        <div class="speed"><span></span><span></span><span></span></div>
+        <div class="wheel back"></div>
+        <div class="wheel front"></div>
+        <div class="frame main"></div>
+        <div class="frame top"></div>
+        <div class="frame down"></div>
+        <div class="frame back-bar"></div>
+        <div class="fork"></div>
+        <div class="chain"></div>
+        <div class="seat"></div>
+        <div class="handle"></div>
+        <div class="dot back"></div>
+        <div class="dot front"></div>
+      </div>
+    </section>
 
-<div class="content">
+    <div class="copy">
+      <p class="loading-text">Préparation de votre trajet Pikala...</p>
+      <a class="enter-link" href="index.html" aria-label="Commencez à pédaler">
+        Commencez à pédaler
+      </a>
+    </div>
+  </main>
 
-  <a href="index.html" class="start-btn" aria-label="Commencez à pédalez">
-    <span aria-hidden="true">▶</span>
-  </a>
-
-</div>
-
+  <script>
+    window.setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 3800);
+  </script>
 </body>
 </html>

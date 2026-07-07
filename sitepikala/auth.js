@@ -1,4 +1,4 @@
-﻿const page = document.body.dataset.page;
+const page = document.body.dataset.page;
 const langButtons = document.querySelectorAll('[data-lang]');
 const languageMenu = document.querySelector('[data-language-menu]');
 const languageSummary = languageMenu?.querySelector('summary');
@@ -130,7 +130,7 @@ signupPassword?.addEventListener('input', () => {
 });
 
 const form = document.querySelector('[data-auth-form]');
-form?.addEventListener('submit', (event) => {
+form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const dictionary = currentCopy();
   const submit = form.querySelector('[type="submit"]');
@@ -153,8 +153,39 @@ form?.addEventListener('submit', (event) => {
   if (submit instanceof HTMLButtonElement) {
     setLoading(submit, true, page === 'signup' ? dictionary.signupLoading : dictionary.loginLoading);
   }
-  showToast(page === 'signup' ? dictionary.signupSuccess : dictionary.loginSuccess);
-  redirectTo(page === 'signup' ? 'abonnement.html' : 'dashboard.html');
-});
 
+  try {
+    const payload = page === 'signup'
+      ? {
+          firstName: form.querySelector('#firstName')?.value.trim() || '',
+          lastName: form.querySelector('#lastName')?.value.trim() || '',
+          phone: form.querySelector('#phone')?.value.trim() || '',
+          email,
+          password
+        }
+      : { email, password };
+
+    const response = await fetch(page === 'signup' ? '/api/signup' : '/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      showToast(data.error || dictionary.required);
+      return;
+    }
+
+    if (data.user) localStorage.setItem('pikala-user', JSON.stringify(data.user));
+    showToast(page === 'signup' ? dictionary.signupSuccess : dictionary.loginSuccess);
+    redirectTo(page === 'signup' ? 'abonnement.html' : 'dashboard.html');
+  } catch {
+    showToast('Connexion au serveur impossible. Réessayez dans un instant.');
+  } finally {
+    if (submit instanceof HTMLButtonElement) {
+      setLoading(submit, false, page === 'signup' ? dictionary.signupSubmit : dictionary.loginSubmit);
+    }
+  }
+});
 setLanguage(detectPreferredLanguage());

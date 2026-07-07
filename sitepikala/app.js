@@ -80,6 +80,16 @@ function setLanguage(lang) {
   localStorage.setItem('pikala-lang', lang);
 }
 
+function detectPreferredLanguage() {
+  const saved = localStorage.getItem('pikala-lang');
+  if (saved) return saved;
+
+  const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+  if (browserLang.startsWith('fr')) return 'fr';
+  if (browserLang.startsWith('ar')) return 'ar';
+  return 'en';
+}
+
 setHeaderState();
 window.addEventListener('scroll', setHeaderState, { passive: true });
 
@@ -103,7 +113,7 @@ languageButtons.forEach((button) => {
   });
 });
 
-setLanguage(localStorage.getItem('pikala-lang') || 'fr');
+setLanguage(detectPreferredLanguage());
 
 const revealItems = document.querySelectorAll('.reveal');
 revealItems.forEach((item) => {

@@ -59,27 +59,53 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .site-nav a:hover, .site-nav a:focus-visible { color: var(--green-dark); }
 .nav-login { padding-left: 0.7rem; }
 .language-switch {
+  position: relative;
+  display: inline-block;
+}
+.language-switch summary {
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.2rem;
+  justify-content: center;
+  padding: 0 0.9rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255,255,255,0.72);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
 }
-.language-switch button {
-  min-width: 38px;
-  height: 32px;
+.language-switch summary::-webkit-details-marker { display: none; }
+.language-options {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 80;
+  min-width: 150px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+.language-options button {
+  width: 100%;
+  min-height: 36px;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(var(--radius) - 2px);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   font: inherit;
   font-size: 0.78rem;
   font-weight: 900;
+  text-align: left;
+  padding: 0 0.7rem;
 }
-.language-switch button.active {
+.language-options button.active {
   background: var(--ink);
   color: var(--white);
 }
@@ -306,6 +332,8 @@ body.is-rtl .price { justify-content: flex-start; }
 body.is-rtl .phone-panel { text-align: right; }
 body.is-rtl .trust-list li { padding-left: 0; padding-right: 1.65rem; }
 body.is-rtl .trust-list li::before { left: auto; right: 0; }
+body.is-rtl .language-options { right: auto; left: 0; }
+body.is-rtl .language-options button { text-align: right; }
 
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.75s ease, transform 0.75s ease; transition-delay: var(--delay, 0ms); }
 .reveal.is-visible { opacity: 1; transform: translateY(0); }
@@ -326,8 +354,9 @@ body.is-rtl .trust-list li::before { left: auto; right: 0; }
   .site-nav { position: fixed; left: 5vw; right: 5vw; top: 82px; display: grid; gap: 0.4rem; padding: 1rem; background: rgba(255,255,255,0.96); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); transform: translateY(-12px); opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
   .site-nav.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
   .site-nav a { padding: 0.85rem; border-radius: var(--radius); }
-  .language-switch { width: 100%; justify-content: space-between; }
-  .language-switch button { flex: 1; }
+  .language-switch { width: 100%; }
+  .language-switch summary { width: 100%; }
+  .language-options { position: static; margin-top: 0.4rem; box-shadow: none; }
   .nav-login { padding-left: 0.85rem; }
   .hero, .split, .pricing-layout, .app-preview { grid-template-columns: 1fr; }
   .hero { padding-top: 110px; gap: 2rem; }

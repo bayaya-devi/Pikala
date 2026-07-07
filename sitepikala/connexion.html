@@ -29,11 +29,16 @@
     <section class="auth-panel">
       <div class="auth-topbar">
         <a class="back-link" href="index.html" data-i18n="back">Retour au site</a>
-        <div class="language-switch" aria-label="Choix de langue">
-          <button type="button" class="active" data-lang="fr">FR</button>
-          <button type="button" data-lang="en">EN</button>
-          <button type="button" data-lang="ar">AR</button>
-        </div>
+        <details class="language-switch" data-language-menu>
+          <summary>Langue</summary>
+          <div class="language-options" aria-label="Choix de langue">
+            <button type="button" class="active" data-lang="fr">FR</button>
+            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="es">ES</button>
+            <button type="button" data-lang="pt">PT</button>
+            <button type="button" data-lang="ar">AR</button>
+          </div>
+        </details>
       </div>
 
       <div class="form-wrap reveal delay">

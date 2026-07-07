@@ -1,5 +1,7 @@
 ﻿const page = document.body.dataset.page;
 const langButtons = document.querySelectorAll('[data-lang]');
+const languageMenu = document.querySelector('[data-language-menu]');
+const languageSummary = languageMenu?.querySelector('summary');
 const toast = document.querySelector('[data-toast]');
 const toastText = document.querySelector('[data-toast-text]');
 
@@ -11,6 +13,14 @@ const copy = {
   en: {
     back: 'Back to site', loginEyebrow: 'Log in', loginTitle: 'Good to see you again.', loginSub: 'Log in to access your bikes, map, and Pikala profile.', loginVisualTitle: 'Get back on the road in seconds.', loginVisualText: 'Your Pikala space brings stations, QR scanning, and rides into one simple mobile experience.', email: 'Email address', password: 'Password', remember: 'Remember me', forgot: 'Forgot password?', loginSubmit: 'Log in', loginLoading: 'Logging in...', loginSuccess: 'Login successful. Redirecting to your space.', loginSwitch: 'No account yet?', loginSwitchLink: 'Create account',
     signupEyebrow: 'Sign up', signupTitle: 'Create your Pikala account.', signupSub: 'A few details are enough to start exploring Rabat by bike.', signupVisualTitle: 'Your next ride starts here.', signupVisualText: 'A Pikala account gives you access to stations, QR scanning, and fast issue reporting.', firstName: 'First name', lastName: 'Last name', phone: 'Phone', confirmPassword: 'Confirm password', termsText: 'I accept the terms and privacy policy.', signupSubmit: 'Create my account', signupLoading: 'Creating account...', signupSuccess: 'Account created. You can now choose your subscription.', signupSwitch: 'Already have an account?', signupSwitchLink: 'Log in', weak: 'Too weak', medium: 'Medium', strong: 'Strong', veryStrong: 'Very strong', required: 'Please fill in all required fields.', badEmail: 'Please enter a valid email address.', badPassword: 'Password must be at least 8 characters.', mismatch: 'Passwords do not match.', acceptTerms: 'Please accept the terms.'
+  },
+  es: {
+    back: 'Volver al sitio', loginEyebrow: 'Iniciar sesión', loginTitle: 'Nos alegra verte de nuevo.', loginSub: 'Inicia sesión para acceder a tus bicicletas, mapa y perfil Pikala.', loginVisualTitle: 'Vuelve a la ruta en segundos.', loginVisualText: 'Tu espacio Pikala reúne estaciones, escaneo QR y trayectos en una experiencia móvil simple.', email: 'Correo electrónico', password: 'Contraseña', remember: 'Recordarme', forgot: '¿Olvidaste tu contraseña?', loginSubmit: 'Iniciar sesión', loginLoading: 'Iniciando sesión...', loginSuccess: 'Sesión iniciada. Redirección a tu espacio.', loginSwitch: '¿Aún no tienes cuenta?', loginSwitchLink: 'Crear cuenta',
+    signupEyebrow: 'Registro', signupTitle: 'Crea tu cuenta Pikala.', signupSub: 'Unos pocos datos bastan para empezar a explorar Rabat en bicicleta.', signupVisualTitle: 'Tu próximo trayecto empieza aquí.', signupVisualText: 'Una cuenta Pikala te da acceso a estaciones, escaneo QR y reporte rápido de problemas.', firstName: 'Nombre', lastName: 'Apellido', phone: 'Teléfono', confirmPassword: 'Confirmar contraseña', termsText: 'Acepto los términos y la política de privacidad.', signupSubmit: 'Crear mi cuenta', signupLoading: 'Creando cuenta...', signupSuccess: 'Cuenta creada. Ahora puedes elegir tu suscripción.', signupSwitch: '¿Ya tienes cuenta?', signupSwitchLink: 'Iniciar sesión', weak: 'Muy débil', medium: 'Medio', strong: 'Fuerte', veryStrong: 'Muy fuerte', required: 'Completa todos los campos obligatorios.', badEmail: 'Introduce un correo electrónico válido.', badPassword: 'La contraseña debe tener al menos 8 caracteres.', mismatch: 'Las contraseñas no coinciden.', acceptTerms: 'Acepta los términos.'
+  },
+  pt: {
+    back: 'Voltar ao site', loginEyebrow: 'Entrar', loginTitle: 'Bom ver você de novo.', loginSub: 'Entre para acessar suas bicicletas, mapa e perfil Pikala.', loginVisualTitle: 'Volte à rota em segundos.', loginVisualText: 'Seu espaço Pikala reúne estações, leitura de QR e viagens em uma experiência móvel simples.', email: 'E-mail', password: 'Senha', remember: 'Lembrar-me', forgot: 'Esqueceu a senha?', loginSubmit: 'Entrar', loginLoading: 'Entrando...', loginSuccess: 'Login realizado. Redirecionando para seu espaço.', loginSwitch: 'Ainda não tem conta?', loginSwitchLink: 'Criar conta',
+    signupEyebrow: 'Cadastro', signupTitle: 'Crie sua conta Pikala.', signupSub: 'Poucas informações bastam para começar a explorar Rabat de bicicleta.', signupVisualTitle: 'Sua próxima viagem começa aqui.', signupVisualText: 'Uma conta Pikala dá acesso a estações, leitura de QR e relato rápido de problemas.', firstName: 'Nome', lastName: 'Sobrenome', phone: 'Telefone', confirmPassword: 'Confirmar senha', termsText: 'Aceito os termos e a política de privacidade.', signupSubmit: 'Criar minha conta', signupLoading: 'Criando conta...', signupSuccess: 'Conta criada. Agora você pode escolher sua assinatura.', signupSwitch: 'Já tem uma conta?', signupSwitchLink: 'Entrar', weak: 'Muito fraca', medium: 'Média', strong: 'Forte', veryStrong: 'Muito forte', required: 'Preencha todos os campos obrigatórios.', badEmail: 'Digite um e-mail válido.', badPassword: 'A senha deve ter pelo menos 8 caracteres.', mismatch: 'As senhas não coincidem.', acceptTerms: 'Aceite os termos.'
   },
   ar: {
     back: 'العودة إلى الموقع', loginEyebrow: 'تسجيل الدخول', loginTitle: 'سعداء بعودتك.', loginSub: 'سجل الدخول للوصول إلى الدراجات والخريطة وملفك في بيكالا.', loginVisualTitle: 'عد إلى الطريق في ثوان.', loginVisualText: 'تجمع مساحة بيكالا المحطات وماسح QR ورحلاتك في تجربة هاتفية بسيطة.', email: 'البريد الإلكتروني', password: 'كلمة المرور', remember: 'تذكرني', forgot: 'نسيت كلمة المرور؟', loginSubmit: 'تسجيل الدخول', loginLoading: 'جاري تسجيل الدخول...', loginSuccess: 'تم تسجيل الدخول. سيتم تحويلك إلى مساحتك.', loginSwitch: 'ليس لديك حساب؟', loginSwitchLink: 'إنشاء حساب',
@@ -44,6 +54,7 @@ function setLanguage(lang) {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   });
+  if (languageSummary) languageSummary.textContent = `Langue : ${lang.toUpperCase()}`;
   localStorage.setItem('pikala-lang', lang);
 }
 
@@ -56,6 +67,8 @@ function detectPreferredLanguage() {
 
   const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
   if (browserLang.startsWith('fr')) return 'fr';
+  if (browserLang.startsWith('es')) return 'es';
+  if (browserLang.startsWith('pt')) return 'pt';
   if (browserLang.startsWith('ar')) return 'ar';
   return 'en';
 }
@@ -81,7 +94,10 @@ function redirectTo(target) {
 }
 
 langButtons.forEach((button) => {
-  button.addEventListener('click', () => setLanguage(button.dataset.lang || 'fr'));
+  button.addEventListener('click', () => {
+    setLanguage(button.dataset.lang || 'fr');
+    if (languageMenu instanceof HTMLDetailsElement) languageMenu.open = false;
+  });
 });
 
 document.querySelectorAll('[data-toggle-password]').forEach((button) => {

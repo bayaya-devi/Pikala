@@ -29,11 +29,16 @@
       <a href="#stations" data-i18n="navStations">Stations</a>
       <a href="#tarifs" data-i18n="navPricing">Tarifs</a>
       <a href="#contact" data-i18n="navContact">Contact</a>
-      <div class="language-switch" aria-label="Choix de langue">
-        <button type="button" class="active" data-lang="fr">FR</button>
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="ar">AR</button>
-      </div>
+      <details class="language-switch" data-language-menu>
+        <summary>Langue</summary>
+        <div class="language-options" aria-label="Choix de langue">
+          <button type="button" class="active" data-lang="fr">FR</button>
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="es">ES</button>
+          <button type="button" data-lang="pt">PT</button>
+          <button type="button" data-lang="ar">AR</button>
+        </div>
+      </details>
       <a class="nav-login" href="connexion.html" data-auth-link="login" data-i18n="navLogin">Connexion</a>
       <a class="nav-cta" href="inscription.html" data-auth-link="signup" data-i18n="navSignup">Créer un compte</a>
     </nav>

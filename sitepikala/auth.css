@@ -107,26 +107,52 @@ button, input, select { font: inherit; }
 }
 .back-link:hover { color: var(--green-dark); }
 .language-switch {
+  position: relative;
+  display: inline-block;
+}
+.language-switch summary {
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.2rem;
+  justify-content: center;
+  padding: 0 0.9rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 900;
+  list-style: none;
 }
-.language-switch button {
-  min-width: 38px;
-  height: 32px;
+.language-switch summary::-webkit-details-marker { display: none; }
+.language-options {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 20;
+  min-width: 150px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+.language-options button {
+  width: 100%;
+  min-height: 36px;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(var(--radius) - 2px);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 900;
+  text-align: left;
+  padding: 0 0.7rem;
 }
-.language-switch button.active { background: var(--ink); color: var(--white); }
+.language-options button.active { background: var(--ink); color: var(--white); }
 .form-wrap {
   width: min(520px, 100%);
   margin: auto;
@@ -231,6 +257,8 @@ body.is-rtl { direction: rtl; }
 body.is-rtl .brand-link { left: auto; right: 1.6rem; }
 body.is-rtl .input-wrap input { padding: 0 1rem 0 3rem; }
 body.is-rtl .input-icon, body.is-rtl .password-toggle { right: auto; left: 0.85rem; }
+body.is-rtl .language-options { right: auto; left: 0; }
+body.is-rtl .language-options button { text-align: right; }
 @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
@@ -247,7 +275,8 @@ body.is-rtl .input-icon, body.is-rtl .password-toggle { right: auto; left: 0.85r
   .brand-link { top: 1rem; left: 1rem; }
   .auth-panel { padding: 1rem; }
   .auth-topbar { align-items: start; }
-  .language-switch button { min-width: 34px; }
+  .language-switch summary { min-width: 120px; }
+  .language-options { right: 0; }
   .form-grid { grid-template-columns: 1fr; }
   .form-row { align-items: start; flex-direction: column; }
 }

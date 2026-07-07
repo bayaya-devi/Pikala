@@ -6,8 +6,10 @@ const languageButtons = document.querySelectorAll('[data-lang]');
 const translations = {
   fr: {
     title: 'Pikala - Explorez Rabat à vélo', skip: 'Aller au contenu', navHow: 'Comment ça marche', navStations: 'Stations', navPricing: 'Tarifs', navContact: 'Contact', navLogin: 'Connexion', navSignup: 'Créer un compte',
-    heroEyebrow: 'Vélos en libre-service à Rabat', heroTitle: 'Explorez Rabat autrement, à vélo.', heroText: 'Pikala vous aide à rejoindre les quartiers, jardins et monuments de Rabat avec une expérience simple, rapide et plus responsable.', heroPrimary: 'Commencer', heroSecondary: 'Voir les stations',
+    heroEyebrow: 'Vélos en libre-service à Rabat', heroTitle: 'Trouvez un vélo près de vous et partez en quelques secondes.', heroText: 'Pikala rend vos trajets à Rabat plus simples : stations visibles, QR à scanner, abonnement clair et retour dans une station proche.', heroPrimary: 'Créer mon compte', heroSecondary: 'Voir les stations',
+    trust1: 'Aucune carte à chercher : scannez et roulez', trust2: 'Prix simple, sans engagement long', trust3: 'Pensé pour les trajets courts à Rabat',
     today: "Aujourd'hui", bikesAvailable: 'vélos disponibles', openHours: 'Stations actives de 8h à 20h', statStations: 'stations', statBikes: 'vélos', statRoutes: 'itinéraires', statDays: 'jours sur 7',
+    confidence1Title: 'Moins d’hésitation', confidence1Text: 'Un seul abonnement clair pour commencer.', confidence2Title: 'Plus de visibilité', confidence2Text: 'Les stations et vélos disponibles sont faciles à repérer.', confidence3Title: 'Retour rassurant', confidence3Text: 'Déposez le vélo dans une station et continuez votre journée.',
     howEyebrow: 'Simple et rapide', howTitle: 'Votre trajet en trois étapes.', howText: 'Le parcours doit rester clair : choisir une station, scanner le vélo, puis profiter du trajet.',
     step1Title: 'Trouvez une station', step1Text: 'Consultez les vélos disponibles près de vous depuis votre espace utilisateur.', step2Title: 'Scannez le QR', step2Text: 'Débloquez le vélo en quelques secondes avec le scanner intégré.', step3Title: 'Roulez librement', step3Text: 'Découvrez Rabat à votre rythme, puis déposez le vélo dans une station.',
     stationsEyebrow: 'Stations et parcours', stationsTitle: 'Des lieux faciles à rejoindre.', place1: 'Kasbah des Oudayas', place2: 'Tour Hassan', place3: 'Jardins et parcs', place4: 'Corniche', place1Bikes: '8 vélos disponibles', place2Bikes: '3 vélos disponibles', place3Bikes: '12 vélos disponibles', place4Bikes: '5 vélos disponibles',
@@ -17,8 +19,10 @@ const translations = {
   },
   en: {
     title: 'Pikala - Explore Rabat by bike', skip: 'Skip to content', navHow: 'How it works', navStations: 'Stations', navPricing: 'Pricing', navContact: 'Contact', navLogin: 'Log in', navSignup: 'Create account',
-    heroEyebrow: 'Bike sharing in Rabat', heroTitle: 'Explore Rabat differently, by bike.', heroText: 'Pikala helps you reach Rabat’s neighborhoods, gardens, and landmarks with a simple, fast, and more responsible experience.', heroPrimary: 'Get started', heroSecondary: 'View stations',
+    heroEyebrow: 'Bike sharing in Rabat', heroTitle: 'Find a bike near you and start riding in seconds.', heroText: 'Pikala makes short trips in Rabat simpler: visible stations, QR scanning, clear subscription, and easy return to a nearby station.', heroPrimary: 'Create my account', heroSecondary: 'View stations',
+    trust1: 'No card to search for: scan and ride', trust2: 'Simple price, no long commitment', trust3: 'Built for short trips in Rabat',
     today: 'Today', bikesAvailable: 'bikes available', openHours: 'Stations open from 8 AM to 8 PM', statStations: 'stations', statBikes: 'bikes', statRoutes: 'routes', statDays: 'days a week',
+    confidence1Title: 'Less hesitation', confidence1Text: 'One clear subscription to get started.', confidence2Title: 'More visibility', confidence2Text: 'Stations and available bikes are easy to spot.', confidence3Title: 'Reassuring return', confidence3Text: 'Drop the bike at a station and continue your day.',
     howEyebrow: 'Simple and fast', howTitle: 'Your ride in three steps.', howText: 'The journey stays clear: choose a station, scan the bike, then enjoy the ride.',
     step1Title: 'Find a station', step1Text: 'Check nearby bike availability from your user space.', step2Title: 'Scan the QR code', step2Text: 'Unlock the bike in seconds with the built-in scanner.', step3Title: 'Ride freely', step3Text: 'Discover Rabat at your own pace, then return the bike to a station.',
     stationsEyebrow: 'Stations and routes', stationsTitle: 'Places that are easy to reach.', place1: 'Kasbah of the Oudayas', place2: 'Hassan Tower', place3: 'Gardens and parks', place4: 'Corniche', place1Bikes: '8 bikes available', place2Bikes: '3 bikes available', place3Bikes: '12 bikes available', place4Bikes: '5 bikes available',
@@ -28,8 +32,10 @@ const translations = {
   },
   ar: {
     title: 'بيكالا - استكشف الرباط بالدراجة', skip: 'انتقل إلى المحتوى', navHow: 'طريقة الاستخدام', navStations: 'المحطات', navPricing: 'الأسعار', navContact: 'اتصل بنا', navLogin: 'تسجيل الدخول', navSignup: 'إنشاء حساب',
-    heroEyebrow: 'دراجات مشتركة في الرباط', heroTitle: 'استكشف الرباط بطريقة مختلفة، بالدراجة.', heroText: 'تساعدك بيكالا على الوصول إلى أحياء الرباط وحدائقها ومعالمها بتجربة بسيطة وسريعة وأكثر مسؤولية.', heroPrimary: 'ابدأ الآن', heroSecondary: 'عرض المحطات',
+    heroEyebrow: 'دراجات مشتركة في الرباط', heroTitle: 'اعثر على دراجة قريبة وانطلق خلال ثوان.', heroText: 'تجعل بيكالا تنقلاتك القصيرة في الرباط أسهل: محطات واضحة، مسح QR، اشتراك بسيط، وإرجاع في محطة قريبة.', heroPrimary: 'إنشاء حسابي', heroSecondary: 'عرض المحطات',
+    trust1: 'لا حاجة للبحث عن بطاقة: امسح وانطلق', trust2: 'سعر بسيط بدون التزام طويل', trust3: 'مصمم للتنقلات القصيرة في الرباط',
     today: 'اليوم', bikesAvailable: 'دراجة متاحة', openHours: 'المحطات نشطة من 8 صباحا إلى 8 مساء', statStations: 'محطات', statBikes: 'دراجات', statRoutes: 'مسارات', statDays: 'أيام في الأسبوع',
+    confidence1Title: 'تردد أقل', confidence1Text: 'اشتراك واحد واضح للبدء.', confidence2Title: 'رؤية أوضح', confidence2Text: 'المحطات والدراجات المتاحة سهلة التحديد.', confidence3Title: 'إرجاع مطمئن', confidence3Text: 'أعد الدراجة إلى محطة وتابع يومك.',
     howEyebrow: 'بسيط وسريع', howTitle: 'رحلتك في ثلاث خطوات.', howText: 'اختر محطة، امسح رمز الدراجة، ثم استمتع بالرحلة.',
     step1Title: 'ابحث عن محطة', step1Text: 'تحقق من الدراجات المتاحة بالقرب منك من مساحة المستخدم.', step2Title: 'امسح رمز QR', step2Text: 'افتح الدراجة في ثوان عبر الماسح المدمج.', step3Title: 'انطلق بحرية', step3Text: 'اكتشف الرباط بإيقاعك، ثم أعد الدراجة إلى إحدى المحطات.',
     stationsEyebrow: 'المحطات والمسارات', stationsTitle: 'أماكن يسهل الوصول إليها.', place1: 'قصبة الأوداية', place2: 'صومعة حسان', place3: 'الحدائق والمتنزهات', place4: 'الكورنيش', place1Bikes: '8 دراجات متاحة', place2Bikes: '3 دراجات متاحة', place3Bikes: '12 دراجة متاحة', place4Bikes: '5 دراجات متاحة',

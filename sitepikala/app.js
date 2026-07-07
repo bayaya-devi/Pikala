@@ -7,7 +7,7 @@ const languageSummary = languageMenu?.querySelector('summary');
 
 const translations = {
   fr: {
-    title: 'Pikala - Explorez Rabat à vélo', skip: 'Aller au contenu', navHow: 'Comment ça marche', navStations: 'Stations', navPricing: 'Tarifs', navContact: 'Contact', navLogin: 'Connexion', navSignup: 'Créer un compte',
+    title: 'Pikala - Explorez Rabat à vélo', languageLabel: 'Langue', skip: 'Aller au contenu', navHow: 'Comment ça marche', navStations: 'Stations', navPricing: 'Tarifs', navContact: 'Contact', navLogin: 'Connexion', navSignup: 'Créer un compte',
     heroEyebrow: 'Vélos en libre-service à Rabat', heroTitle: 'Trouvez un vélo près de vous et partez en quelques secondes.', heroText: 'Pikala rend vos trajets à Rabat plus simples : stations visibles, QR à scanner, abonnement clair et retour dans une station proche.', heroPrimary: 'Créer mon compte', heroSecondary: 'Voir les stations',
     trust1: 'Aucune carte à chercher : scannez et roulez', trust2: 'Prix simple, sans engagement long', trust3: 'Pensé pour les trajets courts à Rabat',
     today: "Aujourd'hui", bikesAvailable: 'vélos disponibles', openHours: 'Stations actives de 8h à 20h', statStations: 'stations', statBikes: 'vélos', statRoutes: 'itinéraires', statDays: 'jours sur 7',
@@ -20,7 +20,7 @@ const translations = {
     contactTitle: 'Prêt à explorer Rabat ?', contactText: "Créer un compte prend moins d'une minute.", contactSignup: 'S’inscrire', contactEmail: 'Nous contacter', footerText: 'Vélos en libre-service à Rabat.'
   },
   en: {
-    title: 'Pikala - Explore Rabat by bike', skip: 'Skip to content', navHow: 'How it works', navStations: 'Stations', navPricing: 'Pricing', navContact: 'Contact', navLogin: 'Log in', navSignup: 'Create account',
+    title: 'Pikala - Explore Rabat by bike', languageLabel: 'Language', skip: 'Skip to content', navHow: 'How it works', navStations: 'Stations', navPricing: 'Pricing', navContact: 'Contact', navLogin: 'Log in', navSignup: 'Create account',
     heroEyebrow: 'Bike sharing in Rabat', heroTitle: 'Find a bike near you and start riding in seconds.', heroText: 'Pikala makes short trips in Rabat simpler: visible stations, QR scanning, clear subscription, and easy return to a nearby station.', heroPrimary: 'Create my account', heroSecondary: 'View stations',
     trust1: 'No card to search for: scan and ride', trust2: 'Simple price, no long commitment', trust3: 'Built for short trips in Rabat',
     today: 'Today', bikesAvailable: 'bikes available', openHours: 'Stations open from 8 AM to 8 PM', statStations: 'stations', statBikes: 'bikes', statRoutes: 'routes', statDays: 'days a week',
@@ -33,7 +33,7 @@ const translations = {
     contactTitle: 'Ready to explore Rabat?', contactText: 'Creating an account takes less than a minute.', contactSignup: 'Sign up', contactEmail: 'Contact us', footerText: 'Bike sharing in Rabat.'
   },
   es: {
-    title: 'Pikala - Explora Rabat en bicicleta', skip: 'Ir al contenido', navHow: 'Cómo funciona', navStations: 'Estaciones', navPricing: 'Precios', navContact: 'Contacto', navLogin: 'Iniciar sesión', navSignup: 'Crear cuenta',
+    title: 'Pikala - Explora Rabat en bicicleta', languageLabel: 'Idioma', skip: 'Ir al contenido', navHow: 'Cómo funciona', navStations: 'Estaciones', navPricing: 'Precios', navContact: 'Contacto', navLogin: 'Iniciar sesión', navSignup: 'Crear cuenta',
     heroEyebrow: 'Bicicletas compartidas en Rabat', heroTitle: 'Encuentra una bici cerca de ti y sal en segundos.', heroText: 'Pikala simplifica tus trayectos cortos en Rabat: estaciones visibles, escaneo QR, suscripción clara y devolución en una estación cercana.', heroPrimary: 'Crear mi cuenta', heroSecondary: 'Ver estaciones',
     trust1: 'Sin buscar tarjeta: escanea y pedalea', trust2: 'Precio simple, sin compromiso largo', trust3: 'Pensado para trayectos cortos en Rabat',
     today: 'Hoy', bikesAvailable: 'bicicletas disponibles', openHours: 'Estaciones activas de 8:00 a 20:00', statStations: 'estaciones', statBikes: 'bicicletas', statRoutes: 'rutas', statDays: 'días a la semana',
@@ -46,7 +46,7 @@ const translations = {
     contactTitle: '¿Listo para explorar Rabat?', contactText: 'Crear una cuenta toma menos de un minuto.', contactSignup: 'Registrarse', contactEmail: 'Contactarnos', footerText: 'Bicicletas compartidas en Rabat.'
   },
   pt: {
-    title: 'Pikala - Explore Rabat de bicicleta', skip: 'Ir para o conteúdo', navHow: 'Como funciona', navStations: 'Estações', navPricing: 'Preços', navContact: 'Contato', navLogin: 'Entrar', navSignup: 'Criar conta',
+    title: 'Pikala - Explore Rabat de bicicleta', languageLabel: 'Idioma', skip: 'Ir para o conteúdo', navHow: 'Como funciona', navStations: 'Estações', navPricing: 'Preços', navContact: 'Contato', navLogin: 'Entrar', navSignup: 'Criar conta',
     heroEyebrow: 'Bicicletas compartilhadas em Rabat', heroTitle: 'Encontre uma bicicleta perto de você e saia em segundos.', heroText: 'A Pikala simplifica seus trajetos curtos em Rabat: estações visíveis, leitura de QR, assinatura clara e devolução em uma estação próxima.', heroPrimary: 'Criar minha conta', heroSecondary: 'Ver estações',
     trust1: 'Sem procurar cartão: escaneie e pedale', trust2: 'Preço simples, sem compromisso longo', trust3: 'Pensado para trajetos curtos em Rabat',
     today: 'Hoje', bikesAvailable: 'bicicletas disponíveis', openHours: 'Estações ativas das 8h às 20h', statStations: 'estações', statBikes: 'bicicletas', statRoutes: 'rotas', statDays: 'dias por semana',
@@ -59,7 +59,7 @@ const translations = {
     contactTitle: 'Pronto para explorar Rabat?', contactText: 'Criar uma conta leva menos de um minuto.', contactSignup: 'Cadastrar', contactEmail: 'Fale conosco', footerText: 'Bicicletas compartilhadas em Rabat.'
   },
   ar: {
-    title: 'بيكالا - استكشف الرباط بالدراجة', skip: 'انتقل إلى المحتوى', navHow: 'طريقة الاستخدام', navStations: 'المحطات', navPricing: 'الأسعار', navContact: 'اتصل بنا', navLogin: 'تسجيل الدخول', navSignup: 'إنشاء حساب',
+    title: 'بيكالا - استكشف الرباط بالدراجة', languageLabel: 'اللغة', skip: 'انتقل إلى المحتوى', navHow: 'طريقة الاستخدام', navStations: 'المحطات', navPricing: 'الأسعار', navContact: 'اتصل بنا', navLogin: 'تسجيل الدخول', navSignup: 'إنشاء حساب',
     heroEyebrow: 'دراجات مشتركة في الرباط', heroTitle: 'اعثر على دراجة قريبة وانطلق خلال ثوان.', heroText: 'تجعل بيكالا تنقلاتك القصيرة في الرباط أسهل: محطات واضحة، مسح QR، اشتراك بسيط، وإرجاع في محطة قريبة.', heroPrimary: 'إنشاء حسابي', heroSecondary: 'عرض المحطات',
     trust1: 'لا حاجة للبحث عن بطاقة: امسح وانطلق', trust2: 'سعر بسيط بدون التزام طويل', trust3: 'مصمم للتنقلات القصيرة في الرباط',
     today: 'اليوم', bikesAvailable: 'دراجة متاحة', openHours: 'المحطات نشطة من 8 صباحا إلى 8 مساء', statStations: 'محطات', statBikes: 'دراجات', statRoutes: 'مسارات', statDays: 'أيام في الأسبوع',
@@ -112,7 +112,7 @@ function setLanguage(lang) {
     button.classList.toggle('active', isActive);
     button.setAttribute('aria-pressed', String(isActive));
   });
-  if (languageSummary) languageSummary.textContent = `Langue : ${lang.toUpperCase()}`;
+  if (languageSummary) languageSummary.textContent = `${dictionary.languageLabel} : ${lang.toUpperCase()}`;
 
   localStorage.setItem('pikala-lang', lang);
 }

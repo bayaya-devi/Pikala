@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
   <link rel="stylesheet" href="chatbot.css">
+  <script src="user-space.js" defer></script>
   <script src="chatbot.js" defer></script>
 </head>
-<body>
+<body data-user-page="subscription">
   <main class="content">
     <div class="topbar">
       <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
@@ -34,7 +35,7 @@
           <div><strong>Stations</strong><span>18 à Rabat</span></div>
           <div><strong>Support</strong><span>7j/7</span></div>
         </div>
-        <p><a class="button primary" href="dashboard.html">Activer et aller au tableau de bord</a></p>
+        <p><a class="button primary" href="dashboard.html" data-activate-subscription>Activer et aller au tableau de bord</a></p>
       </article>
     </section>
   </main>

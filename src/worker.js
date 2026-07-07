@@ -1,0 +1,202 @@
+const USER_FIELDS = 'id, first_name, last_name, email, phone, role, created_at';
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store'
+    }
+  });
+}
+
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
+function validEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function requireDb(env) {
+  if (!env.DB) throw new Error('La liaison D1 DB est manquante.');
+  return env.DB;
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  const binary = atob(value);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, key, 256);
+  return `pbkdf2$100000$${bytesToBase64(salt)}$${bytesToBase64(new Uint8Array(bits))}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const parts = String(storedHash || '').split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
+  const iterations = Number(parts[1]);
+  const salt = base64ToBytes(parts[2]);
+  const expected = base64ToBytes(parts[3]);
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, key, 256);
+  const actual = new Uint8Array(bits);
+  if (actual.length !== expected.length) return false;
+  let diff = 0;
+  actual.forEach((byte, index) => { diff |= byte ^ expected[index]; });
+  return diff === 0;
+}
+
+function publicUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    email: row.email,
+    phone: row.phone,
+    role: row.role,
+    created_at: row.created_at
+  };
+}
+
+async function signup(request, env) {
+  const DB = requireDb(env);
+  const body = await readJson(request);
+  if (!body) return json({ error: 'Requête invalide.' }, 400);
+
+  const firstName = String(body.firstName || '').trim();
+  const lastName = String(body.lastName || '').trim();
+  const email = String(body.email || '').trim().toLowerCase();
+  const phone = String(body.phone || '').trim();
+  const password = String(body.password || '');
+
+  if (!firstName || !lastName || !email || !password) return json({ error: 'Veuillez remplir tous les champs obligatoires.' }, 400);
+  if (!validEmail(email)) return json({ error: 'Veuillez entrer une adresse e-mail valide.' }, 400);
+  if (password.length < 8) return json({ error: 'Le mot de passe doit contenir au moins 8 caractères.' }, 400);
+
+  const existing = await DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (existing) return json({ error: 'Un compte existe déjà avec cette adresse e-mail.' }, 409);
+
+  const passwordHash = await hashPassword(password);
+  const result = await DB.prepare(
+    'INSERT INTO users (first_name, last_name, email, phone, password_hash) VALUES (?, ?, ?, ?, ?)'
+  ).bind(firstName, lastName, email, phone || null, passwordHash).run();
+
+  const user = await DB.prepare(`SELECT ${USER_FIELDS} FROM users WHERE id = ?`).bind(result.meta.last_row_id).first();
+  return json({ success: true, user: publicUser(user) }, 201);
+}
+
+async function login(request, env) {
+  const DB = requireDb(env);
+  const body = await readJson(request);
+  if (!body) return json({ error: 'Requête invalide.' }, 400);
+
+  const email = String(body.email || '').trim().toLowerCase();
+  const password = String(body.password || '');
+  if (!email || !password) return json({ error: 'Veuillez remplir tous les champs obligatoires.' }, 400);
+
+  const row = await DB.prepare(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = ?`).bind(email).first();
+  if (!row || !(await verifyPassword(password, row.password_hash))) {
+    return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
+  }
+
+  return json({ success: true, user: publicUser(row) });
+}
+
+async function stations(env) {
+  const DB = requireDb(env);
+  const { results } = await DB.prepare(
+    'SELECT id, name, city, address, latitude, longitude, bikes_available, is_active FROM stations WHERE is_active = 1 ORDER BY id'
+  ).all();
+  return json({ stations: results || [] });
+}
+
+async function subscription(request, env) {
+  const DB = requireDb(env);
+  const body = await readJson(request);
+  const userId = Number(body?.userId);
+  const plan = String(body?.plan || 'premium').trim();
+  if (!userId) return json({ error: 'Utilisateur manquant.' }, 400);
+
+  await DB.prepare("UPDATE subscriptions SET status = 'inactive', ends_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'").bind(userId).run();
+  const result = await DB.prepare(
+    "INSERT INTO subscriptions (user_id, plan, status) VALUES (?, ?, 'active')"
+  ).bind(userId, plan).run();
+  const sub = await DB.prepare('SELECT id, user_id, plan, status, starts_at, ends_at FROM subscriptions WHERE id = ?').bind(result.meta.last_row_id).first();
+  return json({ success: true, subscription: sub }, 201);
+}
+
+async function profile(request, env) {
+  const DB = requireDb(env);
+  const url = new URL(request.url);
+  const userId = Number(url.searchParams.get('userId'));
+  if (!userId) return json({ error: 'Utilisateur manquant.' }, 400);
+
+  const user = await DB.prepare(`SELECT ${USER_FIELDS} FROM users WHERE id = ?`).bind(userId).first();
+  if (!user) return json({ error: 'Utilisateur introuvable.' }, 404);
+  const subscription = await DB.prepare(
+    "SELECT id, plan, status, starts_at, ends_at FROM subscriptions WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1"
+  ).bind(userId).first();
+  const { results: rides } = await DB.prepare('SELECT id, status, started_at, ended_at FROM rides WHERE user_id = ? ORDER BY id DESC LIMIT 5').bind(userId).all();
+
+  return json({ user: publicUser(user), subscription, rides: rides || [] });
+}
+
+async function support(request, env) {
+  const DB = requireDb(env);
+  const body = await readJson(request);
+  const subject = String(body?.subject || 'Signalement Pikala').trim();
+  const message = String(body?.message || '').trim();
+  if (!message) return json({ error: 'Veuillez décrire le problème.' }, 400);
+
+  const userId = Number(body?.userId) || null;
+  const name = String(body?.name || '').trim() || null;
+  const email = String(body?.email || '').trim() || null;
+  await DB.prepare('INSERT INTO support_tickets (user_id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)').bind(userId, name, email, subject, message).run();
+  return json({ success: true }, 201);
+}
+
+async function ride(request, env) {
+  const DB = requireDb(env);
+  const body = await readJson(request);
+  const userId = Number(body?.userId);
+  if (!userId) return json({ error: 'Connectez-vous pour débloquer un vélo.' }, 401);
+
+  const station = await DB.prepare('SELECT id FROM stations WHERE is_active = 1 ORDER BY id LIMIT 1').first();
+  const result = await DB.prepare("INSERT INTO rides (user_id, start_station_id, status) VALUES (?, ?, 'active')").bind(userId, station?.id || null).run();
+  const rideRow = await DB.prepare('SELECT id, user_id, start_station_id, status, started_at FROM rides WHERE id = ?').bind(result.meta.last_row_id).first();
+  return json({ success: true, ride: rideRow }, 201);
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    try {
+      if (request.method === 'POST' && url.pathname === '/api/signup') return signup(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/login') return login(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/stations') return stations(env);
+      if (request.method === 'GET' && url.pathname === '/api/profile') return profile(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/subscriptions') return subscription(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/rides') return ride(request, env);
+    } catch (error) {
+      return json({ error: error.message || 'Erreur serveur.' }, 500);
+    }
+
+    return env.ASSETS.fetch(request);
+  }
+};

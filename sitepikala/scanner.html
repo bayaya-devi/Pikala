@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
   <link rel="stylesheet" href="chatbot.css">
+  <script src="user-space.js" defer></script>
   <script src="chatbot.js" defer></script>
 </head>
-<body>
+<body data-user-page="scanner">
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
@@ -24,7 +25,7 @@
         <div class="panel">
           <h2>Comment scanner</h2>
           <p class="muted">Placez le QR code du vélo dans le cadre. Cette page prépare le parcours avant l'ajout du vrai scanner caméra.</p>
-          <a class="button primary" href="dashboard.html">Simuler le déblocage</a>
+          <a class="button primary" href="dashboard.html" data-start-ride>Simuler le déblocage</a>
         </div>
       </section>
     </main>

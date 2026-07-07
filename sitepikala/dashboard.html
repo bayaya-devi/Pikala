@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
   <link rel="stylesheet" href="chatbot.css">
+  <script src="user-space.js" defer></script>
   <script src="chatbot.js" defer></script>
 </head>
-<body>
+<body data-user-page="dashboard">
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
@@ -28,7 +29,7 @@
     <main class="content">
       <div class="topbar">
         <div>
-          <p class="eyebrow">Bonjour Abdallah</p>
+          <p class="eyebrow" data-user-greeting>Bonjour</p>
           <h1>Votre trajet peut commencer.</h1>
         </div>
         <a class="button ghost" href="index.html">Retour au site</a>
@@ -37,7 +38,7 @@
       <section class="grid two">
         <div class="panel hero-panel">
           <p class="eyebrow">Station proche</p>
-          <h1>Kasbah des Oudayas : 8 vélos disponibles.</h1>
+          <h1><span data-nearest-station>Chargement des stations...</span></h1>
           <p>Scannez un QR code, roulez, puis déposez le vélo dans une station Pikala.</p>
           <div>
             <a class="button primary" href="scanner.html">Scanner un vélo</a>
@@ -45,9 +46,9 @@
           </div>
         </div>
         <div class="grid">
-          <article class="tile"><strong>124</strong><span class="muted">vélos disponibles</span></article>
-          <article class="tile"><strong>18</strong><span class="muted">stations actives</span></article>
-          <article class="tile"><strong>Premium</strong><span class="muted">abonnement actif</span></article>
+          <article class="tile"><strong data-total-bikes>0</strong><span class="muted">vélos disponibles</span></article>
+          <article class="tile"><strong data-total-stations>0</strong><span class="muted">stations actives</span></article>
+          <article class="tile"><strong data-subscription-status>Aucun</strong><span class="muted">abonnement</span></article>
         </div>
       </section>
 

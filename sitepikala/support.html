@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
   <link rel="stylesheet" href="chatbot.css">
+  <script src="user-space.js" defer></script>
   <script src="chatbot.js" defer></script>
 </head>
-<body>
+<body data-user-page="support">
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
@@ -20,11 +21,11 @@
     <main class="content">
       <div class="topbar"><div><p class="eyebrow">Support</p><h1>Signalez un problème.</h1></div><a class="button ghost" href="dashboard.html">Retour</a></div>
       <section class="grid two">
-        <form class="panel form">
+        <form class="panel form" data-support-form>
           <h2>Nouveau signalement</h2>
-          <input type="text" placeholder="Numéro du vélo ou station">
-          <textarea placeholder="Décrivez le problème"></textarea>
-          <button class="button primary" type="button">Envoyer le signalement</button>
+          <input name="subject" type="text" placeholder="Numéro du vélo ou station">
+          <textarea name="message" placeholder="Décrivez le problème" required></textarea>
+          <button class="button primary" type="submit">Envoyer le signalement</button>
         </form>
         <article class="panel">
           <h2>Aide rapide</h2>

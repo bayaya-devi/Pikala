@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pikala - Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="user-space.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
+      <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a class="active" href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a></nav>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div><p class="eyebrow">Scanner QR</p><h1>Débloquez votre vélo.</h1></div><a class="button ghost" href="stations.html">Voir les stations</a></div>
+      <section class="grid two">
+        <div class="panel"><div class="scan-frame"><strong>QR</strong></div></div>
+        <div class="panel">
+          <h2>Comment scanner</h2>
+          <p class="muted">Placez le QR code du vélo dans le cadre. Cette page prépare le parcours avant l'ajout du vrai scanner caméra.</p>
+          <a class="button primary" href="dashboard.html">Simuler le déblocage</a>
+        </div>
+      </section>
+    </main>
+  </div>
+  <nav class="bottom-nav"><a href="dashboard.html">Accueil</a><a href="stations.html">Stations</a><a class="active" href="scanner.html">Scanner</a><a href="profil.html">Profil</a></nav>
+</body>
+</html>

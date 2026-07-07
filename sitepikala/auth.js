@@ -154,7 +154,7 @@ form?.addEventListener('submit', (event) => {
     setLoading(submit, true, page === 'signup' ? dictionary.signupLoading : dictionary.loginLoading);
   }
   showToast(page === 'signup' ? dictionary.signupSuccess : dictionary.loginSuccess);
-  redirectTo(page === 'signup' ? 'abonement.html' : 'Pageuser.html');
+  redirectTo(page === 'signup' ? 'abonnement.html' : 'dashboard.html');
 });
 
 setLanguage(detectPreferredLanguage());

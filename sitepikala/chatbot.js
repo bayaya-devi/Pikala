@@ -2,16 +2,16 @@
   const ui = {
     fr: {
       title: 'Assistant Pikala',
-      subtitle: 'Je reponds directement',
-      placeholder: 'Ex: velo proche, scan marche pas...',
+      subtitle: 'Réponses directes',
+      placeholder: 'Ex. : vélo proche, problème de QR...',
       send: 'Envoyer',
       close: 'Fermer',
       open: 'Ouvrir le chat',
-      hello: 'Bonjour. Je suis l assistant Pikala. Ecrivez meme une phrase courte ou avec des fautes, je vais essayer de comprendre.',
-      fallback: 'Je ne suis pas encore sur a 100%. Demandez-moi par exemple : station proche, prix abonnement, scanner QR, connexion, support ou probleme velo.',
+      hello: 'Bonjour. Je suis l’assistant Pikala. Vous pouvez écrire une question courte, même avec des fautes : je ferai de mon mieux pour comprendre.',
+      fallback: 'Je ne suis pas encore certain d’avoir compris. Vous pouvez me demander, par exemple : station proche, prix de l’abonnement, scanner QR, connexion, support ou problème avec un vélo.',
       pageMatch: 'Sur cette page, je vois surtout :',
       linksIntro: 'Vous pouvez aussi ouvrir :',
-      suggestions: ['Velo proche', 'Scanner QR', 'Prix abonnement', 'Probleme velo']
+      suggestions: ['Vélo proche', 'Scanner QR', 'Prix de l’abonnement', 'Problème avec un vélo']
     },
     en: {
       title: 'Pikala Assistant',
@@ -20,7 +20,7 @@
       send: 'Send',
       close: 'Close',
       open: 'Open chat',
-      hello: 'Hi. I am the Pikala assistant. You can type short or imperfect sentences, I will try to understand.',
+      hello: 'Hi. I am the Pikala assistant. You can type short or imperfect sentences, and I will do my best to understand.',
       fallback: 'I am not fully sure yet. Try asking: nearby station, subscription price, QR scanner, login, support, or bike issue.',
       pageMatch: 'On this page, I mostly see:',
       linksIntro: 'You can also open:',
@@ -33,11 +33,11 @@
       send: 'Enviar',
       close: 'Cerrar',
       open: 'Abrir chat',
-      hello: 'Hola. Soy el asistente Pikala. Puedes escribir frases cortas o con errores, intentare entender.',
-      fallback: 'Todavia no estoy seguro. Preguntame por estacion cercana, precio, escaner QR, conexion, soporte o problema con bici.',
-      pageMatch: 'En esta pagina veo sobre todo:',
-      linksIntro: 'Tambien puedes abrir:',
-      suggestions: ['Bici cerca', 'Escaner QR', 'Precio', 'Problema bici']
+      hello: 'Hola. Soy el asistente Pikala. Puedes escribir frases cortas o con errores; intentaré entender.',
+      fallback: 'Todavía no estoy seguro de haber entendido. Puedes preguntarme por una estación cercana, el precio, el escáner QR, la conexión, el soporte o un problema con una bici.',
+      pageMatch: 'En esta página veo sobre todo:',
+      linksIntro: 'También puedes abrir:',
+      suggestions: ['Bici cerca', 'Escáner QR', 'Precio', 'Problema con una bici']
     },
     pt: {
       title: 'Assistente Pikala',
@@ -46,118 +46,118 @@
       send: 'Enviar',
       close: 'Fechar',
       open: 'Abrir chat',
-      hello: 'Ola. Sou o assistente Pikala. Pode escrever frases curtas ou com erros, vou tentar entender.',
-      fallback: 'Ainda nao tenho certeza. Pergunte sobre estacao perto, preco, scanner QR, login, suporte ou problema com bicicleta.',
-      pageMatch: 'Nesta pagina, vejo principalmente:',
-      linksIntro: 'Voce tambem pode abrir:',
-      suggestions: ['Bike perto', 'Scanner QR', 'Preco', 'Problema bike']
+      hello: 'Olá. Sou o assistente Pikala. Pode escrever frases curtas ou com erros; vou tentar entender.',
+      fallback: 'Ainda não tenho certeza de ter entendido. Pergunte sobre estação próxima, preço, scanner QR, login, suporte ou problema com bicicleta.',
+      pageMatch: 'Nesta página, vejo principalmente:',
+      linksIntro: 'Você também pode abrir:',
+      suggestions: ['Bike perto', 'Scanner QR', 'Preço', 'Problema com bike']
     },
     ar: {
-      title: 'Pikala Assistant',
-      subtitle: 'Quick answers',
-      placeholder: 'Ask about station, QR, price...',
-      send: 'Send',
-      close: 'Close',
-      open: 'Open chat',
-      hello: 'Hello. I am the Pikala assistant. You can ask short questions and I will try to understand.',
-      fallback: 'I am not fully sure yet. Ask about stations, QR scanner, price, login, support, or bike problems.',
-      pageMatch: 'On this page, I mostly see:',
-      linksIntro: 'You can also open:',
-      suggestions: ['Stations', 'QR scanner', 'Price', 'Support']
+      title: 'مساعد بيكالا',
+      subtitle: 'إجابات مباشرة',
+      placeholder: 'اسأل عن المحطات أو QR أو السعر...',
+      send: 'إرسال',
+      close: 'إغلاق',
+      open: 'فتح المحادثة',
+      hello: 'مرحباً. أنا مساعد بيكالا. يمكنك كتابة سؤال قصير، وسأحاول فهمه.',
+      fallback: 'لست متأكداً من أنني فهمت سؤالك. يمكنك أن تسألني عن المحطات أو ماسح QR أو السعر أو تسجيل الدخول أو الدعم.',
+      pageMatch: 'في هذه الصفحة أرى خصوصاً:',
+      linksIntro: 'يمكنك أيضاً فتح:',
+      suggestions: ['المحطات', 'ماسح QR', 'السعر', 'الدعم']
     }
   };
 
   const answers = {
     greeting: {
-      fr: 'Bonjour. Je peux vous aider rapidement : trouver une station, comprendre le scanner, voir le prix, gerer le compte ou signaler un probleme.',
+      fr: 'Bonjour. Je peux vous aider rapidement à trouver une station, comprendre le scanner, consulter le prix, gérer votre compte ou signaler un problème.',
       en: 'Hi. I can help you find a station, understand the scanner, check pricing, manage your account, or report a problem.',
-      es: 'Hola. Puedo ayudarte con estaciones, escaner, precio, cuenta o soporte.',
-      pt: 'Ola. Posso ajudar com estacoes, scanner, preco, conta ou suporte.',
-      ar: 'Hello. I can help with stations, scanner, price, account, or support.'
+      es: 'Hola. Puedo ayudarte con estaciones, escáner, precio, cuenta o soporte.',
+      pt: 'Olá. Posso ajudar com estações, scanner, preço, conta ou suporte.',
+      ar: 'مرحباً. يمكنني مساعدتك في المحطات، وماسح QR، والسعر، والحساب، والدعم.'
     },
     station: {
-      fr: 'Pour trouver un velo, ouvrez Stations. Vous verrez les points comme Kasbah des Oudayas, Tour Hassan, Jardins et Corniche avec le nombre de velos disponibles.',
+      fr: 'Pour trouver un vélo, ouvrez la page Stations. Vous verrez les points comme la Kasbah des Oudayas, la Tour Hassan, les Jardins et la Corniche, avec le nombre de vélos disponibles.',
       en: 'Open Stations to find a bike. You will see places like Kasbah, Hassan Tower, Gardens, and Corniche with available bikes.',
-      es: 'Abre Estaciones para encontrar una bici. Veras los puntos disponibles y el numero de bicicletas.',
-      pt: 'Abra Estacoes para encontrar uma bike. Voce vera os pontos e o numero de bicicletas disponiveis.',
-      ar: 'Open Stations to find available bikes near you.'
+      es: 'Abre Estaciones para encontrar una bici. Verás los puntos disponibles y el número de bicicletas.',
+      pt: 'Abra Estações para encontrar uma bike. Você verá os pontos e o número de bicicletas disponíveis.',
+      ar: 'افتح صفحة المحطات للعثور على الدراجات المتاحة بالقرب منك.'
     },
     availability: {
-      fr: 'Actuellement le site montre des disponibilites de demonstration : 8 velos a Kasbah, 3 a Tour Hassan, 12 aux Jardins et 5 a la Corniche.',
+      fr: 'Actuellement, le site affiche des disponibilités de démonstration : 8 vélos à la Kasbah, 3 à la Tour Hassan, 12 aux Jardins et 5 à la Corniche.',
       en: 'The site currently shows demo availability: 8 bikes at Kasbah, 3 at Hassan Tower, 12 at Gardens, and 5 at Corniche.',
-      es: 'El sitio muestra datos de prueba: 8 bicis en Kasbah, 3 en Torre Hassan, 12 en Jardines y 5 en Corniche.',
-      pt: 'O site mostra dados de demonstracao: 8 bikes em Kasbah, 3 na Torre Hassan, 12 nos Jardins e 5 na Corniche.',
-      ar: 'The site currently shows demo bike availability by station.'
+      es: 'El sitio muestra datos de prueba: 8 bicis en Kasbah, 3 en la Torre Hassan, 12 en Jardines y 5 en Corniche.',
+      pt: 'O site mostra dados de demonstração: 8 bikes em Kasbah, 3 na Torre Hassan, 12 nos Jardins e 5 na Corniche.',
+      ar: 'يعرض الموقع حالياً بيانات تجريبية لتوفر الدراجات حسب المحطة.'
     },
     scanner: {
-      fr: 'Le scanner sert a debloquer un velo avec son QR code. Pour l instant, la page Scanner simule le parcours. Plus tard, on pourra connecter la camera et une vraie base de donnees.',
+      fr: 'Le scanner sert à débloquer un vélo avec son QR code. Pour l’instant, la page Scanner simule le parcours. Plus tard, elle pourra être reliée à la caméra et à une vraie base de données.',
       en: 'The scanner unlocks a bike with its QR code. For now, the Scanner page simulates the flow. Later it can connect to camera and database.',
-      es: 'El escaner desbloquea una bici con QR. Por ahora la pagina simula el recorrido; luego se puede conectar camara y base de datos.',
-      pt: 'O scanner desbloqueia uma bike por QR. Por enquanto a pagina simula o fluxo; depois pode ligar camera e banco de dados.',
-      ar: 'The scanner unlocks a bike with QR. It is currently simulated.'
+      es: 'El escáner desbloquea una bici con QR. Por ahora, la página simula el recorrido; más adelante se podrá conectar la cámara y una base de datos.',
+      pt: 'O scanner desbloqueia uma bike por QR. Por enquanto, a página simula o fluxo; depois poderá conectar a câmera e o banco de dados.',
+      ar: 'يفتح ماسح QR الدراجة. في الوقت الحالي، هذه الميزة تجريبية.'
     },
     scannerIssue: {
-      fr: 'Si le scan ne marche pas : verifiez la lumiere, nettoyez le QR, rapprochez le telephone, puis essayez un autre velo. Si ca bloque encore, ouvrez Support et signalez le numero du velo.',
+      fr: 'Si le scan ne fonctionne pas, vérifiez la lumière, nettoyez le QR code, rapprochez le téléphone, puis essayez un autre vélo. Si le problème continue, ouvrez Support et indiquez le numéro du vélo.',
       en: 'If scanning fails: check light, clean the QR, move closer, then try another bike. If it still fails, open Support and report the bike number.',
-      es: 'Si el escaneo falla: revisa la luz, limpia el QR, acerca el telefono y prueba otra bici. Si sigue, abre Soporte.',
-      pt: 'Se o scan falhar: verifique a luz, limpe o QR, aproxime o telefone e tente outra bike. Se continuar, abra Suporte.',
-      ar: 'If scanning fails, check light, clean QR, move closer, or report it in Support.'
+      es: 'Si el escaneo falla, revisa la luz, limpia el QR, acerca el teléfono y prueba otra bici. Si continúa, abre Soporte.',
+      pt: 'Se o scan falhar, verifique a luz, limpe o QR, aproxime o telefone e tente outra bike. Se continuar, abra Suporte.',
+      ar: 'إذا لم يعمل المسح، تحقق من الإضاءة ونظافة رمز QR، ثم أبلغ الدعم إذا استمرت المشكلة.'
     },
     subscription: {
-      fr: 'Apres inscription, vous arrivez sur Abonnement. La formule de demonstration affiche 200 MAD par mois, puis vous pouvez aller au tableau de bord.',
+      fr: 'Après l’inscription, vous arrivez sur la page Abonnement. La formule de démonstration affiche 200 MAD par mois, puis vous pouvez accéder au tableau de bord.',
       en: 'After signup, you land on Subscription. The demo plan shows 200 MAD/month, then you can continue to the dashboard.',
-      es: 'Despues del registro llegas a Suscripcion. El plan demo muestra 200 MAD/mes y luego puedes ir al panel.',
-      pt: 'Depois do cadastro voce chega em Assinatura. O plano demo mostra 200 MAD/mes e depois vai ao painel.',
-      ar: 'After signup, the subscription page shows the demo plan at 200 MAD/month.'
+      es: 'Después del registro, llegas a Suscripción. El plan de demostración muestra 200 MAD al mes y luego puedes ir al panel.',
+      pt: 'Depois do cadastro, você chega à página Assinatura. O plano de demonstração mostra 200 MAD por mês e depois leva ao painel.',
+      ar: 'بعد التسجيل، تعرض صفحة الاشتراك الخطة التجريبية بسعر 200 درهم شهرياً.'
     },
     login: {
-      fr: 'Le parcours est simple : inscription vers Abonnement, connexion vers Tableau de bord. Pour tester, remplissez le formulaire avec un email valide et un mot de passe de 8 caracteres minimum.',
+      fr: 'Le parcours est simple : l’inscription mène vers Abonnement, et la connexion mène vers le Tableau de bord. Pour tester, utilisez une adresse e-mail valide et un mot de passe d’au moins 8 caractères.',
       en: 'Flow is simple: signup goes to Subscription, login goes to Dashboard. Use a valid email and an 8-character password to test.',
-      es: 'El recorrido: registro a Suscripcion, conexion a Panel. Usa email valido y una contrasena de 8 caracteres.',
-      pt: 'Fluxo: cadastro para Assinatura, login para Painel. Use email valido e senha com 8 caracteres.',
-      ar: 'Signup goes to Subscription, login goes to Dashboard.'
+      es: 'El recorrido es simple: registro hacia Suscripción y conexión hacia el Panel. Usa un email válido y una contraseña de al menos 8 caracteres.',
+      pt: 'O fluxo é simples: cadastro para Assinatura e login para Painel. Use um e-mail válido e uma senha com pelo menos 8 caracteres.',
+      ar: 'ينقلك التسجيل إلى صفحة الاشتراك، وينقلك تسجيل الدخول إلى لوحة التحكم.'
     },
     dashboard: {
-      fr: 'Le tableau de bord donne acces a Stations, Scanner, Profil et Support. C est la page principale apres connexion.',
+      fr: 'Le tableau de bord donne accès à Stations, Scanner, Profil et Support. C’est la page principale après la connexion.',
       en: 'The dashboard gives access to Stations, Scanner, Profile, and Support. It is the main page after login.',
-      es: 'El panel da acceso a Estaciones, Escaner, Perfil y Soporte.',
-      pt: 'O painel da acesso a Estacoes, Scanner, Perfil e Suporte.',
-      ar: 'Dashboard gives access to Stations, Scanner, Profile, and Support.'
+      es: 'El panel da acceso a Estaciones, Escáner, Perfil y Soporte.',
+      pt: 'O painel dá acesso a Estações, Scanner, Perfil e Suporte.',
+      ar: 'تمنحك لوحة التحكم الوصول إلى المحطات، والماسح، والملف الشخصي، والدعم.'
     },
     support: {
-      fr: 'Pour un probleme, allez sur Support. Indiquez le numero du velo ou la station, puis decrivez le souci : frein, QR, roue, station pleine, etc.',
+      fr: 'Pour signaler un problème, allez sur Support. Indiquez le numéro du vélo ou la station, puis décrivez le souci : frein, QR code, roue, station pleine, etc.',
       en: 'For a problem, open Support. Add bike number or station, then describe the issue: brake, QR, wheel, full station, etc.',
-      es: 'Para un problema, abre Soporte. Indica numero de bici o estacion y describe el problema.',
-      pt: 'Para problema, abra Suporte. Informe numero da bike ou estacao e descreva o problema.',
-      ar: 'For problems, open Support and describe the bike or station issue.'
+      es: 'Para un problema, abre Soporte. Indica el número de la bici o la estación y describe el problema.',
+      pt: 'Para relatar um problema, abra Suporte. Informe o número da bike ou a estação e descreva o problema.',
+      ar: 'للإبلاغ عن مشكلة، افتح صفحة الدعم وصف مشكلة الدراجة أو المحطة.'
     },
     profile: {
-      fr: 'La page Profil contient les informations du compte, la langue et l abonnement. Plus tard, elle pourra afficher les vraies donnees utilisateur depuis la base.',
+      fr: 'La page Profil contient les informations du compte, la langue et l’abonnement. Plus tard, elle pourra afficher les vraies données utilisateur depuis la base.',
       en: 'Profile contains account details, language, and subscription. Later it can show real database data.',
-      es: 'Perfil contiene datos de cuenta, idioma y suscripcion.',
-      pt: 'Perfil contem dados da conta, idioma e assinatura.',
-      ar: 'Profile contains account details, language, and subscription.'
+      es: 'Perfil contiene los datos de la cuenta, el idioma y la suscripción.',
+      pt: 'Perfil contém os dados da conta, o idioma e a assinatura.',
+      ar: 'تحتوي صفحة الملف الشخصي على بيانات الحساب واللغة والاشتراك.'
     },
     language: {
-      fr: 'Le site propose FR, EN, ES, PT et AR. Le choix est memorise dans le navigateur et le bouton langue s adapte a la langue active.',
+      fr: 'Le site propose FR, EN, ES, PT et AR. Le choix est mémorisé dans le navigateur, et le bouton de langue s’adapte à la langue active.',
       en: 'The site offers FR, EN, ES, PT, and AR. The choice is saved in the browser and the language button adapts.',
-      es: 'El sitio ofrece FR, EN, ES, PT y AR. La eleccion se guarda en el navegador.',
+      es: 'El sitio ofrece FR, EN, ES, PT y AR. La elección se guarda en el navegador.',
       pt: 'O site oferece FR, EN, ES, PT e AR. A escolha fica salva no navegador.',
-      ar: 'The site supports FR, EN, ES, PT, and AR.'
+      ar: 'يدعم الموقع اللغات FR وEN وES وPT وAR.'
     },
     contact: {
-      fr: 'Pour contacter Pikala, utilisez la section Contact du site ou la page Support pour un probleme lie a un velo, une station ou un compte.',
+      fr: 'Pour contacter Pikala, utilisez la section Contact du site ou la page Support pour un problème lié à un vélo, une station ou un compte.',
       en: 'Use the Contact section or Support page for bike, station, or account issues.',
-      es: 'Usa Contacto o Soporte para problemas de bici, estacion o cuenta.',
-      pt: 'Use Contato ou Suporte para problemas com bike, estacao ou conta.',
-      ar: 'Use Contact or Support for issues.'
+      es: 'Usa Contacto o Soporte para problemas de bici, estación o cuenta.',
+      pt: 'Use Contato ou Suporte para problemas com bike, estação ou conta.',
+      ar: 'استخدم صفحة الاتصال أو الدعم للمشكلات.'
     },
     thanks: {
       fr: 'Avec plaisir. Dites-moi ce que vous voulez faire ensuite.',
       en: 'You are welcome. Tell me what you want to do next.',
       es: 'Con gusto. Dime que quieres hacer ahora.',
-      pt: 'De nada. Diga o que voce quer fazer agora.',
-      ar: 'You are welcome.'
+      pt: 'De nada. Diga o que você quer fazer agora.',
+      ar: 'على الرحب والسعة.'
     }
   };
 
@@ -311,11 +311,11 @@
     const wantsAction = tokens.some((token) => ['faire', 'aller', 'ouvrir', 'go', 'open', 'comment', 'how'].includes(token));
     if (!wantsAction) return base;
     const extra = {
-      fr: ' Le plus simple : ouvrez le lien correspondant dans le menu, puis suivez l etape affichee.',
+      fr: ' Le plus simple : ouvrez le lien correspondant dans le menu, puis suivez l’étape affichée.',
       en: ' Easiest path: open the matching page in the menu and follow the step shown there.',
-      es: ' Lo mas simple: abre la pagina correspondiente en el menu y sigue el paso indicado.',
-      pt: ' O mais simples: abra a pagina correspondente no menu e siga o passo indicado.',
-      ar: ' Open the matching page in the menu and follow the step shown there.'
+      es: ' Lo más simple: abre la página correspondiente en el menú y sigue el paso indicado.',
+      pt: ' O mais simples: abra a página correspondente no menu e siga o passo indicado.',
+      ar: 'افتح الصفحة المناسبة من القائمة، ثم اتبع الخطوة المعروضة.'
     };
     return `${base}${extra[lang] || extra.fr}`;
   }

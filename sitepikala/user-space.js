@@ -1,22 +1,7 @@
-const session = {
-  get user() {
-    try { return JSON.parse(localStorage.getItem('pikala-user') || 'null'); } catch { return null; }
-  },
-  set user(value) { localStorage.setItem('pikala-user', JSON.stringify(value)); },
-  clear() { localStorage.removeItem('pikala-user'); }
-};
+let currentUser = null;
 
 function fullName(user) {
   return [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Utilisateur Pikala';
-}
-
-function requireUser() {
-  const user = session.user;
-  if (!user) {
-    window.location.href = 'connexion.html';
-    return null;
-  }
-  return user;
 }
 
 function setText(selector, value) {
@@ -34,18 +19,34 @@ async function api(path, options = {}) {
   return data;
 }
 
+async function requireUser() {
+  if (currentUser) return currentUser;
+  try {
+    const data = await api('/api/me');
+    currentUser = data.user;
+    return currentUser;
+  } catch {
+    window.location.href = 'connexion.html';
+    return null;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' }[char]));
+}
+
 function wireLogout() {
   document.querySelectorAll('[data-logout]').forEach((link) => {
-    link.addEventListener('click', (event) => {
+    link.addEventListener('click', async (event) => {
       event.preventDefault();
-      session.clear();
+      try { await api('/api/logout', { method: 'POST', body: '{}' }); } catch {}
       window.location.href = 'index.html';
     });
   });
 }
 
 async function loadDashboard() {
-  const user = requireUser();
+  const user = await requireUser();
   if (!user) return;
   setText('[data-user-greeting]', `Bonjour ${user.first_name || fullName(user)}`);
   try {
@@ -59,7 +60,7 @@ async function loadDashboard() {
     setText('[data-nearest-station]', error.message);
   }
   try {
-    const profile = await api(`/api/profile?userId=${encodeURIComponent(user.id)}`);
+    const profile = await api('/api/profile');
     setText('[data-subscription-status]', profile.subscription ? profile.subscription.plan : 'Aucun');
   } catch {
     setText('[data-subscription-status]', 'Aucun');
@@ -67,42 +68,41 @@ async function loadDashboard() {
 }
 
 async function loadStations() {
-  requireUser();
+  await requireUser();
   const list = document.querySelector('[data-stations-list]');
   if (!list) return;
   list.innerHTML = '<div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div>';
   try {
     const { stations } = await api('/api/stations');
-    list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${station.name}</strong><span>${station.bikes_available} vélos</span><span class="status">Ouverte</span></div>`).join('') || '<div class="station-row"><strong>Aucune station</strong><span>0 vélo</span><span class="status">Fermée</span></div>';
+    list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} vélos</span><span class="status">Ouverte</span></div>`).join('') || '<div class="station-row"><strong>Aucune station</strong><span>0 vélo</span><span class="status">Fermée</span></div>';
   } catch (error) {
-    list.innerHTML = `<div class="station-row"><strong>${error.message}</strong><span></span><span class="status">Erreur</span></div>`;
+    list.innerHTML = `<div class="station-row"><strong>${escapeHtml(error.message)}</strong><span></span><span class="status">Erreur</span></div>`;
   }
 }
 
 async function loadProfile() {
-  const user = requireUser();
+  const user = await requireUser();
   if (!user) return;
   setText('[data-profile-name]', fullName(user));
   setText('[data-profile-email]', user.email || '');
   setText('[data-profile-phone]', user.phone || 'Non renseigné');
   try {
-    const profile = await api(`/api/profile?userId=${encodeURIComponent(user.id)}`);
-    if (profile.user) session.user = profile.user;
+    const profile = await api('/api/profile');
     setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} actif` : 'Aucun abonnement actif');
   } catch (error) {
     setText('[data-profile-subscription]', error.message);
   }
 }
 
-function wireSubscription() {
-  const user = requireUser();
+async function wireSubscription() {
+  const user = await requireUser();
   const button = document.querySelector('[data-activate-subscription]');
   if (!user || !button) return;
   button.addEventListener('click', async (event) => {
     event.preventDefault();
     button.textContent = 'Activation...';
     try {
-      await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ userId: user.id, plan: 'Premium' }) });
+      await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: 'Premium' }) });
       window.location.href = 'dashboard.html';
     } catch (error) {
       button.textContent = error.message;
@@ -110,8 +110,8 @@ function wireSubscription() {
   });
 }
 
-function wireSupport() {
-  const user = requireUser();
+async function wireSupport() {
+  const user = await requireUser();
   const form = document.querySelector('[data-support-form]');
   if (!user || !form) return;
   form.addEventListener('submit', async (event) => {
@@ -121,7 +121,7 @@ function wireSupport() {
     const button = form.querySelector('button');
     if (button) button.textContent = 'Envoi...';
     try {
-      await api('/api/support', { method: 'POST', body: JSON.stringify({ userId: user.id, name: fullName(user), email: user.email, subject, message }) });
+      await api('/api/support', { method: 'POST', body: JSON.stringify({ subject, message }) });
       form.reset();
       if (button) button.textContent = 'Signalement envoyé';
     } catch (error) {
@@ -130,15 +130,15 @@ function wireSupport() {
   });
 }
 
-function wireScanner() {
-  const user = requireUser();
+async function wireScanner() {
+  const user = await requireUser();
   const button = document.querySelector('[data-start-ride]');
   if (!user || !button) return;
   button.addEventListener('click', async (event) => {
     event.preventDefault();
     button.textContent = 'Déblocage...';
     try {
-      await api('/api/rides', { method: 'POST', body: JSON.stringify({ userId: user.id }) });
+      await api('/api/rides', { method: 'POST', body: '{}' });
       button.textContent = 'Vélo débloqué';
       window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
     } catch (error) {

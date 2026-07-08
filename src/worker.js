@@ -172,6 +172,15 @@ async function createVerification(DB, userId) {
   return token;
 }
 
+async function debugSchema(env) {
+  const DB = requireDb(env);
+  const steps = [];
+  try { await DB.prepare('SELECT 1 AS ok').first(); steps.push('select ok'); } catch (error) { return json({ step: 'select', error: String(error.message || error) }, 500); }
+  try { await DB.prepare('CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, revoked_at TEXT, user_agent TEXT, ip_hint TEXT)').run(); steps.push('sessions ok'); } catch (error) { return json({ step: 'sessions', error: String(error.message || error), steps }, 500); }
+  try { await DB.prepare('CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, used_at TEXT)').run(); steps.push('email_verifications ok'); } catch (error) { return json({ step: 'email_verifications', error: String(error.message || error), steps }, 500); }
+  try { await DB.prepare('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0').run(); steps.push('alter ok'); } catch (error) { steps.push(`alter skipped: ${String(error.message || error)}`); }
+  return json({ ok: true, steps });
+}
 async function signup(request, env) {
   const DB = requireDb(env);
   await ensureSchema(DB);
@@ -312,7 +321,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true });
+      if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true }); if (request.method === 'GET' && url.pathname === '/api/debug-schema') return debugSchema(env);
       if (request.method === 'POST' && url.pathname === '/api/signup') return signup(request, env);
       if (request.method === 'GET' && url.pathname === '/api/verify-email') return verifyEmail(request, env);
       if (request.method === 'POST' && url.pathname === '/api/login') return login(request, env);

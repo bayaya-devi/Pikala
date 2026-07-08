@@ -321,17 +321,17 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true }); if (request.method === 'GET' && url.pathname === '/api/debug-schema') return debugSchema(env);
-      if (request.method === 'POST' && url.pathname === '/api/signup') return signup(request, env);
-      if (request.method === 'GET' && url.pathname === '/api/verify-email') return verifyEmail(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/login') return login(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/logout') return logout(request, env);
-      if (request.method === 'GET' && url.pathname === '/api/me') return me(request, env);
-      if (request.method === 'GET' && url.pathname === '/api/stations') return stations(env);
-      if (request.method === 'GET' && url.pathname === '/api/profile') return profile(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/subscriptions') return subscription(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/rides') return ride(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true });
+      if (request.method === 'POST' && url.pathname === '/api/signup') return await signup(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/verify-email') return await verifyEmail(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/login') return await login(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/logout') return await logout(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/me') return await me(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/stations') return await stations(env);
+      if (request.method === 'GET' && url.pathname === '/api/profile') return await profile(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/subscriptions') return await subscription(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/support') return await support(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/rides') return await ride(request, env);
     } catch (error) {
       return json({ error: error.message || 'Erreur serveur.' }, 500);
     }

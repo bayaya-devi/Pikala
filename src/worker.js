@@ -2,7 +2,7 @@ const USER_FIELDS = 'id, first_name, last_name, email, phone, role, created_at, 
 const SESSION_COOKIE = 'pikala_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
-const PASSWORD_ITERATIONS = 600000;
+const PASSWORD_ITERATIONS = 100000;
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {

@@ -2,6 +2,7 @@ const USER_FIELDS = 'id, first_name, last_name, email, phone, role, created_at, 
 const SESSION_COOKIE = 'pikala_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
+const REQUIRE_EMAIL_VERIFICATION = false;
 const PASSWORD_ITERATIONS = 100000;
 
 function json(data, status = 200, extraHeaders = {}) {
@@ -201,9 +202,14 @@ async function signup(request, env) {
   if (existing) return json({ success: true, pendingVerification: true, message: 'Si cette adresse peut créer un compte, un email de confirmation sera envoyé.' }, 202);
 
   const passwordHash = await hashPassword(password);
-  const result = await DB.prepare('INSERT INTO users (first_name, last_name, email, phone, password_hash, email_verified) VALUES (?, ?, ?, ?, ?, 0)')
-    .bind(firstName, lastName, email, phone || null, passwordHash)
+  const result = await DB.prepare('INSERT INTO users (first_name, last_name, email, phone, password_hash, email_verified) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(firstName, lastName, email, phone || null, passwordHash, REQUIRE_EMAIL_VERIFICATION ? 0 : 1)
     .run();
+  if (!REQUIRE_EMAIL_VERIFICATION) {
+    const user = await DB.prepare(`SELECT ${USER_FIELDS} FROM users WHERE id = ?`).bind(result.meta.last_row_id).first();
+    const sessionToken = await createSession(DB, result.meta.last_row_id, request);
+    return json({ success: true, user: publicUser(user), message: 'Compte créé. Vous êtes connecté.' }, 201, { 'set-cookie': sessionCookie(sessionToken) });
+  }
   const token = await createVerification(DB, result.meta.last_row_id);
   const emailResult = await sendVerificationEmail(env, email, token, firstName);
   return json({ success: true, pendingVerification: true, emailSent: emailResult.sent, message: 'Compte créé. Vérifiez votre email pour l’activer.', verificationUrl: emailResult.verifyUrl }, 201);
@@ -240,7 +246,7 @@ async function login(request, env) {
 
   const row = await DB.prepare(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = ?`).bind(email).first();
   if (!row || !(await verifyPassword(password, row.password_hash))) return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
-  if (!row.email_verified) return json({ error: 'Veuillez confirmer votre email avant de vous connecter.', pendingVerification: true }, 403);
+  if (REQUIRE_EMAIL_VERIFICATION && !row.email_verified) return json({ error: 'Veuillez confirmer votre email avant de vous connecter.', pendingVerification: true }, 403);
 
   const token = await createSession(DB, row.id, request);
   if (!String(row.password_hash).startsWith(`pbkdf2$${PASSWORD_ITERATIONS}$`)) {

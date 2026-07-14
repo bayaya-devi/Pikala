@@ -275,7 +275,32 @@ async function me(request, env) {
 
 async function stations(env) {
   const DB = requireDb(env);
-  const { results } = await DB.prepare('SELECT id, name, city, address, latitude, longitude, bikes_available, is_active FROM stations WHERE is_active = 1 ORDER BY id').all();
+  const { results } = await DB.prepare(`
+    SELECT
+      id,
+      name,
+      city,
+      address,
+      COALESCE(latitude, CASE
+        WHEN LOWER(name) LIKE '%oudaya%' THEN 34.0318
+        WHEN LOWER(name) LIKE '%hassan%' THEN 34.0224
+        WHEN LOWER(name) LIKE '%jardin%' OR LOWER(name) LIKE '%parc%' THEN 34.0209
+        WHEN LOWER(name) LIKE '%corniche%' THEN 34.0059
+        ELSE 34.0209
+      END) AS latitude,
+      COALESCE(longitude, CASE
+        WHEN LOWER(name) LIKE '%oudaya%' THEN -6.8361
+        WHEN LOWER(name) LIKE '%hassan%' THEN -6.8225
+        WHEN LOWER(name) LIKE '%jardin%' OR LOWER(name) LIKE '%parc%' THEN -6.8416
+        WHEN LOWER(name) LIKE '%corniche%' THEN -6.8445
+        ELSE -6.8416
+      END) AS longitude,
+      bikes_available,
+      is_active
+    FROM stations
+    WHERE is_active = 1
+    ORDER BY id
+  `).all();
   return json({ stations: results || [] });
 }
 

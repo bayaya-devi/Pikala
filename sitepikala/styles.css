@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --green: #72c31a;
   --green-dark: #3f7f10;
   --mint: #eaf6dc;
@@ -382,4 +382,48 @@ body.is-rtl .language-options button { text-align: right; }
   .price strong { font-size: 3.2rem; }
   .phone { min-height: 560px; }
   .site-footer { display: grid; }
+}
+
+.legal-page {
+  padding: 120px 0 5rem;
+}
+.legal-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.32fr) minmax(0, 0.68fr);
+  gap: 2rem;
+  align-items: start;
+}
+.legal-aside {
+  position: sticky;
+  top: 96px;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.legal-aside a {
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 800;
+}
+.legal-content {
+  display: grid;
+  gap: 1rem;
+}
+.legal-block {
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: 0 14px 42px rgba(28, 42, 20, 0.08);
+}
+.legal-block p, .legal-block li {
+  color: var(--muted);
+  line-height: 1.7;
+}
+@media (max-width: 760px) {
+  .legal-layout { grid-template-columns: 1fr; }
+  .legal-aside { position: static; }
 }

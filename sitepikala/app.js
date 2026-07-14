@@ -1,4 +1,4 @@
-﻿const header = document.querySelector('[data-header]');
+const header = document.querySelector('[data-header]');
 const menuButton = document.querySelector('[data-menu-button]');
 const siteNav = document.querySelector('[data-site-nav]');
 const languageButtons = document.querySelectorAll('[data-lang]');
@@ -17,7 +17,7 @@ const translations = {
     stationsEyebrow: 'Stations et parcours', stationsTitle: 'Des lieux faciles à rejoindre.', place1: 'Kasbah des Oudayas', place2: 'Tour Hassan', place3: 'Jardins et parcs', place4: 'Corniche', place1Bikes: '8 vélos disponibles', place2Bikes: '3 vélos disponibles', place3Bikes: '12 vélos disponibles', place4Bikes: '5 vélos disponibles',
     pricingEyebrow: 'Tarif clair', pricingTitle: 'Une formule simple pour commencer.', pricingText: 'Garde la tarification lisible, avec un appel à l’action direct vers l’inscription.', planName: 'Abonnement Pikala', priceUnit: 'MAD / mois', plan1: 'Accès aux vélos en libre-service', plan2: 'Scanner QR intégré', plan3: 'Signalement rapide des problèmes', plan4: 'Support 7j/7', pricingCta: 'Créer mon compte',
     phoneStation: 'Station Kasbah', scan: 'Scanner', appEyebrow: 'Espace utilisateur', appTitle: 'Une expérience mobile plus fluide.', appText: 'La page utilisateur existante peut ensuite reprendre ce style : navigation basse, carte, scanner QR et profil, avec des transitions plus douces.', appCta: "Voir l'espace utilisateur",
-    contactTitle: 'Prêt à explorer Rabat ?', contactText: "Créer un compte prend moins d'une minute.", contactSignup: 'S’inscrire', contactEmail: 'Nous contacter', footerText: 'Vélos en libre-service à Rabat.'
+    contactTitle: 'Prêt à explorer Rabat ?', contactText: "Créer un compte prend moins d'une minute.", contactSignup: 'S’inscrire', contactEmail: 'Nous contacter', footerText: 'Vélos en libre-service à Rabat.', footerLegal: 'Mentions légales', footerPrivacy: 'Confidentialité', footerTerms: 'Conditions'
   },
   en: {
     title: 'Pikala - Explore Rabat by bike', languageLabel: 'Language', skip: 'Skip to content', navHow: 'How it works', navStations: 'Stations', navPricing: 'Pricing', navContact: 'Contact', navLogin: 'Log in', navSignup: 'Create account',
@@ -30,7 +30,7 @@ const translations = {
     stationsEyebrow: 'Stations and routes', stationsTitle: 'Places that are easy to reach.', place1: 'Kasbah of the Oudayas', place2: 'Hassan Tower', place3: 'Gardens and parks', place4: 'Corniche', place1Bikes: '8 bikes available', place2Bikes: '3 bikes available', place3Bikes: '12 bikes available', place4Bikes: '5 bikes available',
     pricingEyebrow: 'Clear pricing', pricingTitle: 'One simple plan to start.', pricingText: 'Keep pricing easy to understand, with a direct call to create an account.', planName: 'Pikala subscription', priceUnit: 'MAD / month', plan1: 'Access to self-service bikes', plan2: 'Built-in QR scanner', plan3: 'Fast issue reporting', plan4: 'Support 7 days a week', pricingCta: 'Create my account',
     phoneStation: 'Kasbah Station', scan: 'Scan', appEyebrow: 'User space', appTitle: 'A smoother mobile experience.', appText: 'The existing user page can reuse this style: bottom navigation, map, QR scanner, profile, and smoother transitions.', appCta: 'View user space',
-    contactTitle: 'Ready to explore Rabat?', contactText: 'Creating an account takes less than a minute.', contactSignup: 'Sign up', contactEmail: 'Contact us', footerText: 'Bike sharing in Rabat.'
+    contactTitle: 'Ready to explore Rabat?', contactText: 'Creating an account takes less than a minute.', contactSignup: 'Sign up', contactEmail: 'Contact us', footerText: 'Bike sharing in Rabat.', footerLegal: 'Legal notice', footerPrivacy: 'Privacy', footerTerms: 'Terms'
   },
   es: {
     title: 'Pikala - Explora Rabat en bicicleta', languageLabel: 'Idioma', skip: 'Ir al contenido', navHow: 'Cómo funciona', navStations: 'Estaciones', navPricing: 'Precios', navContact: 'Contacto', navLogin: 'Iniciar sesión', navSignup: 'Crear cuenta',
@@ -43,7 +43,7 @@ const translations = {
     stationsEyebrow: 'Estaciones y rutas', stationsTitle: 'Lugares fáciles de alcanzar.', place1: 'Kasbah de los Oudayas', place2: 'Torre Hassan', place3: 'Jardines y parques', place4: 'Corniche', place1Bikes: '8 bicicletas disponibles', place2Bikes: '3 bicicletas disponibles', place3Bikes: '12 bicicletas disponibles', place4Bikes: '5 bicicletas disponibles',
     pricingEyebrow: 'Precio claro', pricingTitle: 'Un plan simple para empezar.', pricingText: 'Precio fácil de entender, con una invitación directa para crear tu cuenta.', planName: 'Suscripción Pikala', priceUnit: 'MAD / mes', plan1: 'Acceso a bicicletas de autoservicio', plan2: 'Escáner QR integrado', plan3: 'Reporte rápido de problemas', plan4: 'Soporte 7 días a la semana', pricingCta: 'Crear mi cuenta',
     phoneStation: 'Estación Kasbah', scan: 'Escanear', appEyebrow: 'Espacio de usuario', appTitle: 'Una experiencia móvil más fluida.', appText: 'La página de usuario puede reutilizar este estilo: navegación inferior, mapa, escáner QR, perfil y transiciones más suaves.', appCta: 'Ver espacio de usuario',
-    contactTitle: '¿Listo para explorar Rabat?', contactText: 'Crear una cuenta toma menos de un minuto.', contactSignup: 'Registrarse', contactEmail: 'Contactarnos', footerText: 'Bicicletas compartidas en Rabat.'
+    contactTitle: '¿Listo para explorar Rabat?', contactText: 'Crear una cuenta toma menos de un minuto.', contactSignup: 'Registrarse', contactEmail: 'Contactarnos', footerText: 'Bicicletas compartidas en Rabat.', footerLegal: 'Aviso legal', footerPrivacy: 'Privacidad', footerTerms: 'Condiciones'
   },
   pt: {
     title: 'Pikala - Explore Rabat de bicicleta', languageLabel: 'Idioma', skip: 'Ir para o conteúdo', navHow: 'Como funciona', navStations: 'Estações', navPricing: 'Preços', navContact: 'Contato', navLogin: 'Entrar', navSignup: 'Criar conta',
@@ -56,7 +56,7 @@ const translations = {
     stationsEyebrow: 'Estações e rotas', stationsTitle: 'Lugares fáceis de alcançar.', place1: 'Kasbah dos Oudayas', place2: 'Torre Hassan', place3: 'Jardins e parques', place4: 'Corniche', place1Bikes: '8 bicicletas disponíveis', place2Bikes: '3 bicicletas disponíveis', place3Bikes: '12 bicicletas disponíveis', place4Bikes: '5 bicicletas disponíveis',
     pricingEyebrow: 'Preço claro', pricingTitle: 'Um plano simples para começar.', pricingText: 'Preço fácil de entender, com chamada direta para criar sua conta.', planName: 'Assinatura Pikala', priceUnit: 'MAD / mês', plan1: 'Acesso a bicicletas self-service', plan2: 'Scanner QR integrado', plan3: 'Relato rápido de problemas', plan4: 'Suporte 7 dias por semana', pricingCta: 'Criar minha conta',
     phoneStation: 'Estação Kasbah', scan: 'Escanear', appEyebrow: 'Espaço do usuário', appTitle: 'Uma experiência móvel mais fluida.', appText: 'A página do usuário pode reutilizar este estilo: navegação inferior, mapa, scanner QR, perfil e transições mais suaves.', appCta: 'Ver espaço do usuário',
-    contactTitle: 'Pronto para explorar Rabat?', contactText: 'Criar uma conta leva menos de um minuto.', contactSignup: 'Cadastrar', contactEmail: 'Fale conosco', footerText: 'Bicicletas compartilhadas em Rabat.'
+    contactTitle: 'Pronto para explorar Rabat?', contactText: 'Criar uma conta leva menos de um minuto.', contactSignup: 'Cadastrar', contactEmail: 'Fale conosco', footerText: 'Bicicletas compartilhadas em Rabat.', footerLegal: 'Aviso legal', footerPrivacy: 'Privacidade', footerTerms: 'Termos'
   },
   ar: {
     title: 'بيكالا - استكشف الرباط بالدراجة', languageLabel: 'اللغة', skip: 'انتقل إلى المحتوى', navHow: 'طريقة الاستخدام', navStations: 'المحطات', navPricing: 'الأسعار', navContact: 'اتصل بنا', navLogin: 'تسجيل الدخول', navSignup: 'إنشاء حساب',
@@ -69,7 +69,7 @@ const translations = {
     stationsEyebrow: 'المحطات والمسارات', stationsTitle: 'أماكن يسهل الوصول إليها.', place1: 'قصبة الأوداية', place2: 'صومعة حسان', place3: 'الحدائق والمتنزهات', place4: 'الكورنيش', place1Bikes: '8 دراجات متاحة', place2Bikes: '3 دراجات متاحة', place3Bikes: '12 دراجة متاحة', place4Bikes: '5 دراجات متاحة',
     pricingEyebrow: 'سعر واضح', pricingTitle: 'خطة بسيطة للبدء.', pricingText: 'تسعير واضح مع دعوة مباشرة لإنشاء الحساب.', planName: 'اشتراك بيكالا', priceUnit: 'درهم / شهر', plan1: 'الوصول إلى الدراجات بالخدمة الذاتية', plan2: 'ماسح QR مدمج', plan3: 'الإبلاغ السريع عن المشاكل', plan4: 'دعم طوال الأسبوع', pricingCta: 'إنشاء حسابي',
     phoneStation: 'محطة القصبة', scan: 'مسح', appEyebrow: 'مساحة المستخدم', appTitle: 'تجربة هاتفية أكثر سلاسة.', appText: 'يمكن لصفحة المستخدم الحالية استخدام هذا النمط: تنقل سفلي، خريطة، ماسح QR، ملف شخصي، وانتقالات أكثر سلاسة.', appCta: 'عرض مساحة المستخدم',
-    contactTitle: 'هل أنت مستعد لاستكشاف الرباط؟', contactText: 'إنشاء الحساب يستغرق أقل من دقيقة.', contactSignup: 'تسجيل', contactEmail: 'راسلنا', footerText: 'دراجات مشتركة في الرباط.'
+    contactTitle: 'هل أنت مستعد لاستكشاف الرباط؟', contactText: 'إنشاء الحساب يستغرق أقل من دقيقة.', contactSignup: 'تسجيل', contactEmail: 'راسلنا', footerText: 'دراجات مشتركة في الرباط.', footerLegal: 'الإشعار القانوني', footerPrivacy: 'الخصوصية', footerTerms: 'الشروط'
   }
 };
 

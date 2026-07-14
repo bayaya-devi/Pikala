@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pikala - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="user-space.css">
+  <script src="user-space.js" defer></script>
+</head>
+<body data-user-page="admin">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
+      <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a><a class="active" href="admin.html">Admin</a></nav>
+      <p class="sidebar-note">Vue de contrôle réservée aux comptes administrateurs.</p>
+    </aside>
+    <main class="content">
+      <div class="topbar"><div><p class="eyebrow">Administration</p><h1>Suivi du service Pikala.</h1><p class="muted">Connecté en tant que <span data-admin-name>admin</span>.</p></div><a class="button ghost" href="dashboard.html">Retour</a></div>
+      <section class="admin-grid">
+        <article class="tile"><strong data-admin-stations>0</strong><span class="muted">stations actives</span></article>
+        <article class="tile"><strong data-admin-bikes>0</strong><span class="muted">vélos disponibles</span></article>
+      </section>
+      <section class="panel" style="margin-top:1rem">
+        <h2>Stations</h2>
+        <p class="muted" data-admin-error>Coordonnées prêtes pour l’affichage carte lorsque l’API est déployée.</p>
+        <div class="station-list" data-admin-station-list><div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div></div>
+      </section>
+    </main>
+  </div>
+  <nav class="bottom-nav"><a href="dashboard.html">Accueil</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a></nav>
+</body>
+</html>

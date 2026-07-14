@@ -35,6 +35,12 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' }[char]));
 }
 
+function setAdminLinks(user) {
+  document.querySelectorAll('[data-admin-link]').forEach((link) => {
+    link.classList.toggle('is-hidden', user?.role !== 'admin');
+  });
+}
+
 function wireLogout() {
   document.querySelectorAll('[data-logout]').forEach((link) => {
     link.addEventListener('click', async (event) => {
@@ -155,3 +161,25 @@ if (page === 'profile') loadProfile();
 if (page === 'subscription') wireSubscription();
 if (page === 'support') wireSupport();
 if (page === 'scanner') wireScanner();
+if (page === 'admin') loadAdmin();
+async function loadAdmin() {
+  const user = await requireUser();
+  if (!user) return;
+  if (user.role !== 'admin') {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  setText('[data-admin-name]', fullName(user));
+  try {
+    const { stations } = await api('/api/stations');
+    const totalBikes = stations.reduce((sum, station) => sum + Number(station.bikes_available || 0), 0);
+    setText('[data-admin-stations]', String(stations.length));
+    setText('[data-admin-bikes]', String(totalBikes));
+    const list = document.querySelector('[data-admin-station-list]');
+    if (list) {
+      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} vélos</span><span class="status">${station.latitude && station.longitude ? 'Carte prête' : 'À compléter'}</span></div>`).join('');
+    }
+  } catch (error) {
+    setText('[data-admin-error]', error.message);
+  }
+}

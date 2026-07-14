@@ -160,7 +160,7 @@ h1, h2 {
   line-height: 1.05;
   letter-spacing: 0;
 }
-h1 { font-size: clamp(3rem, 7vw, 5.8rem); max-width: 760px; }
+h1 { font-size: clamp(2.35rem, 5.2vw, 4.6rem); max-width: 720px; }
 h2 { font-size: clamp(2.1rem, 4vw, 4rem); }
 h3 { margin: 0; font-size: 1.12rem; }
 .hero-text, .section-intro p, .contact-inner p { color: var(--muted); font-size: 1.08rem; line-height: 1.75; }
@@ -374,7 +374,7 @@ body.is-rtl .language-options button { text-align: right; }
 @media (max-width: 640px) {
   .site-header { height: 68px; }
   .brand img { height: 48px; }
-  h1 { font-size: clamp(2.6rem, 14vw, 4.2rem); }
+  h1 { font-size: clamp(2rem, 9.5vw, 3.1rem); }
   .hero-media img { height: 310px; }
   .stats-band, .destination-grid { grid-template-columns: 1fr; }
   .split, .destinations, .app-preview { padding: 4.5rem 0; }

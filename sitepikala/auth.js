@@ -43,6 +43,13 @@ function showToast(message) { if (!toast || !toastText) return; toastText.textCo
 function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); }
 function setLoading(button, isLoading, label) { button.disabled = isLoading; button.textContent = label; }
 function redirectTo(target) { window.setTimeout(() => { window.location.href = target; }, 850); }
+function friendlyApiMessage(data, fallback) {
+  const raw = String(data?.error || data?.message || '');
+  if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de données')) {
+    return 'Service compte temporairement indisponible. La base Cloudflare D1 doit être reconnectée.';
+  }
+  return raw || fallback;
+}
 
 langButtons.forEach((button) => { button.addEventListener('click', () => { setLanguage(button.dataset.lang || 'fr'); if (languageMenu instanceof HTMLDetailsElement) languageMenu.open = false; }); });
 document.querySelectorAll('[data-toggle-password]').forEach((button) => { button.addEventListener('click', () => { const input = document.querySelector(button.dataset.togglePassword); if (!(input instanceof HTMLInputElement)) return; input.type = input.type === 'password' ? 'text' : 'password'; button.textContent = input.type === 'password' ? 'Voir' : 'Cacher'; }); });
@@ -84,7 +91,7 @@ form?.addEventListener('submit', async (event) => {
     const payload = page === 'signup' ? { firstName: form.querySelector('#firstName')?.value.trim() || '', lastName: form.querySelector('#lastName')?.value.trim() || '', phone: form.querySelector('#phone')?.value.trim() || '', email, password } : { email, password };
     const response = await fetch(page === 'signup' ? '/api/signup' : '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) { showToast(data.error || dictionary.required); return; }
+    if (!response.ok) { showToast(friendlyApiMessage(data, dictionary.required)); return; }
     showToast(data.message || (page === 'signup' ? dictionary.signupSuccess : dictionary.loginSuccess));
     if (data.verificationUrl) console.info('Pikala verification URL:', data.verificationUrl);
     if (page === 'login') redirectTo('dashboard.html');

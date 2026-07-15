@@ -4,6 +4,12 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const REQUIRE_EMAIL_VERIFICATION = false;
 const PASSWORD_ITERATIONS = 100000;
+const FALLBACK_STATIONS = [
+  { id: 1, name: 'Kasbah des Oudayas', city: 'Rabat', address: 'Kasbah des Oudayas', latitude: 34.0318, longitude: -6.8361, bikes_available: 8, is_active: 1 },
+  { id: 2, name: 'Tour Hassan', city: 'Rabat', address: 'Tour Hassan', latitude: 34.0224, longitude: -6.8225, bikes_available: 3, is_active: 1 },
+  { id: 3, name: 'Jardins et parcs', city: 'Rabat', address: 'Centre de Rabat', latitude: 34.0209, longitude: -6.8416, bikes_available: 12, is_active: 1 },
+  { id: 4, name: 'Corniche', city: 'Rabat', address: 'Corniche de Rabat', latitude: 34.0059, longitude: -6.8445, bikes_available: 5, is_active: 1 }
+];
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -274,6 +280,9 @@ async function me(request, env) {
 }
 
 async function stations(env) {
+  if (!env.DB) {
+    return json({ stations: FALLBACK_STATIONS, degraded: true, message: 'Base D1 indisponible : stations de démonstration affichées.' });
+  }
   const DB = requireDb(env);
   const { results } = await DB.prepare(`
     SELECT

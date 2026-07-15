@@ -4,6 +4,7 @@ const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const REQUIRE_EMAIL_VERIFICATION = false;
 const PASSWORD_ITERATIONS = 100000;
+const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible : la base Cloudflare D1 doit être reconnectée au Worker avec le binding DB.';
 const FALLBACK_STATIONS = [
   { id: 1, name: 'Kasbah des Oudayas', city: 'Rabat', address: 'Kasbah des Oudayas', latitude: 34.0318, longitude: -6.8361, bikes_available: 8, is_active: 1 },
   { id: 2, name: 'Tour Hassan', city: 'Rabat', address: 'Tour Hassan', latitude: 34.0224, longitude: -6.8225, bikes_available: 3, is_active: 1 },
@@ -33,8 +34,16 @@ function validEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function dbUnavailable() {
+  return json({ error: DB_UNAVAILABLE_MESSAGE, code: 'DB_UNAVAILABLE' }, 503);
+}
+
 function requireDb(env) {
-  if (!env.DB) throw new Error('La liaison D1 DB est manquante.');
+  if (!env.DB) {
+    const error = new Error(DB_UNAVAILABLE_MESSAGE);
+    error.code = 'DB_UNAVAILABLE';
+    throw error;
+  }
   return env.DB;
 }
 
@@ -189,8 +198,6 @@ async function debugSchema(env) {
   return json({ ok: true, steps });
 }
 async function signup(request, env) {
-  const DB = requireDb(env);
-  await ensureSchema(DB);
   const body = await readJson(request);
   if (!body) return json({ error: 'Requête invalide.' }, 400);
 
@@ -203,7 +210,10 @@ async function signup(request, env) {
   if (!firstName || !lastName || !email || !password) return json({ error: 'Veuillez remplir tous les champs obligatoires.' }, 400);
   if (!validEmail(email)) return json({ error: 'Veuillez entrer une adresse e-mail valide.' }, 400);
   if (password.length < 12) return json({ error: 'Le mot de passe doit contenir au moins 12 caractères.' }, 400);
+  if (!env.DB) return dbUnavailable();
 
+  const DB = requireDb(env);
+  await ensureSchema(DB);
   const existing = await DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (existing) return json({ success: true, pendingVerification: true, message: 'Si cette adresse peut créer un compte, un email de confirmation sera envoyé.' }, 202);
 
@@ -241,15 +251,16 @@ async function verifyEmail(request, env) {
 }
 
 async function login(request, env) {
-  const DB = requireDb(env);
-  await ensureSchema(DB);
   const body = await readJson(request);
   if (!body) return json({ error: 'Requête invalide.' }, 400);
 
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
   if (!email || !password) return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
+  if (!env.DB) return dbUnavailable();
 
+  const DB = requireDb(env);
+  await ensureSchema(DB);
   const row = await DB.prepare(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = ?`).bind(email).first();
   if (!row || !(await verifyPassword(password, row.password_hash))) return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
   if (REQUIRE_EMAIL_VERIFICATION && !row.email_verified) return json({ error: 'Veuillez confirmer votre email avant de vous connecter.', pendingVerification: true }, 403);
@@ -373,7 +384,7 @@ export default {
       if (request.method === 'POST' && url.pathname === '/api/support') return await support(request, env);
       if (request.method === 'POST' && url.pathname === '/api/rides') return await ride(request, env);
     } catch (error) {
-      return json({ error: error.message || 'Erreur serveur.' }, 500);
+      return json({ error: error.message || 'Erreur serveur.', code: error.code || 'SERVER_ERROR' }, error.code === 'DB_UNAVAILABLE' ? 503 : 500);
     }
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return json({ error: 'Route introuvable.' }, 404);

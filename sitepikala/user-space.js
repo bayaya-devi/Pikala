@@ -9,13 +9,21 @@ function setText(selector, value) {
   if (element) element.textContent = value;
 }
 
+function friendlyApiError(data) {
+  const raw = String(data?.error || data?.message || 'Erreur serveur.');
+  if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de données')) {
+    return 'Service temporairement indisponible : la base Cloudflare D1 doit être reconnectée.';
+  }
+  return raw;
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || 'Erreur serveur.');
+  if (!response.ok) throw new Error(friendlyApiError(data));
   return data;
 }
 

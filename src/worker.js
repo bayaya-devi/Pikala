@@ -1,4 +1,5 @@
 const USER_FIELDS = 'id, first_name, last_name, email, phone, role, created_at, email_verified';
+const JOINED_USER_FIELDS = 'users.id AS id, users.first_name AS first_name, users.last_name AS last_name, users.email AS email, users.phone AS phone, users.role AS role, users.created_at AS created_at, users.email_verified AS email_verified';
 const SESSION_COOKIE = 'pikala_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
@@ -157,7 +158,7 @@ async function currentUser(request, env) {
   if (!token) return null;
   const tokenHash = await sha256(token);
   const now = new Date().toISOString();
-  const row = await DB.prepare(`SELECT ${USER_FIELDS}, sessions.id AS session_id FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.revoked_at IS NULL AND sessions.expires_at > ?`)
+  const row = await DB.prepare(`SELECT ${JOINED_USER_FIELDS}, sessions.id AS session_id FROM sessions JOIN users ON users.id = sessions.user_id WHERE sessions.token_hash = ? AND sessions.revoked_at IS NULL AND sessions.expires_at > ?`)
     .bind(tokenHash, now)
     .first();
   return row ? { user: publicUser(row), sessionId: row.session_id } : null;

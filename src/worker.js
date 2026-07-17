@@ -119,9 +119,22 @@ function publicUser(row) {
 }
 
 async function ensureSchema(DB) {
+  await DB.prepare("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT NOT NULL, last_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, phone TEXT, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, email_verified INTEGER NOT NULL DEFAULT 0)").run();
   await DB.prepare('CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, revoked_at TEXT, user_agent TEXT, ip_hint TEXT, FOREIGN KEY (user_id) REFERENCES users(id))').run();
   await DB.prepare('CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, used_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id))').run();
+  await DB.prepare("CREATE TABLE IF NOT EXISTS stations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, city TEXT NOT NULL DEFAULT 'Rabat', address TEXT, latitude REAL, longitude REAL, bikes_available INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+  await DB.prepare("CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, plan TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', starts_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ends_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id))").run();
+  await DB.prepare("CREATE TABLE IF NOT EXISTS rides (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, start_station_id INTEGER, end_station_id INTEGER, status TEXT NOT NULL DEFAULT 'active', started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ended_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id), FOREIGN KEY (start_station_id) REFERENCES stations(id), FOREIGN KEY (end_station_id) REFERENCES stations(id))").run();
+  await DB.prepare("CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, email TEXT, subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))").run();
   try { await DB.prepare('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0').run(); } catch {}
+  const stationCount = await DB.prepare('SELECT COUNT(*) AS count FROM stations').first();
+  if (!stationCount || Number(stationCount.count) === 0) {
+    for (const station of FALLBACK_STATIONS) {
+      await DB.prepare('INSERT INTO stations (name, city, address, latitude, longitude, bikes_available, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)')
+        .bind(station.name, station.city, station.address, station.latitude, station.longitude, station.bikes_available, station.is_active)
+        .run();
+    }
+  }
 }
 
 async function createSession(DB, userId, request) {
@@ -301,6 +314,7 @@ async function stations(env) {
     return json({ stations: FALLBACK_STATIONS, degraded: true, message: 'Base D1 indisponible : stations de démonstration affichées.' });
   }
   const DB = requireDb(env);
+  await ensureSchema(DB);
   const { results } = await DB.prepare(`
     SELECT
       id,

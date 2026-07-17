@@ -155,6 +155,15 @@ languageButtons.forEach((button) => {
 
 setLanguage(detectPreferredLanguage());
 
+function prepareScrollReveals() {
+  const groups = ['.hero-copy', '.hero-media', '.hero-card', '.stat', '.confidence-item', '.section-intro', '.step-card', '.destination-card', '.price-card', '.phone', '.contact-inner', '.legal-block'];
+  document.querySelectorAll(groups.join(',')).forEach((item, index) => {
+    item.classList.add('reveal');
+    if (!item.style.getPropertyValue('--delay')) item.style.setProperty('--delay', String(Math.min(index % 4, 3) * 90) + 'ms');
+  });
+}
+
+prepareScrollReveals();
 const revealItems = document.querySelectorAll('.reveal');
 revealItems.forEach((item) => {
   const delay = item.getAttribute('data-delay');

@@ -206,8 +206,31 @@ function setupBottomNav() {
   }, { passive: true });
 }
 
+function setupScrollReveals() {
+  const selectors = ['.topbar', '.panel', '.tile', '.station-row', '.quick-actions a', '.profile-list div', '.support-list a', '.scan-frame'];
+  const items = document.querySelectorAll(selectors.join(','));
+  if (!items.length) return;
+  items.forEach((item, index) => {
+    item.classList.add('user-reveal');
+    item.style.setProperty('--delay', String(Math.min(index % 4, 3) * 70) + 'ms');
+  });
+  if (!('IntersectionObserver' in window)) {
+    items.forEach((item) => item.classList.add('is-visible'));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.14, rootMargin: '0px 0px -30px 0px' });
+  items.forEach((item) => observer.observe(item));
+}
+
 wireLogout();
 setupBottomNav();
+setupScrollReveals();
 const page = document.body.dataset.userPage;
 if (page === 'dashboard') loadDashboard();
 if (page === 'stations') loadStations();

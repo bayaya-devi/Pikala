@@ -110,7 +110,8 @@ form?.addEventListener('submit', async (event) => {
     if (!response.ok) { showToast(friendlyApiMessage(data, dictionary.required)); return; }
     showToast(data.message || (page === 'signup' ? dictionary.signupSuccess : dictionary.loginSuccess));
     if (data.verificationUrl) console.info('Pikala verification URL:', data.verificationUrl);
-    if (page === 'login' || (page === 'signup' && data.user)) redirectTo('dashboard.html');
+    if (page === 'login') redirectTo('dashboard.html');
+    if (page === 'signup' && data.user) redirectTo('abonnement.html');
   } catch {
     showToast('Connexion au serveur impossible. Vérifiez votre connexion puis réessayez.');
   } finally {

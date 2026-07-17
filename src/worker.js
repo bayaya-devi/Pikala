@@ -6,6 +6,32 @@ const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const REQUIRE_EMAIL_VERIFICATION = false;
 const PASSWORD_ITERATIONS = 100000;
 const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible : la base Cloudflare D1 doit être reconnectée au Worker avec le binding DB.';
+
+const PAGE_ROUTES = new Map([
+  ['/accueil', '/accueil.html'],
+  ['/home', '/index.html'],
+  ['/dashboard', '/dashboard.html'],
+  ['/stations', '/stations.html'],
+  ['/scanner', '/scanner.html'],
+  ['/profil', '/profil.html'],
+  ['/profile', '/profil.html'],
+  ['/support', '/support.html'],
+  ['/abonnement', '/abonnement.html'],
+  ['/connexion', '/connexion.html'],
+  ['/login', '/connexion.html'],
+  ['/inscription', '/inscription.html'],
+  ['/signup', '/inscription.html'],
+  ['/admin', '/admin.html'],
+]);
+
+function assetRequestForCleanPath(request, url) {
+  const htmlPath = PAGE_ROUTES.get(url.pathname);
+  if (!htmlPath) return request;
+  const assetUrl = new URL(request.url);
+  assetUrl.pathname = htmlPath;
+  return new Request(assetUrl, request);
+}
+
 const FALLBACK_STATIONS = [
   { id: 1, name: 'Kasbah des Oudayas', city: 'Rabat', address: 'Kasbah des Oudayas', latitude: 34.0318, longitude: -6.8361, bikes_available: 8, is_active: 1 },
   { id: 2, name: 'Tour Hassan', city: 'Rabat', address: 'Tour Hassan', latitude: 34.0224, longitude: -6.8225, bikes_available: 3, is_active: 1 },
@@ -407,7 +433,7 @@ export default {
     } catch (error) {
       return json({ error: error.message || 'Erreur serveur.', code: error.code || 'SERVER_ERROR' }, error.code === 'DB_UNAVAILABLE' ? 503 : 500);
     }
-    if (env.ASSETS) return env.ASSETS.fetch(request);
+    if (env.ASSETS) return env.ASSETS.fetch(assetRequestForCleanPath(request, url));
     return json({ error: 'Route introuvable.' }, 404);
   }
 };

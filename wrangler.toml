@@ -5,3 +5,7 @@ compatibility_date = "2026-07-07"
 [assets]
 directory = "./sitepikala"
 binding = "ASSETS"
+[[d1_databases]]
+binding = "DB"
+database_name = "pikala-db"
+database_id = "722e8b9a-dbb1-4b04-8635-8493603af869"

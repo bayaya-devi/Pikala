@@ -180,7 +180,34 @@ async function wireScanner() {
   });
 }
 
+function setupBottomNav() {
+  const nav = document.querySelector('.bottom-nav');
+  if (!nav) return;
+  const page = document.body.dataset.userPage || 'dashboard';
+  document.querySelectorAll('[data-bottom-nav]').forEach((link) => {
+    link.classList.toggle('active', link.dataset.bottomNav === page);
+  });
+  let lastY = window.scrollY;
+  let ticking = false;
+  const update = () => {
+    const currentY = window.scrollY;
+    const goingDown = currentY > lastY + 8;
+    const goingUp = currentY < lastY - 8;
+    if (currentY < 90 || goingUp) nav.classList.remove('is-hidden-on-scroll');
+    if (goingDown && currentY > 120) nav.classList.add('is-hidden-on-scroll');
+    lastY = Math.max(currentY, 0);
+    ticking = false;
+  };
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(update);
+      ticking = true;
+    }
+  }, { passive: true });
+}
+
 wireLogout();
+setupBottomNav();
 const page = document.body.dataset.userPage;
 if (page === 'dashboard') loadDashboard();
 if (page === 'stations') loadStations();

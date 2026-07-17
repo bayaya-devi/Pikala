@@ -20,23 +20,42 @@ function friendlyApiError(data) {
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(friendlyApiError(data));
+  if (!response.ok) {
+    const error = new Error(friendlyApiError(data));
+    error.status = response.status;
+    error.code = data?.code;
+    throw error;
+  }
   return data;
 }
 
+function wait(ms) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
+
 async function requireUser() {
   if (currentUser) return currentUser;
-  try {
-    const data = await api('/api/me');
-    currentUser = data.user;
-    return currentUser;
-  } catch {
-    window.location.href = 'connexion.html';
-    return null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const data = await api('/api/me');
+      currentUser = data.user;
+      return currentUser;
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.href = 'connexion.html';
+        return null;
+      }
+      if (attempt === 0) {
+        await wait(600);
+        continue;
+      }
+      setText('[data-user-greeting]', error.message || 'Connexion temporairement indisponible.');
+      return null;
+    }
   }
+  return null;
 }
 
 function escapeHtml(value) {

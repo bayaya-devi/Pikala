@@ -207,15 +207,18 @@ async function signup(request, env) {
   const phone = String(body.phone || '').trim();
   const password = String(body.password || '');
 
-  if (!firstName || !lastName || !email || !password) return json({ error: 'Veuillez remplir tous les champs obligatoires.' }, 400);
-  if (!validEmail(email)) return json({ error: 'Veuillez entrer une adresse e-mail valide.' }, 400);
-  if (password.length < 12) return json({ error: 'Le mot de passe doit contenir au moins 12 caractères.' }, 400);
+  if (!firstName) return json({ code: 'FIRST_NAME_REQUIRED', error: 'Veuillez entrer votre prénom.' }, 400);
+  if (!lastName) return json({ code: 'LAST_NAME_REQUIRED', error: 'Veuillez entrer votre nom.' }, 400);
+  if (!email) return json({ code: 'EMAIL_REQUIRED', error: 'Veuillez entrer votre adresse email.' }, 400);
+  if (!validEmail(email)) return json({ code: 'EMAIL_INVALID', error: 'Veuillez entrer une adresse email valide.' }, 400);
+  if (!password) return json({ code: 'PASSWORD_REQUIRED', error: 'Veuillez choisir un mot de passe.' }, 400);
+  if (password.length < 12) return json({ code: 'PASSWORD_TOO_SHORT', error: 'Le mot de passe doit contenir au moins 12 caractères.' }, 400);
   if (!env.DB) return dbUnavailable();
 
   const DB = requireDb(env);
   await ensureSchema(DB);
   const existing = await DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-  if (existing) return json({ success: true, pendingVerification: true, message: 'Si cette adresse peut créer un compte, un email de confirmation sera envoyé.' }, 202);
+  if (existing) return json({ code: 'EMAIL_ALREADY_USED', error: 'Cette adresse email est déjà utilisée. Connectez-vous ou utilisez une autre adresse.' }, 409);
 
   const passwordHash = await hashPassword(password);
   const result = await DB.prepare('INSERT INTO users (first_name, last_name, email, phone, password_hash, email_verified) VALUES (?, ?, ?, ?, ?, ?)')
@@ -252,18 +255,21 @@ async function verifyEmail(request, env) {
 
 async function login(request, env) {
   const body = await readJson(request);
-  if (!body) return json({ error: 'Requête invalide.' }, 400);
+  if (!body) return json({ code: 'INVALID_REQUEST', error: 'Requête invalide. Actualisez la page puis réessayez.' }, 400);
 
   const email = String(body.email || '').trim().toLowerCase();
   const password = String(body.password || '');
-  if (!email || !password) return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
+  if (!email) return json({ code: 'EMAIL_REQUIRED', error: 'Veuillez entrer votre adresse email.' }, 400);
+  if (!validEmail(email)) return json({ code: 'EMAIL_INVALID', error: 'Veuillez entrer une adresse email valide.' }, 400);
+  if (!password) return json({ code: 'PASSWORD_REQUIRED', error: 'Veuillez entrer votre mot de passe.' }, 400);
   if (!env.DB) return dbUnavailable();
 
   const DB = requireDb(env);
   await ensureSchema(DB);
   const row = await DB.prepare(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = ?`).bind(email).first();
-  if (!row || !(await verifyPassword(password, row.password_hash))) return json({ error: 'Adresse e-mail ou mot de passe incorrect.' }, 401);
-  if (REQUIRE_EMAIL_VERIFICATION && !row.email_verified) return json({ error: 'Veuillez confirmer votre email avant de vous connecter.', pendingVerification: true }, 403);
+  if (!row) return json({ code: 'ACCOUNT_NOT_FOUND', error: 'Aucun compte Pikala ne correspond à cette adresse email.' }, 404);
+  if (!(await verifyPassword(password, row.password_hash))) return json({ code: 'WRONG_PASSWORD', error: 'Mot de passe incorrect. Vérifiez votre saisie puis réessayez.' }, 401);
+  if (REQUIRE_EMAIL_VERIFICATION && !row.email_verified) return json({ code: 'EMAIL_NOT_VERIFIED', error: 'Veuillez confirmer votre email avant de vous connecter.', pendingVerification: true }, 403);
 
   const token = await createSession(DB, row.id, request);
   if (!String(row.password_hash).startsWith(`pbkdf2$${PASSWORD_ITERATIONS}$`)) {

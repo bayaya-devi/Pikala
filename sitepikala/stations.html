@@ -7,7 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQPDL8xF4k6l1Qd2hU7R5UXb0wY2F3c=" crossorigin="">
   <link rel="stylesheet" href="user-space.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
   <script src="user-space.js" defer></script>
 </head>
 <body data-user-page="stations">
@@ -17,17 +19,36 @@
       <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a class="active" href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a></nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Stations</p><h1>Choisissez un vélo proche.</h1></div><a class="button primary" href="scanner.html">Scanner</a></div>
+      <div class="topbar"><div><p class="eyebrow">Stations</p><h1>Choisissez un velo proche.</h1></div><a class="button primary" href="scanner.html">Scanner</a></div>
+      <section class="panel station-explorer">
+        <div class="map-head">
+          <div>
+            <p class="eyebrow">Carte live</p>
+            <h2>Stations et velos disponibles</h2>
+            <p class="muted">Touchez une bulle pour voir les velos disponibles et lancer le scan.</p>
+          </div>
+          <span class="status" data-map-status>Chargement</span>
+        </div>
+        <div class="station-map-layout">
+          <div class="station-map" data-stations-map aria-label="Carte des stations Pikala"></div>
+          <aside class="station-focus" aria-live="polite">
+            <p class="eyebrow">Station selectionnee</p>
+            <h3 data-selected-station>Choisissez une station</h3>
+            <p class="muted" data-selected-station-meta>Les bulles indiquent les velos disponibles.</p>
+            <a class="button primary" href="scanner.html">Scanner un velo</a>
+          </aside>
+        </div>
+      </section>
       <section class="panel station-list" data-stations-list><div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div></section>
     </main>
   </div>
 
   <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">
-    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">🏠</span><em>Accueil</em></a>
-    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">📍</span><em>Stations</em></a>
-    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">🔳</span><em>Scanner</em></a>
-    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">⚙️</span><em>Profil</em></a>
-    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">💬</span><em>Support</em></a>
+    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">&#127968;</span><em>Accueil</em></a>
+    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">&#128205;</span><em>Stations</em></a>
+    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">&#128243;</span><em>Scanner</em></a>
+    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">&#9881;</span><em>Profil</em></a>
+    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">&#128172;</span><em>Support</em></a>
   </nav>
 </body>
 </html>

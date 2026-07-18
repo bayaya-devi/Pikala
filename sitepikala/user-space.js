@@ -11,8 +11,8 @@ function setText(selector, value) {
 
 function friendlyApiError(data) {
   const raw = String(data?.error || data?.message || 'Erreur serveur.');
-  if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de données')) {
-    return 'Service temporairement indisponible : la base Cloudflare D1 doit être reconnectée.';
+  if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de donnees')) {
+    return 'Service temporairement indisponible : la base Cloudflare D1 doit etre reconnectee.';
   }
   return raw;
 }
@@ -86,7 +86,7 @@ async function loadDashboard() {
     const { stations } = await api('/api/stations');
     const totalBikes = stations.reduce((sum, station) => sum + Number(station.bikes_available || 0), 0);
     const nearest = stations[0];
-    setText('[data-nearest-station]', nearest ? `${nearest.name} : ${nearest.bikes_available} vélos disponibles.` : 'Aucune station disponible.');
+    setText('[data-nearest-station]', nearest ? `${nearest.name} : ${nearest.bikes_available} velos disponibles.` : 'Aucune station disponible.');
     setText('[data-total-bikes]', String(totalBikes));
     setText('[data-total-stations]', String(stations.length));
   } catch (error) {
@@ -100,6 +100,95 @@ async function loadDashboard() {
   }
 }
 
+
+
+function stationAvailabilityLabel(bikes) {
+  if (bikes <= 0) return 'Indisponible';
+  if (bikes <= 3) return 'Peu de velos';
+  return 'Disponible';
+}
+
+function stationCard(station, index) {
+  const bikes = Number(station.bikes_available || 0);
+  return '<button class="station-card" type="button" data-station-index="' + index + '">' +
+    '<span class="station-card-main"><strong>' + escapeHtml(station.name) + '</strong><small>' + escapeHtml(station.address || station.city || 'Rabat') + '</small></span>' +
+    '<span class="station-card-bubble">' + bikes + '</span>' +
+    '<span class="status">' + stationAvailabilityLabel(bikes) + '</span>' +
+  '</button>';
+}
+
+function stationMeta(station) {
+  const bikes = Number(station.bikes_available || 0);
+  return bikes + ' velo' + (bikes > 1 ? 's' : '') + ' disponible' + (bikes > 1 ? 's' : '') + ' - ' + (station.address || station.city || 'Rabat');
+}
+
+let stationMapState = null;
+
+function selectStation(usableStations, index, marker) {
+  const station = usableStations[index];
+  if (!station) return;
+  setText('[data-selected-station]', station.name);
+  setText('[data-selected-station-meta]', stationMeta(station));
+  document.querySelectorAll('[data-station-index]').forEach((item) => {
+    item.classList.toggle('active', Number(item.dataset.stationIndex || -1) === index);
+  });
+  if (marker) marker.openPopup();
+}
+
+function renderStationFallback(mapElement, usableStations) {
+  mapElement.innerHTML = '<div class="map-fallback">' + usableStations.map((station, index) => {
+    const bikes = Number(station.bikes_available || 0);
+    const left = 18 + ((index * 29) % 62);
+    const top = 20 + ((index * 37) % 56);
+    const state = bikes <= 0 ? ' is-empty' : bikes <= 3 ? ' is-low' : '';
+    return '<button class="map-dot' + state + '" style="left:' + left + '%;top:' + top + '%" type="button" data-station-index="' + index + '"><span>' + bikes + '</span><small>' + escapeHtml(station.name) + '</small></button>';
+  }).join('') + '</div>';
+  mapElement.querySelectorAll('[data-station-index]').forEach((button) => {
+    button.addEventListener('click', () => selectStation(usableStations, Number(button.dataset.stationIndex || 0)));
+  });
+}
+
+function renderStationMap(stations) {
+  const mapElement = document.querySelector('[data-stations-map]');
+  const status = document.querySelector('[data-map-status]');
+  if (!mapElement) return [];
+  const usableStations = stations.filter((station) => Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude)));
+  if (!usableStations.length) {
+    mapElement.innerHTML = '<div class="map-empty"><strong>Carte indisponible</strong><span>Coordonnees manquantes pour les stations.</span></div>';
+    if (status) status.textContent = 'Indisponible';
+    return [];
+  }
+  if (!window.L) {
+    renderStationFallback(mapElement, usableStations);
+    if (status) status.textContent = 'Carte simplifiee';
+    selectStation(usableStations, 0);
+    stationMapState = { usableStations, markers: [] };
+    return usableStations;
+  }
+  if (stationMapState?.map) stationMapState.map.remove();
+  mapElement.dataset.ready = 'true';
+  const map = window.L.map(mapElement, { scrollWheelZoom: false, zoomControl: true });
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  const bounds = [];
+  const markers = [];
+  usableStations.forEach((station, index) => {
+    const bikes = Number(station.bikes_available || 0);
+    const className = bikes <= 0 ? 'bike-bubble is-empty' : bikes <= 3 ? 'bike-bubble is-low' : 'bike-bubble';
+    const icon = window.L.divIcon({ className, html: '<span>' + bikes + '</span>', iconSize: [48, 48] });
+    const latLng = [Number(station.latitude), Number(station.longitude)];
+    bounds.push(latLng);
+    const marker = window.L.marker(latLng, { icon }).addTo(map).bindPopup('<strong>' + escapeHtml(station.name) + '</strong><br>' + stationMeta(station));
+    marker.on('click', () => selectStation(usableStations, index, marker));
+    markers[index] = marker;
+  });
+  map.fitBounds(bounds, { padding: [42, 42], maxZoom: 14 });
+  map.whenReady(() => window.setTimeout(() => map.invalidateSize(), 120));
+  if (status) status.textContent = usableStations.length + ' stations';
+  stationMapState = { map, usableStations, markers };
+  selectStation(usableStations, 0, markers[0]);
+  return usableStations;
+}
+
 async function loadStations() {
   await requireUser();
   const list = document.querySelector('[data-stations-list]');
@@ -107,18 +196,28 @@ async function loadStations() {
   list.innerHTML = '<div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div>';
   try {
     const { stations } = await api('/api/stations');
-    list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} vélos</span><span class="status">Ouverte</span></div>`).join('') || '<div class="station-row"><strong>Aucune station</strong><span>0 vélo</span><span class="status">Fermée</span></div>';
+    const usableStations = renderStationMap(stations);
+    list.innerHTML = usableStations.map(stationCard).join('') || '<div class="station-row"><strong>Aucune station</strong><span>0 velo</span><span class="status">Fermee</span></div>';
+    list.querySelectorAll('[data-station-index]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const index = Number(button.dataset.stationIndex || 0);
+        const marker = stationMapState?.markers?.[index];
+        if (stationMapState?.map && stationMapState.usableStations[index]) {
+          stationMapState.map.flyTo([Number(stationMapState.usableStations[index].latitude), Number(stationMapState.usableStations[index].longitude)], Math.max(stationMapState.map.getZoom(), 14), { duration: 0.8 });
+        }
+        selectStation(usableStations, index, marker);
+      });
+    });
   } catch (error) {
-    list.innerHTML = `<div class="station-row"><strong>${escapeHtml(error.message)}</strong><span></span><span class="status">Erreur</span></div>`;
+    list.innerHTML = '<div class="station-row"><strong>' + escapeHtml(error.message) + '</strong><span></span><span class="status">Erreur</span></div>';
   }
 }
-
 async function loadProfile() {
   const user = await requireUser();
   if (!user) return;
   setText('[data-profile-name]', fullName(user));
   setText('[data-profile-email]', user.email || '');
-  setText('[data-profile-phone]', user.phone || 'Non renseigné');
+  setText('[data-profile-phone]', user.phone || 'Non renseigne');
   try {
     const profile = await api('/api/profile');
     setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} actif` : 'Aucun abonnement actif');
@@ -149,14 +248,14 @@ async function wireSupport() {
   if (!user || !form) return;
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const subject = form.querySelector('[name="subject"]')?.value.trim() || 'Signalement Pikala';
+      if (button) button.textContent = 'Signalement envoye';
     const message = form.querySelector('[name="message"]')?.value.trim() || '';
     const button = form.querySelector('button');
     if (button) button.textContent = 'Envoi...';
     try {
       await api('/api/support', { method: 'POST', body: JSON.stringify({ subject, message }) });
       form.reset();
-      if (button) button.textContent = 'Signalement envoyé';
+      if (button) button.textContent = 'Signalement envoye';
     } catch (error) {
       if (button) button.textContent = error.message;
     }
@@ -169,10 +268,10 @@ async function wireScanner() {
   if (!user || !button) return;
   button.addEventListener('click', async (event) => {
     event.preventDefault();
-    button.textContent = 'Déblocage...';
+    button.textContent = 'Deblocage...';
     try {
       await api('/api/rides', { method: 'POST', body: '{}' });
-      button.textContent = 'Vélo débloqué';
+      button.textContent = 'Velo debloque';
       window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
     } catch (error) {
       button.textContent = error.message;
@@ -254,7 +353,7 @@ async function loadAdmin() {
     setText('[data-admin-bikes]', String(totalBikes));
     const list = document.querySelector('[data-admin-station-list]');
     if (list) {
-      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} vélos</span><span class="status">${station.latitude && station.longitude ? 'Carte prête' : 'À compléter'}</span></div>`).join('');
+      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} velos</span><span class="status">${station.latitude && station.longitude ? 'Carte prete' : 'A completer'}</span></div>`).join('');
     }
   } catch (error) {
     setText('[data-admin-error]', error.message);

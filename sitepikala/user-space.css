@@ -27,19 +27,8 @@ body {
 }
 a { color: inherit; }
 button, input, textarea { font: inherit; }
-.app-shell { min-height: 100vh; display: grid; grid-template-columns: 260px 1fr; }
-.sidebar {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 1.4rem;
-  padding: 1.2rem;
-  border-right: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.84);
-  backdrop-filter: blur(16px);
-}
+.app-shell { min-height: 100vh; display: block; padding-bottom: 110px; }
+.sidebar { display: none; }
 .brand {
   display: inline-flex;
   align-items: center;
@@ -70,7 +59,7 @@ button, input, textarea { font: inherit; }
   color: var(--muted);
   line-height: 1.55;
 }
-.content { padding: clamp(1.2rem, 3vw, 2.4rem); }
+.content { width: min(1220px, 100%); margin: 0 auto; padding: clamp(1.2rem, 3vw, 2.4rem); }
 .topbar {
   display: flex;
   align-items: center;
@@ -326,13 +315,11 @@ p { line-height: 1.65; }
   50% { transform: translateY(160px); }
 }
 @media (max-width: 900px) {
-  .app-shell { display: block; padding-bottom: 76px; }
-  .sidebar { display: none; }
+  .app-shell { padding-bottom: 90px; }
   .content { padding: 1rem; }
   .topbar { align-items: flex-start; flex-direction: column; }
   .grid.two, .grid.three, .quick-actions { grid-template-columns: 1fr; }
   .station-row { grid-template-columns: 1fr; }
-  .app-shell { padding-bottom: 90px; }
   .bottom-nav {
     left: max(0.65rem, env(safe-area-inset-left));
     right: max(0.65rem, env(safe-area-inset-right));

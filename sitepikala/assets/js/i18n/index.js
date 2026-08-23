@@ -4,10 +4,17 @@ import es from './locales/es.js';
 import pt from './locales/pt.js';
 import ar from './locales/ar.js';
 import pageCopy from './page-copy.js';
+import homeCopy from './homepage/copy.js';
 
 export const SUPPORTED_LOCALES = Object.freeze(['fr', 'en', 'es', 'pt', 'ar']);
 export const RTL_LOCALES = Object.freeze(['ar']);
-export const dictionaries = Object.freeze({ fr: { ...fr, ...pageCopy.fr }, en: { ...en, ...pageCopy.en }, es: { ...es, ...pageCopy.es }, pt: { ...pt, ...pageCopy.pt }, ar: { ...ar, ...pageCopy.ar } });
+export const dictionaries = Object.freeze({
+  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr },
+  en: { ...en, ...pageCopy.en, ...homeCopy.en },
+  es: { ...es, ...pageCopy.es, ...homeCopy.es },
+  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt },
+  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar }
+});
 
 const STORAGE_KEY = 'pikala-lang';
 let currentLocale = 'fr';

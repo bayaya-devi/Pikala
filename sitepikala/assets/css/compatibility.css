@@ -1,0 +1,67 @@
+/* Temporary bridge: V2 primitives win while page-specific V1 CSS is retired. */
+body { background-image: none; }
+.hero::before { display: none; }
+.button,
+.submit-btn,
+.nav-cta,
+.language-switch summary { border-radius: var(--pk-radius-lg); }
+.hero h1 { font-size: 3.5rem; }
+.content h1 { font-size: var(--pk-font-size-2xl); }
+.auth-panel h2 { font-size: 3rem; }
+.topbar { gap: var(--pk-space-3); flex-wrap: wrap; }
+.topbar > [data-language-menu] { margin-inline-start: auto; }
+.leaflet-container { direction: ltr; }
+[dir="rtl"] .leaflet-popup-content { direction: rtl; text-align: start; }
+[dir="rtl"] .bottom-nav,
+[dir="rtl"] .quick-actions { direction: rtl; }
+
+@media (max-width: 48rem) {
+  .hero h1 { font-size: 2.25rem; }
+  .auth-panel h2 { font-size: 2.25rem; }
+  .content h1 { font-size: 1.75rem; }
+  .topbar > div:first-child { flex: 1 1 12rem; }
+}
+
+@media (max-width: 30rem) {
+  .hero h1 { font-size: 2rem; }
+  .auth-panel h2 { font-size: 2rem; }
+}
+
+
+.quick-actions em, .bottom-nav em { font-style: normal; }
+
+.hero-panel {
+  min-height: auto;
+  align-content: start;
+  color: var(--pk-color-ink);
+  background: var(--pk-color-surface);
+}
+.hero-panel > p { color: var(--pk-color-muted); }
+[dir="rtl"] .hero-copy { grid-column: 2; grid-row: 1; text-align: start; }
+[dir="rtl"] .hero-media { grid-column: 1; grid-row: 1; }
+
+@media (max-width: 48rem) {
+  [dir="rtl"] .topbar { align-items: stretch; inline-size: 100%; }
+  [dir="rtl"] .topbar > * { min-inline-size: 0; max-inline-size: 100%; }
+  [dir="rtl"] .topbar > div:first-child { inline-size: 100%; }
+  [dir="rtl"] .topbar h1 { max-inline-size: 100%; text-align: start; }
+  [dir="rtl"] .hero-copy,
+  [dir="rtl"] .hero-media { grid-column: 1; grid-row: auto; }
+}
+html, body { max-inline-size: 100%; overflow-x: hidden; }
+@media (max-width: 48rem) {
+  .bottom-nav em {
+    max-inline-size: 100%;
+    white-space: normal;
+    line-height: 1.05;
+    text-align: center;
+  }
+  [dir="rtl"] .content,
+  [dir="rtl"] .content > *,
+  [dir="rtl"] .grid,
+  [dir="rtl"] .panel { min-inline-size: 0; max-inline-size: 100%; }
+}
+@media (min-width: 48.01rem) {
+  [dir="rtl"] .hero-copy { grid-column: 1; }
+  [dir="rtl"] .hero-media { grid-column: 2; }
+}

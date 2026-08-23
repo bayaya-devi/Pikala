@@ -1,3 +1,9 @@
+import { t } from './assets/js/i18n/index.js';
+import { initLayout } from './assets/js/layouts.js';
+import { showToast } from './assets/js/ui/components.js';
+
+initLayout();
+
 let currentUser = null;
 
 function fullName(user) {
@@ -10,9 +16,9 @@ function setText(selector, value) {
 }
 
 function friendlyApiError(data) {
-  const raw = String(data?.error || data?.message || 'Erreur serveur.');
+  const raw = String(data?.error || data?.message || t('commonError'));
   if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de donnees')) {
-    return 'Service temporairement indisponible : la base Cloudflare D1 doit etre reconnectee.';
+    return t('dbUnavailable');
   }
   return raw;
 }
@@ -51,7 +57,7 @@ async function requireUser() {
         await wait(600);
         continue;
       }
-      setText('[data-user-greeting]', error.message || 'Connexion temporairement indisponible.');
+      setText('[data-user-greeting]', error.message || t('commonUnavailable'));
       return null;
     }
   }
@@ -81,12 +87,12 @@ function wireLogout() {
 async function loadDashboard() {
   const user = await requireUser();
   if (!user) return;
-  setText('[data-user-greeting]', `Bonjour ${user.first_name || fullName(user)}`);
+  setText('[data-user-greeting]', t('helloName', { name: user.first_name || fullName(user) }));
   try {
     const { stations } = await api('/api/stations');
     const totalBikes = stations.reduce((sum, station) => sum + Number(station.bikes_available || 0), 0);
     const nearest = stations[0];
-    setText('[data-nearest-station]', nearest ? `${nearest.name} : ${nearest.bikes_available} velos disponibles.` : 'Aucune station disponible.');
+    setText('[data-nearest-station]', nearest ? `${nearest.name} : ${t(Number(nearest.bikes_available) === 1 ? 'bikesAvailableCount' : 'bikesAvailableCountPlural', { count: nearest.bikes_available })}.` : t('stationsNone'));
     setText('[data-total-bikes]', String(totalBikes));
     setText('[data-total-stations]', String(stations.length));
   } catch (error) {
@@ -94,18 +100,18 @@ async function loadDashboard() {
   }
   try {
     const profile = await api('/api/profile');
-    setText('[data-subscription-status]', profile.subscription ? profile.subscription.plan : 'Aucun');
+    setText('[data-subscription-status]', profile.subscription ? profile.subscription.plan : t('profileNoSubscription'));
   } catch {
-    setText('[data-subscription-status]', 'Aucun');
+    setText('[data-subscription-status]', t('profileNoSubscription'));
   }
 }
 
 
 
 function stationAvailabilityLabel(bikes) {
-  if (bikes <= 0) return 'Indisponible';
-  if (bikes <= 3) return 'Peu de velos';
-  return 'Disponible';
+  if (bikes <= 0) return t('stationsEmpty');
+  if (bikes <= 3) return t('stationsLow');
+  return t('stationsAvailable');
 }
 
 function stationCard(station, index) {
@@ -119,7 +125,7 @@ function stationCard(station, index) {
 
 function stationMeta(station) {
   const bikes = Number(station.bikes_available || 0);
-  return bikes + ' velo' + (bikes > 1 ? 's' : '') + ' disponible' + (bikes > 1 ? 's' : '') + ' - ' + (station.address || station.city || 'Rabat');
+  return t(bikes === 1 ? 'bikesAvailableCount' : 'bikesAvailableCountPlural', { count: bikes }) + ' - ' + (station.address || station.city || 'Rabat');
 }
 
 let stationMapState = null;
@@ -154,13 +160,13 @@ function renderStationMap(stations) {
   if (!mapElement) return [];
   const usableStations = stations.filter((station) => Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude)));
   if (!usableStations.length) {
-    mapElement.innerHTML = '<div class="map-empty"><strong>Carte indisponible</strong><span>Coordonnees manquantes pour les stations.</span></div>';
-    if (status) status.textContent = 'Indisponible';
+    mapElement.innerHTML = '<div class="map-empty"><strong>' + t('stationsUnavailable') + '</strong><span>' + t('stationsCoordinatesMissing') + '</span></div>';
+    if (status) status.textContent = t('stationsEmpty');
     return [];
   }
   if (!window.L) {
     renderStationFallback(mapElement, usableStations);
-    if (status) status.textContent = 'Carte simplifiee';
+    if (status) status.textContent = t('stationsSimplified');
     selectStation(usableStations, 0);
     stationMapState = { usableStations, markers: [] };
     return usableStations;
@@ -193,7 +199,7 @@ async function loadStations() {
   await requireUser();
   const list = document.querySelector('[data-stations-list]');
   if (!list) return;
-  list.innerHTML = '<div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div>';
+  list.innerHTML = '<div class="station-row"><strong>' + t('commonLoading') + '</strong><span></span><span class="status">...</span></div>';
   try {
     const { stations } = await api('/api/stations');
     const usableStations = renderStationMap(stations);
@@ -217,10 +223,10 @@ async function loadProfile() {
   if (!user) return;
   setText('[data-profile-name]', fullName(user));
   setText('[data-profile-email]', user.email || '');
-  setText('[data-profile-phone]', user.phone || 'Non renseigne');
+  setText('[data-profile-phone]', user.phone || t('profileNoPhone'));
   try {
     const profile = await api('/api/profile');
-    setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} actif` : 'Aucun abonnement actif');
+    setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} ${t('activeLabel')}` : t('profileNoSubscription'));
   } catch (error) {
     setText('[data-profile-subscription]', error.message);
   }
@@ -232,7 +238,7 @@ async function wireSubscription() {
   if (!user || !button) return;
   button.addEventListener('click', async (event) => {
     event.preventDefault();
-    button.textContent = 'Activation...';
+    button.textContent = t('subscriptionActivating');
     try {
       await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: 'Premium' }) });
       window.location.href = 'dashboard.html';
@@ -248,16 +254,22 @@ async function wireSupport() {
   if (!user || !form) return;
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-      if (button) button.textContent = 'Signalement envoye';
+    const subject = form.querySelector('[name="subject"]')?.value.trim() || '';
     const message = form.querySelector('[name="message"]')?.value.trim() || '';
-    const button = form.querySelector('button');
-    if (button) button.textContent = 'Envoi...';
+    const button = form.querySelector('button[type="submit"]');
+    if (!message) {
+      showToast(t('supportRequired'), { tone: 'error' });
+      return;
+    }
+    if (button) button.textContent = t('supportSending');
     try {
       await api('/api/support', { method: 'POST', body: JSON.stringify({ subject, message }) });
       form.reset();
-      if (button) button.textContent = 'Signalement envoye';
+      if (button) button.textContent = t('supportSent');
+      showToast(t('supportSent'));
     } catch (error) {
-      if (button) button.textContent = error.message;
+      if (button) button.textContent = t('supportSend');
+      showToast(error.message, { tone: 'error' });
     }
   });
 }
@@ -268,10 +280,10 @@ async function wireScanner() {
   if (!user || !button) return;
   button.addEventListener('click', async (event) => {
     event.preventDefault();
-    button.textContent = 'Deblocage...';
+    button.textContent = t('scannerUnlocking');
     try {
       await api('/api/rides', { method: 'POST', body: '{}' });
-      button.textContent = 'Velo debloque';
+      button.textContent = t('scannerUnlocked');
       window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
     } catch (error) {
       button.textContent = error.message;
@@ -353,9 +365,18 @@ async function loadAdmin() {
     setText('[data-admin-bikes]', String(totalBikes));
     const list = document.querySelector('[data-admin-station-list]');
     if (list) {
-      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} velos</span><span class="status">${station.latitude && station.longitude ? 'Carte prete' : 'A completer'}</span></div>`).join('');
+      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} velos</span><span class="status">${station.latitude && station.longitude ? t('adminMapReady') : t('adminComplete')}</span></div>`).join('');
     }
   } catch (error) {
     setText('[data-admin-error]', error.message);
   }
 }
+
+
+document.addEventListener('pikala:localechange', () => {
+  if (!currentUser) return;
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'stations') loadStations();
+  if (page === 'profile') loadProfile();
+  if (page === 'admin') loadAdmin();
+});

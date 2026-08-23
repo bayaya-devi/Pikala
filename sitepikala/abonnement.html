@@ -3,38 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Abonnement</title>
+  <title data-i18n="subscriptionTitle">Pikala - Abonnement</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <script type="module" src="user-space.js"></script>
 </head>
 <body data-user-page="subscription">
   <main class="content">
     <div class="topbar">
       <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
-      <a class="button ghost" href="dashboard.html">Voir mon espace</a>
+      <a class="button ghost" href="dashboard.html" data-i18n="dashboardTitle">Tableau de bord</a>
     </div>
 
     <section class="grid two">
       <div class="panel hero-panel">
-        <p class="eyebrow">Après inscription</p>
-        <h1>Activez votre espace.</h1>
-        <p>Un abonnement pour rouler et scanner.</p>
+        <p class="eyebrow" data-i18n="afterSignup">Après inscription</p>
+        <h1 data-i18n="subscriptionHeading">Activez votre espace.</h1>
+        <p data-i18n="subscriptionSummary">Un abonnement pour rouler et scanner.</p>
       </div>
 
       <article class="panel">
-        <p class="eyebrow">Formule recommandée</p>
-        <h1>Abonnement Pikala</h1>
-        <p class="muted">Accès aux vélos en libre-service, scanner QR, support et signalement rapide.</p>
+        <p class="eyebrow" data-i18n="recommendedPlan">Formule recommandée</p>
+        <h1 data-i18n="subscriptionPlan">Abonnement Pikala</h1>
+        <p class="muted" data-i18n="subscriptionDetails">Accès aux vélos en libre-service, scanner QR, support et signalement rapide.</p>
         <div class="profile-list">
-          <div><strong>Vélos</strong><span>Illimité selon disponibilité</span></div>
-          <div><strong>Stations</strong><span>18 à Rabat</span></div>
-          <div><strong>Support</strong><span>7j/7</span></div>
-          <div><strong>Paiement</strong><span>En ligne</span></div>
+          <div><strong data-i18n="bikesLabel">Vélos</strong><span data-i18n="unlimitedAvailability">Illimité selon disponibilité</span></div>
+          <div><strong data-i18n="navStations">Stations</strong><span data-i18n="stationsInRabat">18 à Rabat</span></div>
+          <div><strong data-i18n="navSupport">Support</strong><span>7j/7</span></div>
+          <div><strong data-i18n="paymentLabel">Paiement</strong><span data-i18n="onlineLabel">En ligne</span></div>
         </div>
-        <p><a class="button primary" href="dashboard.html" data-activate-subscription>Payer et activer</a></p>
+        <p><a class="button primary" href="dashboard.html" data-activate-subscription data-i18n="subscriptionAction">Payer en ligne</a></p>
       </article>
     </section>
   </main>

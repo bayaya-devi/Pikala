@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Stations</title>
+  <title data-i18n="stationsTitle">Pikala - Stations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQPDL8xF4k6l1Qd2hU7R5UXb0wY2F3c=" crossorigin="">
   <link rel="stylesheet" href="user-space.css">
+  <link rel="stylesheet" href="assets/css/foundation.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="user-space.js" defer></script>
+  <script type="module" src="user-space.js"></script>
 </head>
 <body data-user-page="stations">
   <div class="app-shell">
@@ -19,23 +20,23 @@
       <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a class="active" href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a></nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Stations</p><h1>Trouvez un velo.</h1></div><a class="button primary" href="scanner.html">Scanner</a></div>
+      <div class="topbar"><div><p class="eyebrow" data-i18n="stationsTitle">Stations</p><h1 data-i18n="stationsHeading">Trouvez un vélo.</h1></div><a class="button primary" href="scanner.html" data-i18n="stationsScan">Scanner</a></div>
       <section class="panel station-explorer">
         <div class="map-head">
           <div>
-            <p class="eyebrow">Carte live</p>
-            <h2>Carte des stations</h2>
-            <p class="muted">Touchez une bulle pour choisir.</p>
+            <p class="eyebrow" data-i18n="liveMap">Carte en direct</p>
+            <h2 data-i18n="stationsMap">Carte des stations</h2>
+            <p class="muted" data-i18n="mapHint">Touchez une bulle pour choisir.</p>
           </div>
-          <span class="status" data-map-status>Chargement</span>
+          <span class="status" data-map-status data-i18n="commonLoading">Chargement...</span>
         </div>
         <div class="station-map-layout">
           <div class="station-map" data-stations-map aria-label="Carte des stations Pikala"></div>
           <aside class="station-focus" aria-live="polite">
-            <p class="eyebrow">Station selectionnee</p>
-            <h3 data-selected-station>Choisissez</h3>
-            <p class="muted" data-selected-station-meta>Chaque bulle indique les velos.</p>
-            <a class="button primary" href="scanner.html">Scanner un velo</a>
+            <p class="eyebrow" data-i18n="selectedStation">Station sélectionnée</p>
+            <h3 data-selected-station data-i18n="stationsChoose">Choisissez une station</h3>
+            <p class="muted" data-selected-station-meta data-i18n="bubbleHint">Chaque bulle indique les vélos.</p>
+            <a class="button primary" href="scanner.html" data-i18n="scanBike">Scanner un vélo</a>
           </aside>
         </div>
       </section>

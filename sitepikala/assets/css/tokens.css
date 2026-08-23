@@ -1,0 +1,81 @@
+:root {
+  color-scheme: light;
+
+  --pk-color-brand-50: #f1fae8;
+  --pk-color-brand-100: #dff3c8;
+  --pk-color-brand-300: #a8dc70;
+  --pk-color-brand-500: #69c80f;
+  --pk-color-brand-600: #4e9f0c;
+  --pk-color-brand-700: #327a12;
+  --pk-color-brand-800: #245c11;
+  --pk-color-accent: #f5d54a;
+  --pk-color-info: #1677a6;
+  --pk-color-success: #2f7d32;
+  --pk-color-warning: #a96500;
+  --pk-color-danger: #b42318;
+  --pk-color-ink: #1f2a18;
+  --pk-color-muted: #66715f;
+  --pk-color-canvas: #f8faf4;
+  --pk-color-surface: #ffffff;
+  --pk-color-surface-alt: #f1f5ec;
+  --pk-color-border: #dce4d6;
+  --pk-color-overlay: rgba(21, 31, 18, 0.58);
+
+  --pk-font-sans: "DM Sans", Arial, sans-serif;
+  --pk-font-display: "Playfair Display", Georgia, serif;
+  --pk-font-size-xs: 0.75rem;
+  --pk-font-size-sm: 0.875rem;
+  --pk-font-size-md: 1rem;
+  --pk-font-size-lg: 1.125rem;
+  --pk-font-size-xl: 1.5rem;
+  --pk-font-size-2xl: 2rem;
+  --pk-line-tight: 1.2;
+  --pk-line-normal: 1.55;
+
+  --pk-space-1: 0.25rem;
+  --pk-space-2: 0.5rem;
+  --pk-space-3: 0.75rem;
+  --pk-space-4: 1rem;
+  --pk-space-5: 1.25rem;
+  --pk-space-6: 1.5rem;
+  --pk-space-8: 2rem;
+  --pk-space-10: 2.5rem;
+  --pk-space-12: 3rem;
+
+  --pk-radius-sm: 4px;
+  --pk-radius-md: 6px;
+  --pk-radius-lg: 8px;
+  --pk-radius-pill: 999px;
+  --pk-shadow-sm: 0 2px 10px rgba(31, 42, 24, 0.08);
+  --pk-shadow-md: 0 12px 32px rgba(31, 42, 24, 0.12);
+  --pk-shadow-lg: 0 24px 64px rgba(31, 42, 24, 0.16);
+
+  --pk-duration-fast: 140ms;
+  --pk-duration-normal: 240ms;
+  --pk-duration-slow: 420ms;
+  --pk-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --pk-ease-enter: cubic-bezier(0, 0, 0.2, 1);
+
+  --pk-z-header: 100;
+  --pk-z-nav: 200;
+  --pk-z-drawer: 400;
+  --pk-z-modal: 500;
+  --pk-z-toast: 600;
+  --pk-content-max: 72rem;
+  --pk-touch-target: 44px;
+
+  /* Compatibility aliases while V1 styles are progressively removed. */
+  --green: var(--pk-color-brand-500);
+  --green-dark: var(--pk-color-brand-700);
+  --green-deep: var(--pk-color-brand-800);
+  --lime: var(--pk-color-brand-300);
+  --mint: var(--pk-color-brand-50);
+  --sun: var(--pk-color-accent);
+  --ink: var(--pk-color-ink);
+  --muted: var(--pk-color-muted);
+  --paper: var(--pk-color-canvas);
+  --white: var(--pk-color-surface);
+  --line: var(--pk-color-border);
+  --shadow: var(--pk-shadow-lg);
+  --radius: var(--pk-radius-lg);
+}

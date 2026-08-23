@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Support</title>
+  <title data-i18n="supportTitle">Pikala - Support</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <script type="module" src="user-space.js"></script>
 </head>
 <body data-user-page="support">
   <div class="app-shell">
@@ -17,20 +18,20 @@
       <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a class="active" href="support.html">Support</a></nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Support</p><h1>Besoin d'aide ?</h1></div><a class="button ghost" href="dashboard.html">Retour</a></div>
+      <div class="topbar"><div><p class="eyebrow" data-i18n="supportTitle">Support</p><h1 data-i18n="supportHeading">Besoin d'aide ?</h1></div><a class="button ghost" href="dashboard.html" data-i18n="commonBack">Retour</a></div>
       <section class="grid two">
         <form class="panel form" data-support-form>
-          <h2>Signalement</h2>
-          <input name="subject" type="text" placeholder="Numéro du vélo ou station">
-          <textarea name="message" placeholder="Décrivez le problème" required></textarea>
-          <button class="button primary" type="submit">Envoyer le signalement</button>
+          <h2 data-i18n="supportReport">Signalement</h2>
+          <input name="subject" type="text" placeholder="Numéro du vélo ou station" data-i18n-attr="placeholder:supportSubject">
+          <textarea name="message" placeholder="Décrivez le problème" data-i18n-attr="placeholder:supportMessage" required></textarea>
+          <button class="button primary" type="submit" data-i18n="supportSend">Envoyer</button>
         </form>
         <article class="panel">
-          <h2>Aide</h2>
+          <h2 data-i18n="supportHelp">Aide</h2>
           <div class="support-list">
-            <a href="scanner.html">Je n'arrive pas à scanner</a>
-            <a href="stations.html">Trouver une autre station</a>
-            <a href="profil.html">Vérifier mon abonnement</a>
+            <a href="scanner.html" data-i18n="supportScanHelp">Je n'arrive pas à scanner</a>
+            <a href="stations.html" data-i18n="supportFindStation">Trouver une autre station</a>
+            <a href="profil.html" data-i18n="supportCheckPlan">Vérifier mon abonnement</a>
           </div>
         </article>
       </section>

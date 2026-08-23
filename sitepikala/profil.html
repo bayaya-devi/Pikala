@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Profil</title>
+  <title data-i18n="profileTitle">Pikala - Profil</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <script type="module" src="user-space.js"></script>
 </head>
 <body data-user-page="profile">
   <div class="app-shell">
@@ -17,20 +18,20 @@
       <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a class="active" href="profil.html">Profil</a><a href="support.html">Support</a></nav>
     </aside>
     <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Profil</p><h1>Votre profil.</h1></div><a class="button ghost" href="index.html" data-logout>Se déconnecter</a></div>
+      <div class="topbar"><div><p class="eyebrow" data-i18n="profileTitle">Profil</p><h1 data-i18n="profileHeading">Votre profil.</h1></div><a class="button ghost" href="index.html" data-logout data-i18n="commonLogout">Se déconnecter</a></div>
       <section class="grid two">
         <article class="panel">
-          <h2>Compte</h2>
+          <h2 data-i18n="profileAccount">Compte</h2>
           <div class="profile-list">
-            <div><strong>Nom</strong><span data-profile-name>Chargement...</span></div>
-            <div><strong>Email</strong><span data-profile-email>Chargement...</span></div>
-            <div><strong>Téléphone</strong><span data-profile-phone>Chargement...</span></div>
+            <div><strong data-i18n="nameLabel">Nom</strong><span data-profile-name>Chargement...</span></div>
+            <div><strong data-i18n="emailLabel">E-mail</strong><span data-profile-email>Chargement...</span></div>
+            <div><strong data-i18n="phoneLabel">Téléphone</strong><span data-profile-phone>Chargement...</span></div>
           </div>
         </article>
         <article class="panel">
-          <h2>Abonnement</h2>
+          <h2 data-i18n="profileSubscription">Abonnement</h2>
           <p class="muted" data-profile-subscription>Chargement...</p>
-          <a class="button primary" href="abonnement.html">Gérer l'abonnement</a>
+          <a class="button primary" href="abonnement.html" data-i18n="manageSubscription">Gérer l'abonnement</a>
         </article>
       </section>
     </main>

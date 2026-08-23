@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/bayaya-devi/Pikala/issues"
   },
-  "homepage": "https://github.com/bayaya-devi/Pikala#readme"
+  "homepage": "https://github.com/bayaya-devi/Pikala#readme",
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
 }

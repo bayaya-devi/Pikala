@@ -14,6 +14,8 @@ check(manifest.start_url?.startsWith('/'), 'Manifest: start_url invalide.');
 check(manifest.icons?.some((icon) => icon.sizes === '192x192') && manifest.icons?.some((icon) => icon.sizes === '512x512'), 'Manifest: icônes 192/512 absentes.');
 
 const serviceWorker = await readFile(resolve(web, 'sw.js'), 'utf8');
+check(!serviceWorker.includes('return cached || refresh'), 'Service worker: les fichiers en ligne ne doivent pas rester bloqués sur un ancien cache.');
+check(serviceWorker.includes('const response = await fetch(request)') && serviceWorker.includes('return cached || Response.error()'), 'Service worker: stratégie réseau prioritaire absente.');
 for (const token of ["url.pathname.startsWith('/api/')", 'PRIVATE_PATHS.has(url.pathname)', "request.method !== 'GET'", 'request.mode === \'navigate\'', 'offline.html']) check(serviceWorker.includes(token), `Service worker: garde absente (${token}).`);
 check(!/caches\.put\([^\n]*(?:api|profile|payment|station)/i.test(serviceWorker), 'Service worker: donnée critique mise en cache.');
 

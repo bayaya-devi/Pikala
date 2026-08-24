@@ -1,3 +1,5 @@
+import { getPaymentProvider } from './payments/provider.js';
+import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
 const USER_FIELDS = 'id, first_name, last_name, email, phone, role, status, locale, created_at, email_verified, auth_version';
 const JOINED_USER_FIELDS = USER_FIELDS.split(', ').map((field) => `users.${field} AS ${field}`).join(', ');
 const SESSION_COOKIE = '__Host-pikala_session';
@@ -529,6 +531,7 @@ async function stationDetail(request, env, stationKey) {
 async function dashboard(request, env, url) {
   const auth = await requireUser(request, env); if (auth.response) return auth.response;
   const DB = requireDb(env);
+  await refreshUserSubscriptions(DB, auth.user.id);
   const [activeResult, subscriptionResult, ridesResult, notificationsResult, stationsResult] = await DB.batch([
     DB.prepare(`SELECT rides.id, rides.status, rides.started_at, bikes.public_code AS bike_code,
       start_station.name AS start_station_name, end_station.name AS end_station_name
@@ -635,29 +638,185 @@ async function rideDetail(request, env, rideId) {
   return json({ ride: rideRow });
 }
 
-async function plans(env) {
-  const { results } = await requireDb(env).prepare(`SELECT id, slug, name, description AS summary, amount_minor, amount_minor / 100.0 AS amount_mad, currency, billing_period FROM plans WHERE status = 'active' AND amount_minor IS NOT NULL ORDER BY display_order, amount_minor, id`).all();
-  return json({ plans: results || [] }, 200, { 'cache-control': 'public, max-age=300' });
+function paymentPublic(row) {
+  if (!row) return null;
+  return { reference: row.public_reference, status: row.lifecycle_status, amountMinor: Number(row.amount_minor),
+    currency: row.currency, provider: row.provider || null, planName: row.plan_name_snapshot,
+    durationDays: Number(row.plan_duration_days_snapshot), createdAt: row.created_at,
+    paidAt: row.paid_at || null, refundedAt: row.refunded_at || null, failureCode: row.failure_code || null };
 }
 
-async function subscription(request, env) {
+async function plans(request, env) {
+  const provider = getPaymentProvider(env);
+  const rows = await listActivePlans(requireDb(env));
+  const compatible = rows.map((plan) => ({ ...plan, amount_minor: plan.amountMinor, amount_mad: plan.amountMinor / 100,
+    billing_period: plan.billingPeriod, summary: plan.description }));
+  return json({ plans: compatible, paymentProvider: { configured: provider.configured, name: provider.name } }, 200, { 'cache-control': 'public, max-age=300' });
+}
+
+async function subscriptions(request, env) {
   const auth = await requireUser(request, env); if (auth.response) return auth.response;
-  const body = await readJson(request); const requestedPlan = String(body?.plan || '').trim().slice(0, 80);
-  if (!requestedPlan) return json({ code: 'PLAN_REQUIRED', error: 'Veuillez choisir un abonnement.' }, 400);
+  const provider = getPaymentProvider(env);
+  const overview = await subscriptionOverview(requireDb(env), auth.user.id);
+  return json({ ...overview, paymentProvider: { configured: provider.configured, name: provider.name } });
+}
+
+function validIdempotencyKey(value) { return /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(String(value || '')); }
+
+async function checkoutSubscription(request, env) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  const body = await readJson(request);
+  const planSlug = String(body?.plan || body?.planSlug || '').trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(planSlug)) return json({ code: 'PLAN_REQUIRED', error: 'Veuillez choisir une offre.' }, 400);
+  const rawIdempotency = request.headers.get('idempotency-key') || body?.idempotencyKey;
+  if (!validIdempotencyKey(rawIdempotency)) return json({ code: 'IDEMPOTENCY_KEY_REQUIRED', error: "Une cle d'idempotence valide est requise." }, 400);
   const DB = requireDb(env);
-  const plan = await DB.prepare("SELECT id, name FROM plans WHERE (slug = ? OR name = ?) AND status IN ('active', 'legacy') LIMIT 1").bind(requestedPlan, requestedPlan).first();
-  if (!plan) return json({ code: 'PLAN_NOT_FOUND', error: "Cet abonnement n'est pas disponible." }, 404);
-  await DB.prepare("UPDATE subscriptions SET status = 'inactive', ends_at = CURRENT_TIMESTAMP, cancelled_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'").bind(auth.user.id).run();
-  const result = await DB.prepare("INSERT INTO subscriptions (user_id, plan, plan_id, status, current_period_start) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP)").bind(auth.user.id, plan.name, plan.id).run();
-  return json({ success: true, subscription: await DB.prepare('SELECT id, user_id, plan, plan_id, status, starts_at, ends_at FROM subscriptions WHERE id = ?').bind(result.meta.last_row_id).first() }, 201);
+  await refreshUserSubscriptions(DB, auth.user.id);
+  const plan = await findActivePlan(DB, planSlug);
+  if (!plan) return json({ code: 'PLAN_NOT_FOUND', error: "Cette offre n'est pas disponible." }, 404);
+  const idempotencyKey = await sha256(`payment:${auth.user.id}:${rawIdempotency}`);
+  const existing = await DB.prepare(`SELECT public_reference, lifecycle_status, amount_minor, currency, provider,
+    plan_name_snapshot, plan_duration_days_snapshot, created_at, paid_at, refunded_at, failure_code
+    FROM payments WHERE idempotency_key = ? AND user_id = ? LIMIT 1`).bind(idempotencyKey, auth.user.id).first();
+  if (existing) return json({ payment: paymentPublic(existing), idempotent: true }, 200);
+  const provider = Number(plan.amount_minor) === 0 ? { name: 'free', configured: true } : getPaymentProvider(env);
+  if (!provider.configured) return json({ code: 'PAYMENT_PROVIDER_UNAVAILABLE', error: "Le paiement en ligne sera bientot disponible. Aucun debit ni abonnement n'a ete cree." }, 503);
+  const reference = `pay_${base64Url(crypto.getRandomValues(new Uint8Array(18)))}`;
+  const insert = await DB.prepare(`INSERT INTO payments
+    (user_id, plan_id, amount_minor, currency, status, lifecycle_status, provider, public_reference,
+     idempotency_key, plan_name_snapshot, plan_duration_days_snapshot, benefits_json_snapshot, metadata_json)
+    VALUES (?, ?, ?, ?, 'pending', 'pending', ?, ?, ?, ?, ?, ?, '{}')`)
+    .bind(auth.user.id, plan.id, plan.amount_minor, plan.currency, provider.name, reference, idempotencyKey,
+      plan.name, plan.duration_days, plan.benefits_json).run();
+  let row = await DB.prepare('SELECT * FROM payments WHERE id = ?').bind(insert.meta.last_row_id).first();
+  if (Number(plan.amount_minor) === 0) {
+    const event = { eventId: `free:${reference}`, eventType: 'payment.paid', status: 'paid', payloadHash: await sha256(reference) };
+    row.provider_payment_id = `free:${reference}`;
+    await DB.prepare('UPDATE payments SET provider_payment_id = ? WHERE id = ?').bind(row.provider_payment_id, row.id).run();
+    await activatePaidPayment(DB, row, event);
+    row = await DB.prepare('SELECT * FROM payments WHERE id = ?').bind(row.id).first();
+    return json({ payment: paymentPublic(row), subscription: (await subscriptionOverview(DB, auth.user.id)).active }, 201);
+  }
+  try {
+    const checkout = await provider.createCheckout({ reference, amountMinor: Number(plan.amount_minor), currency: plan.currency, planSlug: plan.slug, userId: auth.user.id });
+    const lifecycle = checkout.status === 'processing' ? 'processing' : 'pending';
+    const legacy = lifecycle === 'processing' ? 'requires_action' : 'pending';
+    await DB.prepare(`UPDATE payments SET lifecycle_status = ?, status = ?, provider_payment_id = ?, provider_session_id = ?,
+      checkout_expires_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND lifecycle_status = 'pending'`)
+      .bind(lifecycle, legacy, checkout.providerPaymentId, checkout.providerSessionId || null, checkout.expiresAt || null, row.id).run();
+    row = await DB.prepare('SELECT * FROM payments WHERE id = ?').bind(row.id).first();
+    return json({ payment: paymentPublic(row), checkoutUrl: checkout.checkoutUrl || null }, 202);
+  } catch (error) {
+    await DB.prepare("UPDATE payments SET lifecycle_status = 'failed', status = 'failed', failure_code = 'PROVIDER_CREATE_FAILED', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(row.id).run();
+    return json({ code: error?.code === 'PAYMENT_PROVIDER_UNAVAILABLE' ? error.code : 'PAYMENT_START_FAILED', error: "Le paiement n'a pas pu etre initialise. Aucun abonnement n'a ete active." }, 503);
+  }
+}
+
+async function paymentStatus(request, env, reference) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  if (!/^pay_[A-Za-z0-9_-]{20,80}$/.test(reference)) return json({ code: 'PAYMENT_NOT_FOUND', error: 'Paiement introuvable.' }, 404);
+  const row = await requireDb(env).prepare(`SELECT public_reference, lifecycle_status, amount_minor, currency, provider,
+    plan_name_snapshot, plan_duration_days_snapshot, created_at, paid_at, refunded_at, failure_code
+    FROM payments WHERE public_reference = ? AND user_id = ? LIMIT 1`).bind(reference, auth.user.id).first();
+  return row ? json({ payment: paymentPublic(row) }) : json({ code: 'PAYMENT_NOT_FOUND', error: 'Paiement introuvable.' }, 404);
+}
+
+async function paymentWebhook(request, env, providerName) {
+  const provider = getPaymentProvider(env);
+  if (!provider.configured || provider.name !== providerName) return json({ code: 'PAYMENT_PROVIDER_UNAVAILABLE', error: 'Provider inconnu.' }, 404);
+  const event = await provider.verifyWebhook(request);
+  if (!event.ok) return json({ code: event.code, error: 'Webhook refuse.' }, event.code === 'WEBHOOK_SIGNATURE_INVALID' ? 401 : 400);
+  const DB = requireDb(env);
+  const duplicate = await DB.prepare('SELECT processing_status FROM payment_events WHERE provider = ? AND provider_event_id = ?').bind(provider.name, event.eventId).first();
+  if (duplicate) return json({ received: true, duplicate: true });
+  const payment = await DB.prepare('SELECT * FROM payments WHERE provider = ? AND provider_payment_id = ? LIMIT 1').bind(provider.name, event.providerPaymentId).first();
+  if (!payment) {
+    await DB.prepare(`INSERT INTO payment_events (provider, provider_event_id, event_type, payload_hash, processing_status, processed_at, error_code)
+      VALUES (?, ?, ?, ?, 'ignored', CURRENT_TIMESTAMP, 'PAYMENT_NOT_FOUND')`).bind(provider.name, event.eventId, event.eventType, event.payloadHash).run();
+    return json({ received: true, ignored: true }, 202);
+  }
+  try {
+    const result = event.status === 'paid' ? await activatePaidPayment(DB, payment, event) : await recordNonPaidEvent(DB, payment, event);
+    return json({ received: true, ...result });
+  } catch (error) {
+    if (String(error?.message || '').includes('UNIQUE constraint failed: payment_events')) return json({ received: true, duplicate: true });
+    throw error;
+  }
+}
+
+async function cancelSubscription(request, env, subscriptionId) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  if (!validRideId(subscriptionId)) return json({ code: 'SUBSCRIPTION_NOT_FOUND', error: 'Abonnement introuvable.' }, 404);
+  const result = await requireDb(env).prepare(`UPDATE subscriptions SET cancel_at_period_end = 1, auto_renew = 0, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND user_id = ? AND status = 'active'`).bind(subscriptionId, auth.user.id).run();
+  return result.meta.changes ? json({ success: true }) : json({ code: 'SUBSCRIPTION_NOT_FOUND', error: 'Abonnement introuvable.' }, 404);
+}
+
+function normalizePlanInput(body, existing = {}) {
+  const slug = String(body?.slug ?? existing.slug ?? '').trim().toLowerCase();
+  const name = String(body?.name ?? existing.name ?? '').trim();
+  const description = String(body?.description ?? existing.description ?? '').trim();
+  const amountMinor = Number(body?.amountMinor ?? existing.amount_minor);
+  const currency = String(body?.currency ?? existing.currency ?? 'MAD').trim().toUpperCase();
+  const durationDays = Number(body?.durationDays ?? existing.duration_days);
+  const billingPeriod = String(body?.billingPeriod ?? existing.billing_period ?? 'month');
+  const status = String(body?.status ?? existing.status ?? 'draft');
+  const displayOrder = Number(body?.displayOrder ?? existing.display_order ?? 0);
+  const featured = body?.featured === undefined ? Boolean(existing.is_featured) : Boolean(body.featured);
+  const benefits = body?.benefits ?? parseJson(existing.benefits_json, []);
+  const translations = body?.translations ?? parseJson(existing.translations_json, {});
+  const validTranslations = translations && typeof translations === 'object' && !Array.isArray(translations)
+    && Object.entries(translations).every(([locale, value]) => ['fr','en','es','pt','ar'].includes(locale)
+      && value && typeof value === 'object' && String(value.name || '').length <= 120
+      && String(value.description || '').length <= 600 && Array.isArray(value.benefits || [])
+      && value.benefits.length <= 12 && value.benefits.every((item) => typeof item === 'string' && item.length <= 140));
+  if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(slug) || name.length < 2 || name.length > 120 || description.length > 600
+    || !Number.isInteger(amountMinor) || amountMinor < 0 || amountMinor > 100000000 || !/^[A-Z]{3}$/.test(currency)
+    || !Number.isInteger(durationDays) || durationDays < 1 || durationDays > 3650
+    || !new Set(['day','week','month','year','one_time']).has(billingPeriod)
+    || !new Set(['draft','active','archived','legacy']).has(status) || !Number.isInteger(displayOrder) || Math.abs(displayOrder) > 100000
+    || !Array.isArray(benefits) || benefits.length > 12 || benefits.some((item) => typeof item !== 'string' || item.length < 1 || item.length > 140)
+    || !validTranslations) return null;
+  return { slug, name, description, amountMinor, currency, durationDays, billingPeriod, status, displayOrder, featured, benefits, translations };
+}
+
+async function adminPlans(request, env) {
+  const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+  const DB = requireDb(env);
+  if (request.method === 'GET') {
+    const { results } = await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans ORDER BY display_order, id`).all();
+    return json({ plans: (results || []).map(serializePlan) });
+  }
+  const input = normalizePlanInput(await readJson(request));
+  if (!input) return json({ code: 'PLAN_INVALID', error: 'Donnees de plan invalides.' }, 400);
+  const result = await DB.prepare(`INSERT INTO plans
+    (slug,name,description,amount_minor,currency,billing_period,status,display_order,duration_days,benefits_json,translations_json,is_featured,version)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)`).bind(input.slug,input.name,input.description,input.amountMinor,input.currency,input.billingPeriod,input.status,input.displayOrder,input.durationDays,JSON.stringify(input.benefits),JSON.stringify(input.translations),input.featured?1:0).run();
+  await DB.prepare('INSERT INTO admin_audit_logs (actor_user_id, action, target_type, target_id, request_id, ip_hint) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(auth.user.id, 'plan.create', 'plan', String(result.meta.last_row_id), requestId(request), (await ipHash(request)).slice(0,32)).run();
+  return json({ plan: serializePlan(await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans WHERE id = ?`).bind(result.meta.last_row_id).first()) }, 201);
+}
+
+async function adminPlanUpdate(request, env, planId) {
+  const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+  if (!validRideId(planId)) return json({ code: 'PLAN_NOT_FOUND', error: 'Offre introuvable.' }, 404);
+  const DB = requireDb(env); const existing = await DB.prepare('SELECT * FROM plans WHERE id = ?').bind(planId).first();
+  if (!existing) return json({ code: 'PLAN_NOT_FOUND', error: 'Offre introuvable.' }, 404);
+  const input = normalizePlanInput(await readJson(request), existing);
+  if (!input) return json({ code: 'PLAN_INVALID', error: 'Donnees de plan invalides.' }, 400);
+  await DB.prepare(`UPDATE plans SET slug=?,name=?,description=?,amount_minor=?,currency=?,billing_period=?,status=?,display_order=?,
+    duration_days=?,benefits_json=?,translations_json=?,is_featured=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+    .bind(input.slug,input.name,input.description,input.amountMinor,input.currency,input.billingPeriod,input.status,input.displayOrder,input.durationDays,JSON.stringify(input.benefits),JSON.stringify(input.translations),input.featured?1:0,planId).run();
+  await DB.prepare('INSERT INTO admin_audit_logs (actor_user_id, action, target_type, target_id, request_id, ip_hint) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(auth.user.id, 'plan.update', 'plan', String(planId), requestId(request), (await ipHash(request)).slice(0,32)).run();
+  return json({ plan: serializePlan(await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans WHERE id = ?`).bind(planId).first()) });
 }
 
 async function profile(request, env) {
   const auth = await requireUser(request, env); if (auth.response) return auth.response;
-  const DB = requireDb(env);
-  const subscriptionRow = await DB.prepare("SELECT id, plan, status, starts_at, ends_at FROM subscriptions WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1").bind(auth.user.id).first();
+  const DB = requireDb(env); const overview = await subscriptionOverview(DB, auth.user.id);
   const { results: rides } = await DB.prepare('SELECT id, status, started_at, ended_at FROM rides WHERE user_id = ? ORDER BY id DESC LIMIT 5').bind(auth.user.id).all();
-  return json({ user: auth.user, subscription: subscriptionRow, rides: rides || [] });
+  return json({ user: auth.user, subscription: overview.active, rides: rides || [] });
 }
 
 async function support(request, env) {
@@ -819,7 +978,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-      if (!csrfAllowed(request, env)) return json({ code: 'CSRF_REJECTED', error: 'Requete refusee.' }, 403);
+      const paymentWebhookMatch = url.pathname.match(/^\/api\/payments\/webhooks\/([a-z0-9-]+)$/);
+      if (!paymentWebhookMatch && !csrfAllowed(request, env)) return json({ code: 'CSRF_REJECTED', error: 'Requete refusee.' }, 403);
+      if (request.method === 'POST' && paymentWebhookMatch) return paymentWebhook(request, env, paymentWebhookMatch[1]);
       if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true });
       if (request.method === 'POST' && url.pathname === '/api/signup') return signup(request, env);
       if (request.method === 'GET' && url.pathname === '/api/verify-email') return verifyEmail(request, env);
@@ -843,12 +1004,20 @@ export default {
       const rideIncidentMatch = url.pathname.match(/^\/api\/rides\/([1-9][0-9]*)\/incidents$/);
       if (request.method === 'POST' && rideIncidentMatch) return reportRideIncident(request, env, rideIncidentMatch[1]);
       if (request.method === 'GET' && url.pathname.startsWith('/api/stations/')) return stationDetail(request, env, url.pathname.slice('/api/stations/'.length));
-      if (request.method === 'GET' && url.pathname === '/api/plans') return plans(env);
+      if (request.method === 'GET' && url.pathname === '/api/plans') return plans(request, env);
       if (request.method === 'GET' && url.pathname === '/api/profile') return profile(request, env);
-      if (request.method === 'POST' && url.pathname === '/api/subscriptions') return subscription(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/subscriptions') return subscriptions(request, env);
+      if (request.method === 'POST' && ['/api/subscriptions', '/api/subscriptions/checkout'].includes(url.pathname)) return checkoutSubscription(request, env);
+      const subscriptionCancelMatch = url.pathname.match(/^\/api\/subscriptions\/([1-9][0-9]*)\/cancel$/);
+      if (request.method === 'POST' && subscriptionCancelMatch) return cancelSubscription(request, env, subscriptionCancelMatch[1]);
+      const paymentStatusMatch = url.pathname.match(/^\/api\/payments\/(pay_[A-Za-z0-9_-]+)$/);
+      if (request.method === 'GET' && paymentStatusMatch) return paymentStatus(request, env, paymentStatusMatch[1]);
       if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
       if (request.method === 'POST' && url.pathname === '/api/rides') return startRide(request, env);
       if (request.method === 'GET' && url.pathname === '/api/admin/overview') return adminOverview(request, env);
+      if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') return adminPlans(request, env);
+      const adminPlanMatch = url.pathname.match(/^\/api\/admin\/plans\/([1-9][0-9]*)$/);
+      if (request.method === 'PATCH' && adminPlanMatch) return adminPlanUpdate(request, env, adminPlanMatch[1]);
       if (request.method === 'GET' && ['/Pageuser.html', '/Pageuseren.html'].includes(url.pathname)) return redirect('/dashboard', 301);
       const privateResponse = await guardPrivatePage(request, env, url);
       if (privateResponse) return privateResponse;

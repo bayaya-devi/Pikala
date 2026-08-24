@@ -9,8 +9,8 @@ class Client {
     const values = typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [response.headers.get('set-cookie')].filter(Boolean);
     for (const header of values) { const pair = header.split(';')[0]; const index = pair.indexOf('='); if (index > 0) this.cookies.set(pair.slice(0, index), pair.slice(index + 1)); }
   }
-  async request(path, { method = 'GET', body } = {}) {
-    const headers = { accept: 'application/json' };
+  async request(path, { method = 'GET', body, headers: extraHeaders = {} } = {}) {
+    const headers = { accept: 'application/json', ...extraHeaders };
     if (body !== undefined) headers['content-type'] = 'application/json';
     if (!['GET', 'HEAD'].includes(method)) { headers['x-pikala-request'] = 'web'; headers.origin = origin; }
     if (this.cookies.size) headers.cookie = [...this.cookies].map(([key, value]) => `${key}=${value}`).join('; ');
@@ -36,7 +36,7 @@ async function createRider(index) {
   check(`vérification utilisateur ${index}`, verification.status === 303, `${verification.status}`);
   value = await client.request('/api/login', { method: 'POST', body: { email, password } });
   check(`connexion utilisateur ${index}`, value.response.status === 200, `${value.response.status}`);
-  value = await client.request('/api/subscriptions', { method: 'POST', body: { plan: 'dev-monthly' } });
+  value = await client.request('/api/subscriptions/checkout', { method: 'POST', headers: { 'idempotency-key': `ride-test-${Date.now()}-${index}` }, body: { plan: 'dev-monthly' } });
   check(`abonnement utilisateur ${index}`, value.response.status === 201, `${value.response.status}`);
   return client;
 }

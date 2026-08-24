@@ -19,7 +19,10 @@
     "test:user-space:crash": "node scripts/user-space-crash-test.mjs",
     "test:user-space:browser": "node scripts/check-user-space-browser.mjs",
     "db:seed:rides-test:local": "wrangler d1 execute pikala-db --local --file seeds/real-rides-test.sql",
-    "test:rides:crash": "node scripts/real-ride-crash-test.mjs"
+    "test:rides:crash": "node scripts/real-ride-crash-test.mjs",
+    "test:subscriptions:no-provider": "node scripts/subscription-no-provider-test.mjs",
+    "test:subscriptions:crash": "node scripts/subscription-crash-test.mjs",
+    "test:subscriptions": "node scripts/check-subscriptions.mjs"
   },
   "repository": {
     "type": "git",

@@ -66,11 +66,14 @@
 
           <div class="form-row">
             <label class="check-row"><input type="checkbox" name="remember"> <span data-i18n="remember">Se souvenir de moi</span></label>
-            <a href="#" data-i18n="forgot">Mot de passe oublié ?</a>
+            <a href="mot-de-passe-oublie.html" data-i18n="forgot">Mot de passe oublié ?</a>
           </div>
 
           <button class="submit-btn" type="submit" data-i18n="loginSubmit">Me connecter</button>
         </form>
+
+        <div class="auth-notice" data-resend-panel hidden><p data-i18n="authEmailNotVerified">Confirmez votre adresse email avant de vous connecter.</p><button type="button" class="text-button" data-resend-verification data-i18n="authResend">Renvoyer le mail de confirmation</button></div>
+
 
         <p class="switch-row"><span data-i18n="loginSwitch">Pas encore de compte ?</span> <a href="inscription.html" data-i18n="loginSwitchLink">Créer un compte</a></p>
       </div>

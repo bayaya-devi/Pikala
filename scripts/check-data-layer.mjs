@@ -6,12 +6,13 @@ const migrationDir = resolve(root, 'migrations');
 const expectedMigrations = [
   '0001_v1_compatibility_baseline.sql',
   '0002_v2_additive_model.sql',
-  '0003_v2_indexes_and_guards.sql'
+  '0003_v2_indexes_and_guards.sql',
+  '0004_authentication_security.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
   'stations', 'bikes', 'docks', 'plans', 'subscriptions', 'payments',
-  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs'
+  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };

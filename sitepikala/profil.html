@@ -34,7 +34,27 @@
           <a class="button primary" href="abonnement.html" data-i18n="manageSubscription">Gérer l'abonnement</a>
         </article>
       </section>
-    </main>
+
+      <section class="grid two profile-security">
+        <article class="panel">
+          <h2 data-i18n="profileEdit">Modifier le profil</h2>
+          <form class="settings-form" data-profile-form novalidate>
+            <label><span data-i18n="firstName">Prenom</span><input name="firstName" autocomplete="given-name" maxlength="80" required></label>
+            <label><span data-i18n="lastName">Nom</span><input name="lastName" autocomplete="family-name" maxlength="80" required></label>
+            <label><span data-i18n="phone">Telephone</span><input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
+            <button class="button primary" type="submit" data-i18n="profileSave">Enregistrer le profil</button>
+          </form>
+        </article>
+        <article class="panel">
+          <h2 data-i18n="authChangePassword">Modifier le mot de passe</h2>
+          <form class="settings-form" data-password-form novalidate>
+            <label><span data-i18n="authCurrentPassword">Mot de passe actuel</span><input name="currentPassword" type="password" autocomplete="current-password" maxlength="128" required></label>
+            <label><span data-i18n="authNewPassword">Nouveau mot de passe</span><input name="newPassword" type="password" autocomplete="new-password" minlength="15" maxlength="128" required></label>
+            <p class="muted" data-i18n="authPasswordRule">Utilisez entre 15 et 128 caracteres.</p>
+            <button class="button primary" type="submit" data-i18n="authChangePassword">Modifier le mot de passe</button>
+          </form>
+        </article>
+      </section>    </main>
   </div>
 
   <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">

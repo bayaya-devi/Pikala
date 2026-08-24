@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Mot de passe oublie - Pikala</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <script type="module" src="auth.js"></script>
+</head>
+<body data-page="forgot">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-label="Pikala a Rabat">
+      <a class="brand-link" href="index.html"><img src="logo.jpeg" alt="Pikala"><span>Pikala</span></a>
+      <img src="oudaya.jpeg" alt="Kasbah des Oudayas">
+      <div class="visual-copy reveal"><p class="eyebrow">Pikala</p><h1 data-i18n="authForgotTitle">Mot de passe oublie</h1></div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-topbar">
+        <a class="back-link" href="connexion.html" data-i18n="commonBack">Retour</a>
+        <details class="language-switch" data-language-menu><summary>Langue</summary><div class="language-options" aria-label="Choix de langue"><button type="button" data-lang="fr">FR</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button><button type="button" data-lang="pt">PT</button><button type="button" data-lang="ar">AR</button></div></details>
+      </div>
+      <div class="form-wrap reveal delay">
+        <p class="eyebrow" data-i18n="authForgotTitle">Mot de passe oublie</p>
+        <h2 data-i18n="authForgotTitle">Mot de passe oublie</h2>
+        <p class="form-sub" data-i18n="authForgotSub">Indiquez votre adresse email.</p>
+        <form class="auth-form" data-auth-form novalidate>
+          <div class="field"><label for="email" data-i18n="email">Adresse e-mail</label><div class="input-wrap"><input id="email" name="email" type="email" autocomplete="email" required><span class="input-icon" aria-hidden="true">@</span></div></div>
+          <button class="submit-btn" type="submit" data-i18n="authForgotSubmit">Envoyer le lien</button>
+        </form>
+        <p class="switch-row"><a href="connexion.html" data-i18n="loginSubmit">Me connecter</a></p>
+      </div>
+    </section>
+  </main>
+  <div class="toast" role="status" aria-live="polite" data-toast><span data-toast-text></span></div>
+</body>
+</html>

@@ -12,7 +12,9 @@
     "db:migrate:local": "wrangler d1 migrations apply pikala-db --local",
     "db:migrations:list:remote": "wrangler d1 migrations list pikala-db --remote",
     "db:migrate:remote": "wrangler d1 migrations apply pikala-db --remote",
-    "db:seed:local": "wrangler d1 execute pikala-db --local --file seeds/development.sql"
+    "db:seed:local": "wrangler d1 execute pikala-db --local --file seeds/development.sql",
+    "test:auth": "node scripts/check-auth-security.mjs",
+    "test:auth:crash": "node scripts/auth-crash-test.mjs"
   },
   "repository": {
     "type": "git",

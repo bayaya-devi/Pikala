@@ -10,7 +10,8 @@ const LEGACY_SESSION_COOKIE = 'pikala_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const EMAIL_TOKEN_TTL_SECONDS = 60 * 60 * 24;
 const RESET_TOKEN_TTL_SECONDS = 60 * 60;
-const PASSWORD_ITERATIONS = 600000;
+// Cloudflare Workers Web Crypto rejects PBKDF2 work factors above 100,000.
+const PASSWORD_ITERATIONS = 100000;
 const MAX_JSON_BYTES = 16 * 1024;
 const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible.';
 
@@ -138,7 +139,7 @@ async function verifyPassword(password, storedHash) {
     const parts = String(storedHash || '').split('$');
     if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
     const iterations = Number(parts[1]);
-    if (!Number.isInteger(iterations) || iterations < 10000 || iterations > 2000000) return false;
+    if (!Number.isInteger(iterations) || iterations < 10000 || iterations > PASSWORD_ITERATIONS) return false;
     const salt = base64ToBytes(parts[2]);
     const expected = base64ToBytes(parts[3]);
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);

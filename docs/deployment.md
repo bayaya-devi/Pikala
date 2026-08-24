@@ -1,51 +1,43 @@
 # Deploiement Cloudflare
 
-## Etat V1
+Le Worker `pikala` sert `src/worker.js`, les assets de `sitepikala` et la base
+D1 `pikala-db` via le binding `DB`. Wrangler 4.125.0 est verrouille dans le
+projet.
 
-Le Worker `pikala` sert `src/worker.js` et le dossier `sitepikala` via Workers
-Static Assets. Le binding D1 est `DB` et pointe vers `pikala-db`.
-
-Points a corriger avant une V2 de production :
-
-- declarer Wrangler dans les devDependencies et versionner un lockfile ;
-- separer `staging` et `production` ;
-- ajouter `migrations_dir` a la configuration D1 ;
-- activer l'observabilite avec un taux adapte ;
-- ajouter les en-tetes de securite aux assets et aux reponses Worker ;
-- conserver `RESEND_API_KEY` et autres secrets dans Cloudflare Secrets ;
-- ajouter un deploiement dry-run et des tests dans la CI.
-
-## Flux recommande
+## Ordre obligatoire
 
 ```text
-branche -> tests -> build -> wrangler deploy --dry-run
-        -> environnement staging -> tests E2E
-        -> approbation -> migrations production -> deploy production
-        -> smoke tests -> surveillance des logs
+branche -> tests -> export D1 -> dry-run Worker -> migrations D1
+        -> controles D1 -> deploy Worker -> smoke tests -> surveillance
 ```
 
-Les migrations sont appliquees avant le code qui les exige, tout en restant
-compatibles avec la version precedente pendant le deploiement.
+Les migrations sont appliquees avant le code qui les exige. Les migrations V2
+sont additives afin que le Worker precedent continue de fonctionner pendant
+un rollback applicatif.
 
-## Verification locale et distante
+## Commandes
 
 ```powershell
-node --version
-npm ci
-npx wrangler --version
-npx wrangler whoami
-npx wrangler deploy --dry-run
-npx wrangler d1 migrations list pikala-db --remote
+npm install
+npm run test:foundation
+npm run test:data
+npm run deploy:dry-run
+npm run db:migrations:list:remote
+npm run db:migrate:remote
+npm run deploy
 ```
 
-Le poste audite possede Wrangler 4.111.0 dans `node_modules`, mais le shim
-`node_modules/.bin/wrangler` manque et l'acces Cloudflare a echoue sur une erreur
-reseau. Une reinstall propre apres ajout de la dependance et du lockfile est
-necessaire.
+Ne jamais executer `seeds/development.sql` avec `--remote`.
 
-## Publication
+## Verification apres publication
 
-Les assets et le Worker sont deployes ensemble. Une modification de
-documentation n'exige pas de deploiement du Worker pour fonctionner, mais doit
-etre poussee et fusionnee sur GitHub. Les changements de code ou d'assets sont
-publies uniquement apres dry-run, tests et validation D1.
+```powershell
+curl.exe -sS https://pikala.aetbconseil.workers.dev/api/health
+curl.exe -sS https://pikala.aetbconseil.workers.dev/api/stations
+curl.exe -sS https://pikala.aetbconseil.workers.dev/api/plans
+npx wrangler d1 execute pikala-db --remote `
+  --command "PRAGMA foreign_key_check" --json
+```
+
+La procedure detaillee de sauvegarde, migration et restauration se trouve dans
+`docs/database.md` et `migrations/ROLLBACK.md`.

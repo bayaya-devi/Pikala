@@ -13,12 +13,13 @@ const expectedMigrations = [
   '0007_subscription_payment_lifecycle.sql',
   '0008_admin_operations.sql',
   '0009_admin_concurrency_guards.sql',
-  '0010_admin_bike_dock_guards.sql'
+  '0010_admin_bike_dock_guards.sql',
+  '0011_operational_workflows.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
   'stations', 'bikes', 'docks', 'plans', 'subscriptions', 'payments',
-  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events', 'payment_events', 'maintenance_records', 'app_settings'
+  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events', 'payment_events', 'maintenance_records', 'app_settings', 'support_ticket_messages', 'workflow_events'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
@@ -38,6 +39,8 @@ assert(/guard_payment_lifecycle_insert/i.test(sql), 'Les statuts de paiement doi
 assert(/guard_active_ride_insert/i.test(sql), 'Un trajet actif incomplet doit être refusé par D1.');
 assert(/idx_maintenance_one_open_per_bike/i.test(sql), 'Une seule maintenance ouverte doit etre autorisee par velo.');
 assert(/guard_admin_bike_station_dock_update/i.test(sql), 'Un deplacement admin doit reserver un quai atomiquement.');
+assert(/support_ticket_messages/i.test(sql) && /workflow_events/i.test(sql), 'Les historiques operationnels doivent etre persistants.');
+assert(/maintenance_required/i.test(sql), 'Le blocage des velos critiques doit etre persistant.');
 assert((sql.match(/FOREIGN KEY/gi) || []).length >= 20, 'Le modele doit definir ses relations par cles etrangeres.');
 assert((sql.match(/CREATE (?:UNIQUE )?INDEX/gi) || []).length >= 20, 'Le modele doit definir ses index de requete.');
 assert(/PRAGMA defer_foreign_keys = ON/i.test(sql), 'La migration additive doit differer les controles de cles pendant le backfill.');

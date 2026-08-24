@@ -25,7 +25,10 @@
     "test:subscriptions": "node scripts/check-subscriptions.mjs",
     "test:admin": "node scripts/check-admin.mjs",
     "test:admin:crash": "node scripts/admin-crash-test.mjs",
-    "test:admin:browser": "node scripts/check-admin-browser.mjs"
+    "test:admin:browser": "node scripts/check-admin-browser.mjs",
+    "test:operations": "node scripts/check-operations.mjs",
+    "test:operations:crash": "node scripts/operations-crash-test.mjs",
+    "test:operations:browser": "node scripts/check-operations-browser.mjs"
   },
   "repository": {
     "type": "git",

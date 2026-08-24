@@ -1,0 +1,17 @@
+import {readFile} from 'node:fs/promises';import {resolve} from 'node:path';import copy from '../sitepikala/assets/js/i18n/operations/copy.js';import errors from '../sitepikala/assets/js/i18n/operations/errors.js';
+const root=resolve(import.meta.dirname,'..');const failures=[];const check=(value,message)=>{if(!value)failures.push(message);};
+const files=['src/worker.js','src/operations/service.js','src/admin/operations.js','migrations/0011_operational_workflows.sql','sitepikala/user-space.js','sitepikala/assets/js/user-operations.js','sitepikala/assets/js/user-shell.js','sitepikala/user-space.css','sitepikala/admin.js'];
+const [worker,service,admin,migration,user,frontend,shell,css,adminUi]=await Promise.all(files.map((file)=>readFile(resolve(root,file),'utf8')));
+for(const page of ['support.html','ticket.html','incidents.html','notifications.html'])check(await readFile(resolve(root,'sitepikala',page),'utf8'),`Page absente: ${page}`);
+for(const route of ['/api/support','/api/incidents','/api/notifications'])check(worker.includes(route)&&service.includes(route),`Route absente: ${route}`);
+for(const table of ['support_ticket_messages','workflow_events'])check(migration.includes(`CREATE TABLE ${table}`),`Table absente: ${table}`);
+check(migration.includes('maintenance_required')&&service.includes('maintenance_required'),'Blocage maintenance incomplet.');
+check(service.includes('WHERE support_tickets.user_id=?')&&service.includes('reported_by_user_id=?'),'Contrôle de propriété utilisateur absent.');
+check(admin.includes('supportReply')&&admin.includes('workflow_stage')&&admin.includes('admin_audit_logs'),'Workflow admin ou audit incomplet.');
+check(frontend.includes('navigator.onLine')&&frontend.includes('operationsNetworkRequired'),'Protection hors ligne absente.');
+check(shell.includes('data-notification-badge')&&user.includes('refreshNotificationBadge'),'Badge non lu absent.');
+check(!frontend.includes('.innerHTML'),'Rendu opérationnel avec innerHTML interdit.');
+check(css.includes('@media(max-width:640px)')&&css.includes('.is-rtl'),'Responsive ou RTL opérationnel absent.');
+check(adminUi.includes("workflowStage")&&adminUi.includes('/messages'),'Interface admin des workflows incomplète.');
+const keys=[...Object.keys(copy.fr),...Object.keys(errors.fr)];for(const locale of ['fr','en','es','pt','ar'])check(keys.every((key)=>Object.hasOwn(copy[locale],key)||Object.hasOwn(errors[locale],key)),`${locale}: traductions opérationnelles incomplètes.`);
+if(failures.length){console.error(failures.map((item)=>`- ${item}`).join('\n'));process.exit(1);}console.log(`Opérations valides: ${keys.length} clés x 5 langues, support, incidents, maintenance, notifications et hors ligne.`);

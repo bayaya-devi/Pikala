@@ -1,12 +1,14 @@
 import { getLocale, t } from './assets/js/i18n/index.js';
 import { initLayout } from './assets/js/layouts.js';
-import { mountUserShell, refreshUserIcons } from './assets/js/user-shell.js';
+import { mountUserShell, mountUserTopActions, refreshUserIcons } from './assets/js/user-shell.js';
 import { showToast } from './assets/js/ui/components.js';
 import { createRealRideFlows } from './assets/js/real-rides.js';
 import { createSubscriptionFlows } from './assets/js/subscriptions.js';
+import { createOperationsFlows } from './assets/js/user-operations.js';
 
 mountUserShell();
 initLayout();
+mountUserTopActions();
 refreshUserIcons();
 
 let currentUser = null;
@@ -36,7 +38,10 @@ function friendlyApiError(data) {
     INCIDENT_CATEGORY_INVALID: 'incidentInvalid', INCIDENT_DESCRIPTION_INVALID: 'incidentInvalid', STATION_NOT_FOUND: 'stationNotFound',
     PAYMENT_PROVIDER_UNAVAILABLE: 'subscriptionProviderUnavailable', PAYMENT_START_FAILED: 'subscriptionPaymentStartError',
     PLAN_NOT_FOUND: 'subscriptionPlanUnavailable', PLAN_REQUIRED: 'subscriptionPlanUnavailable',
-    IDEMPOTENCY_KEY_REQUIRED: 'subscriptionPaymentStartError', SUBSCRIPTION_NOT_FOUND: 'subscriptionNoActive'
+    IDEMPOTENCY_KEY_REQUIRED: 'subscriptionPaymentStartError', SUBSCRIPTION_NOT_FOUND: 'subscriptionNoActive',
+    SUPPORT_CATEGORY_INVALID: 'supportCategoryError', SUPPORT_SUBJECT_INVALID: 'supportSubjectError', SUPPORT_DESCRIPTION_INVALID: 'supportDescriptionError',
+    REFERENCE_INVALID: 'supportReferenceError', REFERENCE_MISMATCH: 'supportReferenceError', BIKE_REQUIRED: 'incidentBikeError', INCIDENT_TYPE_INVALID: 'incidentTypeError',
+    TICKET_CLOSED: 'ticketClosed', RESOURCE_NOT_FOUND: 'operationsNotFound'
   };
   return t(keys[data?.code] || 'commonErrorV2');
 }
@@ -328,14 +333,12 @@ function wireProfileForms() {
 function wireLogout() { document.querySelectorAll('[data-logout]').forEach((button) => button.addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST', body: '{}' }); } finally { location.assign('index.html'); } })); }
 function wireBottomNavigation() { let previous = scrollY; const nav = document.querySelector('.user-bottom-nav'); addEventListener('scroll', () => { const current = scrollY; nav?.classList.toggle('is-hidden-by-scroll', current > previous && current > 120); previous = current; }, { passive: true }); }
 
-async function loadLegacyPage(page) {
-  if (!(await requireUser())) return;
-  if (page === 'support') document.querySelector('[data-support-form]')?.addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; try { await api('/api/support', { method: 'POST', body: JSON.stringify({ subject: form.elements.subject.value, message: form.elements.message.value }) }); form.reset(); showToast(t('supportSent')); } catch (error) { showToast(error.message, { tone: 'error' }); } });
-}
-
 const realRideFlows = createRealRideFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, formatDuration, errorState, emptyState });
 const subscriptionFlows = createSubscriptionFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons });
-const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: subscriptionFlows.loadSubscription };
+const operationsFlows = createOperationsFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, errorState, emptyState });
+operationsFlows.installConnectivityStatus();
+const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: operationsFlows.loadSupport, ticket: operationsFlows.loadTicket, incidents: operationsFlows.loadIncidents, notifications: operationsFlows.loadNotifications, subscription: subscriptionFlows.loadSubscription };
 if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage(); else loaders[document.body.dataset.userPage]?.();
 wireLogout(); wireBottomNavigation();
+requireUser().then((user) => user && operationsFlows.refreshNotificationBadge());
 document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); subscriptionFlows.rerender(); refreshUserIcons(); });

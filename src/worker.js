@@ -1,5 +1,6 @@
 import { getPaymentProvider } from './payments/provider.js';
 import { handleAdminApi } from './admin/service.js';
+import { handleOperationsApi } from './operations/service.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
 const USER_FIELDS = 'id, first_name, last_name, email, phone, role, status, locale, created_at, email_verified, auth_version';
 const JOINED_USER_FIELDS = USER_FIELDS.split(', ').map((field) => `users.${field} AS ${field}`).join(', ');
@@ -15,14 +16,14 @@ const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible.';
 const PAGE_ROUTES = new Map([
   ['/accueil', '/accueil.html'], ['/home', '/index.html'], ['/dashboard', '/dashboard.html'],
   ['/stations', '/stations.html'], ['/station', '/station.html'], ['/scanner', '/scanner.html'], ['/trajets', '/trajets.html'], ['/trajet', '/trajet.html'], ['/profil', '/profil.html'],
-  ['/profile', '/profil.html'], ['/support', '/support.html'], ['/abonnement', '/abonnement.html'],
+  ['/profile', '/profil.html'], ['/support', '/support.html'], ['/ticket', '/ticket.html'], ['/incidents', '/incidents.html'], ['/notifications', '/notifications.html'], ['/abonnement', '/abonnement.html'],
   ['/connexion', '/connexion.html'], ['/login', '/connexion.html'], ['/inscription', '/inscription.html'],
   ['/signup', '/inscription.html'], ['/mot-de-passe-oublie', '/mot-de-passe-oublie.html'],
   ['/reinitialiser-mot-de-passe', '/reinitialiser-mot-de-passe.html'], ['/admin', '/admin.html']
 ]);
 const PRIVATE_PAGES = new Set([
   '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/station', '/station.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html',
-  '/profil', '/profil.html', '/profile', '/support', '/support.html', '/abonnement', '/abonnement.html'
+  '/profil', '/profil.html', '/profile', '/support', '/support.html', '/ticket', '/ticket.html', '/incidents', '/incidents.html', '/notifications', '/notifications.html', '/abonnement', '/abonnement.html'
 ]);
 const ADMIN_PAGES = new Set(['/admin', '/admin.html']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -842,7 +843,7 @@ async function startRide(request, env) {
       AND (subscriptions.ends_at IS NULL OR subscriptions.ends_at > CURRENT_TIMESTAMP)
       ORDER BY subscriptions.id DESC LIMIT 1`).bind(auth.user.id),
     DB.prepare("SELECT id FROM rides WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1").bind(auth.user.id),
-    DB.prepare(`SELECT bikes.id, bikes.public_code, bikes.station_id, bikes.status, stations.is_active AS station_active,
+    DB.prepare(`SELECT bikes.id, bikes.public_code, bikes.station_id, bikes.status, bikes.maintenance_required, stations.is_active AS station_active,
       docks.id AS dock_id, docks.status AS dock_status
       FROM bikes LEFT JOIN stations ON stations.id = bikes.station_id
       LEFT JOIN docks ON docks.bike_id = bikes.id
@@ -854,7 +855,7 @@ async function startRide(request, env) {
   if (!subscriptionRow) return json({ code: 'SUBSCRIPTION_REQUIRED', error: 'Un abonnement actif est necessaire.' }, 409);
   if (currentRide) return json({ code: 'RIDE_ALREADY_ACTIVE', error: 'Un trajet est deja en cours.' }, 409);
   if (!bike) return json({ code: 'QR_UNKNOWN', error: 'Ce QR ne correspond a aucun velo Pikala.' }, 404);
-  if (bike.status === 'maintenance') return json({ code: 'BIKE_MAINTENANCE', error: 'Ce velo est en maintenance.' }, 409);
+  if (bike.status === 'maintenance' || Number(bike.maintenance_required) === 1) return json({ code: 'BIKE_MAINTENANCE', error: 'Ce velo est en maintenance.' }, 409);
   if (bike.status !== 'available') return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo est deja utilise ou indisponible.' }, 409);
   if (!bike.station_id || Number(bike.station_active) !== 1) return json({ code: 'STATION_CLOSED', error: 'La station de ce velo est fermee.' }, 409);
   if (!bike.dock_id || bike.dock_status !== 'occupied') return json({ code: 'BIKE_DOCK_INVALID', error: "Le velo n'est pas correctement attache a un dock." }, 409);
@@ -865,7 +866,7 @@ async function startRide(request, env) {
       DB.prepare(`UPDATE docks SET status = 'available', bike_id = NULL, updated_at = ?
         WHERE id = ? AND station_id = ? AND status = 'occupied' AND bike_id = ?`).bind(claimTimestamp, bike.dock_id, bike.station_id, bike.id),
       DB.prepare(`UPDATE bikes SET status = 'in_use', station_id = NULL, updated_at = ?
-        WHERE id = ? AND status = 'available' AND station_id = ?
+        WHERE id = ? AND status = 'available' AND maintenance_required = 0 AND station_id = ?
         AND EXISTS (SELECT 1 FROM docks WHERE id = ? AND status = 'available' AND bike_id IS NULL AND updated_at = ?)`).bind(claimTimestamp, bike.id, bike.station_id, bike.dock_id, claimTimestamp),
       DB.prepare(`INSERT INTO rides (user_id, bike_id, start_station_id, start_dock_id, status, updated_at)
         SELECT ?, ?, ?, ?, 'active', ? WHERE EXISTS (
@@ -874,7 +875,11 @@ async function startRide(request, env) {
           SELECT 1 FROM docks WHERE id = ? AND status = 'available' AND bike_id IS NULL AND updated_at = ?
         )`).bind(auth.user.id, bike.id, bike.station_id, bike.dock_id, claimTimestamp, bike.id, claimTimestamp, bike.dock_id, claimTimestamp),
       DB.prepare(`UPDATE stations SET bikes_available = (SELECT COUNT(*) FROM bikes WHERE station_id = ? AND status = 'available')
-        WHERE id = ?`).bind(bike.station_id, bike.station_id)
+        WHERE id = ?`).bind(bike.station_id, bike.station_id),
+      DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at,action_url,updated_at)
+        SELECT ?,'ride_started','Trajet demarre','Votre velo Pikala est debloque. Bonne route.','in_app','sent',CURRENT_TIMESTAMP,?,CURRENT_TIMESTAMP
+        WHERE EXISTS (SELECT 1 FROM rides WHERE user_id = ? AND bike_id = ? AND status = 'active' AND updated_at = ?)` )
+        .bind(auth.user.id, '/trajet.html', auth.user.id, bike.id, claimTimestamp)
     ]);
   } catch (error) {
     const message = String(error?.message || '');
@@ -923,20 +928,31 @@ async function returnRide(request, env, rideId) {
       WHERE id = ? AND user_id = ? AND bike_id = ? AND status = 'active'
       AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status = 'in_use')
       AND EXISTS (SELECT 1 FROM docks WHERE id = ? AND station_id = ? AND status = 'available' AND bike_id IS NULL)`).bind(dock.station_id, dock.id, endedAt, endedAt, chargeMinor, endedAt, rideRow.id, auth.user.id, rideRow.bike_id, rideRow.bike_id, dock.id, dock.station_id),
-    DB.prepare(`UPDATE bikes SET status = 'available', station_id = ?, updated_at = ?
+    DB.prepare(`UPDATE bikes SET status = CASE WHEN maintenance_required = 1 THEN 'maintenance' ELSE 'available' END, station_id = ?, updated_at = ?
       WHERE id = ? AND status = 'in_use'
       AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)`).bind(dock.station_id, endedAt, rideRow.bike_id, rideRow.id, endedAt),
     DB.prepare(`UPDATE docks SET status = 'occupied', bike_id = ?, updated_at = ?
       WHERE id = ? AND station_id = ? AND status = 'available' AND bike_id IS NULL
       AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)
-      AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status = 'available' AND station_id = ? AND updated_at = ?)`).bind(rideRow.bike_id, endedAt, dock.id, dock.station_id, rideRow.id, endedAt, rideRow.bike_id, dock.station_id, endedAt),
+      AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status IN ('available','maintenance') AND station_id = ? AND updated_at = ?)`).bind(rideRow.bike_id, endedAt, dock.id, dock.station_id, rideRow.id, endedAt, rideRow.bike_id, dock.station_id, endedAt),
+    DB.prepare(`INSERT INTO maintenance_records (bike_id,incident_id,opened_by_user_id,status,reason,workflow_stage)
+      SELECT ?,bike_incidents.id,?,'open',bike_incidents.description,'reported' FROM bike_incidents
+      WHERE bike_incidents.bike_id=? AND bike_incidents.status IN ('open','triaged','in_progress')
+      AND EXISTS (SELECT 1 FROM bikes WHERE id=? AND maintenance_required=1)
+      AND NOT EXISTS (SELECT 1 FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress'))
+      ORDER BY bike_incidents.id DESC LIMIT 1`).bind(rideRow.bike_id,auth.user.id,rideRow.bike_id,rideRow.bike_id,rideRow.bike_id),
     DB.prepare(`UPDATE stations SET bikes_available = (SELECT COUNT(*) FROM bikes WHERE station_id = ? AND status = 'available')
-      WHERE id = ?`).bind(dock.station_id, dock.station_id)
+      WHERE id = ?`).bind(dock.station_id, dock.station_id),
+    DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at,action_url,updated_at)
+      SELECT ?,'ride_completed','Trajet termine','Votre velo a bien ete restitue. Le resume est disponible.','in_app','sent',CURRENT_TIMESTAMP,?,CURRENT_TIMESTAMP
+      WHERE EXISTS (SELECT 1 FROM rides WHERE id = ? AND user_id = ? AND status = 'completed' AND updated_at = ?)` )
+      .bind(auth.user.id, '/trajet.html?id=' + rideRow.id, rideRow.id, auth.user.id, endedAt)
   ]);
   if (!results[0].meta.changes || !results[1].meta.changes || !results[2].meta.changes) {
     const latest = await DB.prepare('SELECT status FROM rides WHERE id = ? AND user_id = ?').bind(rideRow.id, auth.user.id).first();
     return json({ code: latest?.status === 'completed' ? 'RIDE_ALREADY_ENDED' : 'RETURN_CONFLICT', error: latest?.status === 'completed' ? 'Ce trajet est deja termine.' : 'La restitution a echoue. Reessayez.' }, 409);
   }
+  if (results[3]?.meta?.changes) { const record = await DB.prepare("SELECT id FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress') ORDER BY id DESC LIMIT 1").bind(rideRow.bike_id).first(); if (record) await DB.prepare("INSERT INTO workflow_events (resource_type,resource_id,actor_user_id,to_status,note) VALUES ('maintenance',?,?,'reported','Incident critique déclaré pendant le trajet')").bind(record.id,auth.user.id).run(); }
   const completedRide = await DB.prepare(`SELECT ${RIDE_FIELDS} ${RIDE_JOINS} WHERE rides.id = ?`).bind(rideRow.id).first();
   return json({ success: true, ride: completedRide, pricing: { amountMinor: chargeMinor, currency: 'MAD', includedInPlan: chargeMinor === 0 } });
 }
@@ -1013,7 +1029,10 @@ export default {
       if (request.method === 'POST' && subscriptionCancelMatch) return cancelSubscription(request, env, subscriptionCancelMatch[1]);
       const paymentStatusMatch = url.pathname.match(/^\/api\/payments\/(pay_[A-Za-z0-9_-]+)$/);
       if (request.method === 'GET' && paymentStatusMatch) return paymentStatus(request, env, paymentStatusMatch[1]);
-      if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
+      if (url.pathname === '/api/support' || url.pathname.startsWith('/api/support/') || url.pathname === '/api/incidents' || url.pathname.startsWith('/api/incidents/') || url.pathname === '/api/notifications' || url.pathname.startsWith('/api/notifications/')) {
+        const auth = await requireUser(request, env); if (auth.response) return auth.response;
+        return handleOperationsApi(request, env, auth.user, { json, readJson });
+      }
       if (request.method === 'POST' && url.pathname === '/api/rides') return startRide(request, env);
       if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') return adminPlans(request, env);
       const adminPlanMatch = url.pathname.match(/^\/api\/admin\/plans\/([1-9][0-9]*)$/);

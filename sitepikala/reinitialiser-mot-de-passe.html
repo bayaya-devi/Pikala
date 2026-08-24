@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Nouveau mot de passe - Pikala</title>
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <script type="module" src="auth.js"></script>
+  <meta name="theme-color" content="#245c11">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
+</head>
+<body data-page="reset">
+  <main class="auth-shell">
+    <section class="auth-visual" aria-label="Pikala a Rabat">
+      <a class="brand-link" href="index.html"><img src="logo.jpeg" alt="Pikala"><span>Pikala</span></a>
+      <img src="multi.webp" alt="Velos Pikala a Rabat">
+      <div class="visual-copy reveal"><p class="eyebrow">Pikala</p><h1 data-i18n="authResetTitle">Nouveau mot de passe</h1></div>
+    </section>
+    <section class="auth-panel">
+      <div class="auth-topbar">
+        <a class="back-link" href="connexion.html" data-i18n="commonBack">Retour</a>
+        <details class="language-switch" data-language-menu><summary>Langue</summary><div class="language-options" aria-label="Choix de langue"><button type="button" data-lang="fr">FR</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="es">ES</button><button type="button" data-lang="pt">PT</button><button type="button" data-lang="ar">AR</button></div></details>
+      </div>
+      <div class="form-wrap reveal delay">
+        <p class="eyebrow" data-i18n="authResetTitle">Nouveau mot de passe</p>
+        <h2 data-i18n="authResetTitle">Nouveau mot de passe</h2>
+        <p class="form-sub" data-i18n="authResetSub">Choisissez un nouveau mot de passe.</p>
+        <form class="auth-form" data-auth-form novalidate>
+          <div class="field"><label for="password" data-i18n="authNewPassword">Nouveau mot de passe</label><div class="input-wrap"><input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" required><button class="password-toggle" type="button" data-toggle-password="#password">Voir</button></div><p class="field-help" data-i18n="authPasswordRule">Utilisez entre 15 et 128 caracteres.</p><div class="strength" data-strength><span></span><span></span><span></span><span></span></div><div class="strength-label" data-strength-label></div></div>
+          <div class="field"><label for="confirmPassword" data-i18n="confirmPassword">Confirmer le mot de passe</label><div class="input-wrap"><input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="15" maxlength="128" required><button class="password-toggle" type="button" data-toggle-password="#confirmPassword">Voir</button></div></div>
+          <button class="submit-btn" type="submit" data-i18n="authResetSubmit">Enregistrer le mot de passe</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <div class="toast" role="status" aria-live="polite" data-toast><span data-toast-text></span></div>
+</body>
+</html>

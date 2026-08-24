@@ -2,39 +2,34 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Scanner</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-i18n="scannerTitleV2">Pikala - Scanner</title>
+  <link rel="stylesheet" href="assets/css/foundation.css">
   <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <script src="assets/vendor/lucide.min.js" defer></script>
+  <script src="assets/vendor/zxing-browser.min.js" defer></script>
+  <script type="module" src="user-space.js"></script>
+  <meta name="theme-color" content="#245c11">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
 </head>
 <body data-user-page="scanner">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
-      <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a class="active" href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a></nav>
-    </aside>
-    <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Scanner QR</p><h1>Débloquez votre vélo.</h1></div><a class="button ghost" href="stations.html">Voir les stations</a></div>
-      <section class="grid two">
-        <div class="panel"><div class="scan-frame"><strong>QR</strong></div></div>
-        <div class="panel">
-          <h2>Comment scanner</h2>
-          <p class="muted">Placez le QR code du vélo dans le cadre. Cette page prépare le parcours avant l'ajout du vrai scanner caméra.</p>
-          <a class="button primary" href="dashboard.html" data-start-ride>Simuler le déblocage</a>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">
-    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">🏠</span><em>Accueil</em></a>
-    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">📍</span><em>Stations</em></a>
-    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">🔳</span><em>Scanner</em></a>
-    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">⚙️</span><em>Profil</em></a>
-    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">💬</span><em>Support</em></a>
-  </nav>
+  <div data-user-shell></div>
+  <main class="user-main scanner-main">
+    <header class="user-topbar"><div><p class="user-kicker" data-i18n="scannerSubtitleV2">Cadrez le QR code placé sur le vélo.</p><h1 data-i18n="scannerHeadingV2">Scanner un vélo</h1></div><div data-layout-actions></div></header>
+    <section class="scanner-layout">
+      <div class="camera-surface"><video data-scanner-video muted playsinline></video><div class="scan-guide"><span></span></div><div class="camera-placeholder" data-camera-placeholder><i data-lucide="scan-line"></i></div></div>
+      <div class="surface scanner-controls">
+        <button class="button secondary" type="button" data-camera-toggle><i data-lucide="camera"></i><span data-i18n="scannerCameraStart">Ouvrir la caméra</span></button>
+        <div class="inline-message" data-scanner-message role="status" aria-live="polite"></div>
+        <form data-ride-form novalidate>
+          <label><span data-i18n="scannerManualLabel">Code du vélo</span><input name="bikeCode" autocomplete="off" maxlength="300" required data-i18n-attr="placeholder:scannerManualPlaceholder" placeholder="Ex. PIKALA-001"></label>
+          <button class="button primary" type="submit"><i data-lucide="unlock"></i><span data-i18n="scannerUnlock">Déverrouiller</span></button>
+        </form>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

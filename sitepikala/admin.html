@@ -2,41 +2,46 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Admin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title data-i18n="adminTitle">Pikala - Administration</title>
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <link rel="stylesheet" href="admin.css">
+  <script src="assets/vendor/leaflet/leaflet.js" defer></script>
+  <script src="assets/vendor/lucide.min.js" defer></script>
+  <script type="module" src="admin.js"></script>
+  <meta name="theme-color" content="#245c11">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
 </head>
 <body data-user-page="admin">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
-      <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a href="support.html">Support</a><a class="active" href="admin.html">Admin</a></nav>
-      <p class="sidebar-note">Vue de contrôle réservée aux comptes administrateurs.</p>
+  <div class="admin-shell">
+    <aside class="admin-sidebar" data-admin-sidebar>
+      <div class="admin-brand"><img src="logo.jpeg" alt="Pikala"><div><strong>Pikala</strong><span data-i18n="adminConsole">Console d'exploitation</span></div></div>
+      <nav class="admin-nav" aria-label="Administration" data-admin-nav></nav>
+      <div class="admin-account"><span data-admin-initials>PK</span><div><strong data-admin-name>Administration</strong><small data-admin-email></small></div><a href="dashboard.html" class="icon-button" title="Retour au site"><i data-lucide="external-link"></i></a></div>
     </aside>
-    <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Administration</p><h1>Suivi du service Pikala.</h1><p class="muted">Connecté en tant que <span data-admin-name>admin</span>.</p></div><a class="button ghost" href="dashboard.html">Retour</a></div>
-      <section class="admin-grid">
-        <article class="tile"><strong data-admin-stations>0</strong><span class="muted">stations actives</span></article>
-        <article class="tile"><strong data-admin-bikes>0</strong><span class="muted">vélos disponibles</span></article>
-      </section>
-      <section class="panel" style="margin-top:1rem">
-        <h2>Stations</h2>
-        <p class="muted" data-admin-error>Coordonnées prêtes pour l’affichage carte lorsque l’API est déployée.</p>
-        <div class="station-list" data-admin-station-list><div class="station-row"><strong>Chargement...</strong><span></span><span class="status">...</span></div></div>
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <button class="icon-button admin-menu-button" type="button" data-admin-menu aria-label="Menu"><i data-lucide="menu"></i></button>
+        <div><p class="admin-kicker" data-i18n="adminTitle">Administration</p><h1 data-admin-heading>Dashboard</h1></div>
+        <div class="admin-top-actions" data-layout-actions></div>
+      </header>
+      <section class="admin-view" data-admin-view aria-live="polite" aria-busy="true">
+        <div class="admin-loading"><span class="pk-loader"></span><p data-i18n="adminLoading">Chargement des données...</p></div>
       </section>
     </main>
   </div>
-
-  <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">
-    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">🏠</span><em>Accueil</em></a>
-    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">📍</span><em>Stations</em></a>
-    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">🔳</span><em>Scanner</em></a>
-    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">⚙️</span><em>Profil</em></a>
-    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">💬</span><em>Support</em></a>
-  </nav>
+  <div class="admin-backdrop" data-admin-backdrop></div>
+  <dialog class="admin-dialog" data-admin-dialog aria-labelledby="admin-dialog-title">
+    <form method="dialog" class="admin-dialog-head"><h2 id="admin-dialog-title" data-dialog-title></h2><button class="icon-button" value="cancel" aria-label="Fermer"><i data-lucide="x"></i></button></form>
+    <div data-dialog-content></div>
+  </dialog>
+  <dialog class="admin-confirm" data-admin-confirm aria-labelledby="admin-confirm-title">
+    <h2 id="admin-confirm-title" data-i18n="adminConfirmTitle">Confirmer l'action</h2><p data-confirm-message></p>
+    <form method="dialog" class="admin-confirm-actions"><button class="button secondary" value="cancel" data-i18n="adminCancel">Annuler</button><button class="button danger" value="confirm" data-i18n="adminConfirm">Confirmer</button></form>
+  </dialog>
 </body>
 </html>

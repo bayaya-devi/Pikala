@@ -1,23 +1,52 @@
-﻿{
-    "name":  "pikala-web",
-    "version":  "1.0.0",
-    "description":  "",
-    "main":  "index.js",
-    "scripts":  {
-                    "deploy":  "wrangler deploy"
-                },
-    "repository":  {
-                       "type":  "git",
-                       "url":  "git+https://github.com/bayaya-devi/Pikala.git"
-                   },
-    "keywords":  [
-
-                 ],
-    "author":  "",
-    "license":  "ISC",
-    "type":  "module",
-    "bugs":  {
-                 "url":  "https://github.com/bayaya-devi/Pikala/issues"
-             },
-    "homepage":  "https://github.com/bayaya-devi/Pikala#readme"
+{
+  "name": "pikala-web",
+  "version": "1.0.0",
+  "description": "Pikala bike sharing web application and Cloudflare Worker",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "test:foundation": "node scripts/check-foundations.mjs",
+    "test:data": "node scripts/check-data-layer.mjs",
+    "db:migrations:list:local": "wrangler d1 migrations list pikala-db --local",
+    "db:migrate:local": "wrangler d1 migrations apply pikala-db --local",
+    "db:migrations:list:remote": "wrangler d1 migrations list pikala-db --remote",
+    "db:migrate:remote": "wrangler d1 migrations apply pikala-db --remote",
+    "db:seed:local": "wrangler d1 execute pikala-db --local --file seeds/development.sql",
+    "test:auth": "node scripts/check-auth-security.mjs",
+    "test:auth:crash": "node scripts/auth-crash-test.mjs",
+    "test:user-space": "node scripts/check-user-space.mjs",
+    "test:user-space:crash": "node scripts/user-space-crash-test.mjs",
+    "test:user-space:browser": "node scripts/check-user-space-browser.mjs",
+    "db:seed:rides-test:local": "wrangler d1 execute pikala-db --local --file seeds/real-rides-test.sql",
+    "test:rides:crash": "node scripts/real-ride-crash-test.mjs",
+    "test:subscriptions:no-provider": "node scripts/subscription-no-provider-test.mjs",
+    "test:subscriptions:crash": "node scripts/subscription-crash-test.mjs",
+    "test:subscriptions": "node scripts/check-subscriptions.mjs",
+    "test:admin": "node scripts/check-admin.mjs",
+    "test:admin:crash": "node scripts/admin-crash-test.mjs",
+    "test:admin:browser": "node scripts/check-admin-browser.mjs",
+    "test:operations": "node scripts/check-operations.mjs",
+    "test:operations:crash": "node scripts/operations-crash-test.mjs",
+    "test:operations:browser": "node scripts/check-operations-browser.mjs",
+    "test:hardening": "node scripts/check-hardening.mjs",
+    "test:responsive": "node scripts/check-responsive-browser.mjs",
+    "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "test:static": "npm run test:foundation && npm run test:data && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:operations && npm run test:hardening"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bayaya-devi/Pikala.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/bayaya-devi/Pikala/issues"
+  },
+  "homepage": "https://github.com/bayaya-devi/Pikala#readme",
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
 }

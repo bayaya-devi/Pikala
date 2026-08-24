@@ -2,49 +2,34 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Abonnement</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-i18n="subscriptionTitle">Pikala - Offres</title>
+  <link rel="stylesheet" href="assets/css/foundation.css">
   <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+  <script src="assets/vendor/lucide.min.js" defer></script>
+  <script type="module" src="user-space.js"></script>
+  <meta name="theme-color" content="#245c11">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
 </head>
 <body data-user-page="subscription">
-  <main class="content">
-    <div class="topbar">
-      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
-      <a class="button ghost" href="dashboard.html">Voir mon espace</a>
-    </div>
-
-    <section class="grid two">
-      <div class="panel hero-panel">
-        <p class="eyebrow">Après inscription</p>
-        <h1>Choisissez votre abonnement pour activer votre espace.</h1>
-        <p>Une formule simple pour débloquer les vélos Pikala et accéder au scanner QR.</p>
+  <div data-user-shell></div>
+  <main class="user-main subscription-main">
+    <header class="user-topbar">
+      <div>
+        <p class="user-kicker" data-i18n="subscriptionKicker">Abonnement</p>
+        <h1 data-i18n="subscriptionHeading">Choisissez votre formule</h1>
+        <p class="muted" data-i18n="subscriptionIntro">Des offres simples, sans activation avant confirmation du paiement.</p>
       </div>
-
-      <article class="panel">
-        <p class="eyebrow">Formule recommandée</p>
-        <h1>Abonnement Pikala</h1>
-        <p class="muted">Accès aux vélos en libre-service, scanner QR, support et signalement rapide.</p>
-        <div class="profile-list">
-          <div><strong>Vélos</strong><span>Illimité selon disponibilité</span></div>
-          <div><strong>Stations</strong><span>18 à Rabat</span></div>
-          <div><strong>Support</strong><span>7j/7</span></div>
-          <div><strong>Paiement</strong><span>En ligne</span></div>
-        </div>
-        <p><a class="button primary" href="dashboard.html" data-activate-subscription>Payer en ligne et activer</a></p>
-      </article>
-    </section>
+      <div data-layout-actions></div>
+    </header>
+    <div class="subscription-page" data-subscription-page aria-live="polite" aria-busy="true">
+      <section class="surface subscription-skeleton" aria-label="Chargement">
+        <div class="skeleton-block"></div><div class="skeleton-row"></div><div class="skeleton-row"></div>
+      </section>
+    </div>
   </main>
-
-  <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">
-    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">🏠</span><em>Accueil</em></a>
-    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">📍</span><em>Stations</em></a>
-    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">🔳</span><em>Scanner</em></a>
-    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">⚙️</span><em>Profil</em></a>
-    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">💬</span><em>Support</em></a>
-  </nav>
 </body>
 </html>

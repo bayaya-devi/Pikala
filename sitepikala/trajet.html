@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title data-i18n="ridePageTitle">Pikala - Trajet</title>
+  <link rel="stylesheet" href="assets/css/foundation.css">
+  <link rel="stylesheet" href="user-space.css">
+  <script src="assets/vendor/lucide.min.js" defer></script>
+  <script src="assets/vendor/zxing-browser.min.js" defer></script>
+  <script type="module" src="user-space.js"></script>
+  <meta name="theme-color" content="#245c11">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
+</head>
+<body data-user-page="ride">
+  <div data-user-shell></div>
+  <main class="user-main ride-main">
+    <header class="user-topbar">
+      <a class="back-link" href="trajets.html"><i data-lucide="arrow-left"></i><span data-i18n="rideBackHistory">Mes trajets</span></a>
+      <div data-layout-actions></div>
+    </header>
+    <section data-ride-page aria-live="polite">
+      <div class="surface loading-state"><div class="skeleton-block"></div></div>
+    </section>
+  </main>
+</body>
+</html>

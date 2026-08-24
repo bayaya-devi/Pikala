@@ -1,48 +1,13 @@
 <!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pikala - Support</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="user-space.css">
-  <script src="user-space.js" defer></script>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title data-i18n="supportTitleV2">Pikala - Support</title><link rel="stylesheet" href="assets/css/foundation.css"><link rel="stylesheet" href="user-space.css"><script src="assets/vendor/lucide.min.js" defer></script><script type="module" src="user-space.js"></script>  <meta name="theme-color" content="#245c11">
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/pikala-192.png" type="image/png">
+  <script type="module" src="/assets/js/pwa.js"></script>
 </head>
-<body data-user-page="support">
-  <div class="app-shell">
-    <aside class="sidebar">
-      <a class="brand" href="index.html"><img src="logo.jpeg" alt="Pikala">Pikala</a>
-      <nav class="nav"><a href="dashboard.html">Tableau de bord</a><a href="stations.html">Stations</a><a href="scanner.html">Scanner</a><a href="profil.html">Profil</a><a class="active" href="support.html">Support</a></nav>
-    </aside>
-    <main class="content">
-      <div class="topbar"><div><p class="eyebrow">Support</p><h1>Signalez un problème.</h1></div><a class="button ghost" href="dashboard.html">Retour</a></div>
-      <section class="grid two">
-        <form class="panel form" data-support-form>
-          <h2>Nouveau signalement</h2>
-          <input name="subject" type="text" placeholder="Numéro du vélo ou station">
-          <textarea name="message" placeholder="Décrivez le problème" required></textarea>
-          <button class="button primary" type="submit">Envoyer le signalement</button>
-        </form>
-        <article class="panel">
-          <h2>Aide rapide</h2>
-          <div class="support-list">
-            <a href="scanner.html">Je n'arrive pas à scanner</a>
-            <a href="stations.html">Trouver une autre station</a>
-            <a href="profil.html">Vérifier mon abonnement</a>
-          </div>
-        </article>
-      </section>
-    </main>
-  </div>
-
-  <nav class="bottom-nav" aria-label="Navigation rapide utilisateur">
-    <a href="dashboard.html" data-bottom-nav="dashboard"><span aria-hidden="true">🏠</span><em>Accueil</em></a>
-    <a href="stations.html" data-bottom-nav="stations"><span aria-hidden="true">📍</span><em>Stations</em></a>
-    <a href="scanner.html" data-bottom-nav="scanner"><span aria-hidden="true">🔳</span><em>Scanner</em></a>
-    <a href="profil.html" data-bottom-nav="profile"><span aria-hidden="true">⚙️</span><em>Profil</em></a>
-    <a href="support.html" data-bottom-nav="support"><span aria-hidden="true">💬</span><em>Support</em></a>
-  </nav>
-</body>
-</html>
+<body data-user-page="support"><div data-user-shell></div><main class="user-main"><header class="user-topbar"><div><p class="user-kicker" data-i18n="userSupport">Support</p><h1 data-i18n="supportHeadingV2">Centre d’aide</h1><p class="muted" data-i18n="supportSubtitleV2">Suivez vos demandes et échangez avec l’équipe Pikala.</p></div><div data-layout-actions></div></header>
+<div class="operations-grid"><section class="surface operations-form-panel"><div class="section-heading"><div><p class="user-kicker" data-i18n="supportNewTicket">Nouvelle demande</p><h2 data-i18n="supportTellUs">Comment pouvons-nous aider ?</h2></div><i data-lucide="life-buoy" aria-hidden="true"></i></div><form class="operations-form" data-support-form>
+<label><span data-i18n="supportCategory">Catégorie</span><select name="category" required><option value="" data-i18n="commonChoose">Choisir</option><option value="bike" data-i18n="supportCategoryBike">Vélo</option><option value="station" data-i18n="supportCategoryStation">Station</option><option value="ride" data-i18n="supportCategoryRide">Trajet</option><option value="subscription" data-i18n="supportCategorySubscription">Abonnement</option><option value="payment" data-i18n="supportCategoryPayment">Paiement</option><option value="account" data-i18n="supportCategoryAccount">Compte</option><option value="security" data-i18n="supportCategorySecurity">Sécurité</option><option value="other" data-i18n="supportCategoryOther">Autre</option></select></label>
+<label><span data-i18n="supportSubject">Sujet</span><input name="subject" minlength="3" maxlength="140" required data-i18n-attr="placeholder:supportSubjectPlaceholder"></label><label class="is-wide"><span data-i18n="supportDescription">Description</span><textarea name="description" minlength="10" maxlength="4000" rows="5" required data-i18n-attr="placeholder:supportDescriptionPlaceholder"></textarea></label>
+<div class="optional-fields is-wide"><p data-i18n="supportOptionalLinks">Éléments concernés (facultatif)</p><div class="form-grid"><label><span data-i18n="supportBike">Vélo</span><select name="bikeId" data-context-bikes><option value="" data-i18n="commonNone">Aucun</option></select></label><label><span data-i18n="supportStation">Station</span><select name="stationId" data-context-stations><option value="" data-i18n="commonNone">Aucune</option></select></label><label><span data-i18n="supportRide">Trajet</span><select name="rideId" data-context-rides><option value="" data-i18n="commonNone">Aucun</option></select></label></div></div><div class="form-actions is-wide"><button class="button primary" type="submit"><i data-lucide="send" aria-hidden="true"></i><span data-i18n="supportSendV2">Envoyer la demande</span></button></div></form></section>
+<section class="surface operations-list-panel"><div class="section-heading"><div><p class="user-kicker" data-i18n="supportHistory">Historique</p><h2 data-i18n="supportMyTickets">Mes demandes</h2></div><span class="count-chip" data-ticket-count>0</span></div><div class="operations-list" data-ticket-list aria-live="polite"><div class="skeleton-list" aria-hidden="true"><span></span><span></span><span></span></div></div></section></div></main></body></html>

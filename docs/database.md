@@ -160,3 +160,24 @@ detaillee est aussi disponible dans `migrations/ROLLBACK.md`.
 - https://developers.cloudflare.com/d1/reference/migrations/
 - https://developers.cloudflare.com/d1/sql-api/foreign-keys/
 - https://developers.cloudflare.com/d1/best-practices/import-export-data/
+
+## Migration administration 0008
+
+La migration `0008_admin_operations.sql` ajoute sans destruction :
+
+- `users.status_reason` ;
+- `stations.opening_hours_json` ;
+- `support_tickets.resolution_notes` ;
+- la table `maintenance_records` ;
+- la table allowlistee `app_settings` ;
+- les index necessaires aux recherches et tableaux admin ;
+- une protection qui interdit de passer un velo `in_use` en maintenance.
+
+Le schema local comporte desormais 20 tables. Les parametres initiaux sont
+`service_status`, `support_contact` et `ride_monitoring`. Le seed
+`seeds/admin-test.sql` est reserve aux tests locaux et ne doit jamais etre
+execute sur D1 distante.
+
+La migration `0009_admin_concurrency_guards.sql` ajoute l index unique partiel `idx_maintenance_one_open_per_bike` afin d interdire atomiquement deux maintenances ouvertes pour un meme velo.
+
+La migration `0010_admin_bike_dock_guards.sql` ajoute le trigger `guard_admin_bike_station_dock_update`. Un deplacement admin vers une station est annule si aucun quai occupe par ce velo n a ete reserve dans la meme transaction.

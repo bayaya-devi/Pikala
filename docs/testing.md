@@ -45,3 +45,12 @@ sures mobiles et de la taille des cibles tactiles.
 - capture desktop/mobile pour toute modification visuelle ;
 - test du chemin heureux et d'au moins trois erreurs utilisateur realistes ;
 - documentation et migration mises a jour.
+
+## Administration V2
+
+- `npm run test:admin` controle les 14 vues, les routes, le RBAC, l'audit,
+  la lecture seule des paiements, la migration et les cinq dictionnaires.
+- `npm run test:admin:crash -- <origin>` execute 32 controles sur Worker/D1
+  local avec un administrateur et un utilisateur normal.
+- `npm run test:admin:browser -- <origin>` controle les 14 vues, les cinq
+  langues, le RTL arabe, desktop et tablette, sans debordement horizontal.

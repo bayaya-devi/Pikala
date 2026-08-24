@@ -63,7 +63,7 @@ function loadLeaflet() {
     if (!document.querySelector('[data-leaflet-css]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      link.href = 'assets/vendor/leaflet/leaflet.css';
       link.crossOrigin = '';
       link.dataset.leafletCss = '';
       document.head.append(link);
@@ -71,7 +71,7 @@ function loadLeaflet() {
     const existing = document.querySelector('[data-leaflet-script]');
     if (existing) { existing.addEventListener('load', () => resolve(window.L), { once: true }); existing.addEventListener('error', reject, { once: true }); return; }
     const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.src = 'assets/vendor/leaflet/leaflet.js';
     script.crossOrigin = '';
     script.dataset.leafletScript = '';
     script.addEventListener('load', () => resolve(window.L), { once: true });

@@ -22,7 +22,10 @@
     "test:rides:crash": "node scripts/real-ride-crash-test.mjs",
     "test:subscriptions:no-provider": "node scripts/subscription-no-provider-test.mjs",
     "test:subscriptions:crash": "node scripts/subscription-crash-test.mjs",
-    "test:subscriptions": "node scripts/check-subscriptions.mjs"
+    "test:subscriptions": "node scripts/check-subscriptions.mjs",
+    "test:admin": "node scripts/check-admin.mjs",
+    "test:admin:crash": "node scripts/admin-crash-test.mjs",
+    "test:admin:browser": "node scripts/check-admin-browser.mjs"
   },
   "repository": {
     "type": "git",
@@ -41,6 +44,8 @@
   },
   "dependencies": {
     "@zxing/browser": "^0.2.1",
-    "lucide": "^1.33.0"
+    "leaflet": "^1.9.4",
+    "lucide": "^1.33.0",
+    "qrcode-generator": "^2.0.4"
   }
 }

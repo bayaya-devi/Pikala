@@ -24,7 +24,7 @@ for (const locale of SUPPORTED_LOCALES) {
 for (const page of activePages) {
   const html = await readFile(resolve(root, 'sitepikala', page), 'utf8');
   check(html.includes('assets/css/foundation.css'), `${page}: design system absent.`);
-  const localScript = html.match(/<script[^>]+src="(app|auth|user-space)\.js"[^>]*>/)?.[0];
+  const localScript = html.match(/<script[^>]+src="(app|auth|user-space|admin)\.js"[^>]*>/)?.[0];
   check(Boolean(localScript?.includes('type="module"')), `${page}: script principal non modulaire.`);
   for (const match of html.matchAll(/data-i18n="([^"]+)"/g)) {
     check(referenceKeys.includes(match[1]), `${page}: clé i18n inconnue ${match[1]}.`);

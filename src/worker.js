@@ -1,4 +1,5 @@
 import { getPaymentProvider } from './payments/provider.js';
+import { handleAdminApi } from './admin/service.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
 const USER_FIELDS = 'id, first_name, last_name, email, phone, role, status, locale, created_at, email_verified, auth_version';
 const JOINED_USER_FIELDS = USER_FIELDS.split(', ').map((field) => `users.${field} AS ${field}`).join(', ');
@@ -1014,10 +1015,13 @@ export default {
       if (request.method === 'GET' && paymentStatusMatch) return paymentStatus(request, env, paymentStatusMatch[1]);
       if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
       if (request.method === 'POST' && url.pathname === '/api/rides') return startRide(request, env);
-      if (request.method === 'GET' && url.pathname === '/api/admin/overview') return adminOverview(request, env);
       if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') return adminPlans(request, env);
       const adminPlanMatch = url.pathname.match(/^\/api\/admin\/plans\/([1-9][0-9]*)$/);
       if (request.method === 'PATCH' && adminPlanMatch) return adminPlanUpdate(request, env, adminPlanMatch[1]);
+      if (url.pathname.startsWith('/api/admin/')) {
+        const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+        return handleAdminApi(request, env, auth.user, { json, readJson, requestId: requestId(request), ipHint: (await ipHash(request)).slice(0, 32) });
+      }
       if (request.method === 'GET' && ['/Pageuser.html', '/Pageuseren.html'].includes(url.pathname)) return redirect('/dashboard', 301);
       const privateResponse = await guardPrivatePage(request, env, url);
       if (privateResponse) return privateResponse;

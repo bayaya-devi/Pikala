@@ -11,14 +11,14 @@ const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible.';
 
 const PAGE_ROUTES = new Map([
   ['/accueil', '/accueil.html'], ['/home', '/index.html'], ['/dashboard', '/dashboard.html'],
-  ['/stations', '/stations.html'], ['/scanner', '/scanner.html'], ['/profil', '/profil.html'],
+  ['/stations', '/stations.html'], ['/station', '/station.html'], ['/scanner', '/scanner.html'], ['/trajets', '/trajets.html'], ['/profil', '/profil.html'],
   ['/profile', '/profil.html'], ['/support', '/support.html'], ['/abonnement', '/abonnement.html'],
   ['/connexion', '/connexion.html'], ['/login', '/connexion.html'], ['/inscription', '/inscription.html'],
   ['/signup', '/inscription.html'], ['/mot-de-passe-oublie', '/mot-de-passe-oublie.html'],
   ['/reinitialiser-mot-de-passe', '/reinitialiser-mot-de-passe.html'], ['/admin', '/admin.html']
 ]);
 const PRIVATE_PAGES = new Set([
-  '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/scanner', '/scanner.html',
+  '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/station', '/station.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html',
   '/profil', '/profil.html', '/profile', '/support', '/support.html', '/abonnement', '/abonnement.html'
 ]);
 const ADMIN_PAGES = new Set(['/admin', '/admin.html']);
@@ -479,11 +479,111 @@ async function updateProfile(request, env) {
   return json({ success: true, user: publicUser(row) });
 }
 
-async function stations(env) {
-  const { results } = await requireDb(env).prepare(`SELECT stations.id, stations.public_code, stations.name, stations.city, stations.address, stations.latitude, stations.longitude,
-    CASE WHEN EXISTS (SELECT 1 FROM bikes WHERE bikes.station_id = stations.id) THEN (SELECT COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available') ELSE stations.bikes_available END AS bikes_available,
-    stations.capacity, stations.is_active FROM stations WHERE stations.is_active = 1 ORDER BY stations.name, stations.id`).all();
+const STATION_FIELDS = `stations.id, stations.public_code, stations.slug, stations.name, stations.city, stations.address, stations.latitude, stations.longitude,
+  CASE WHEN EXISTS (SELECT 1 FROM bikes WHERE bikes.station_id = stations.id)
+    THEN (SELECT COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available')
+    ELSE stations.bikes_available END AS bikes_available,
+  CASE WHEN EXISTS (SELECT 1 FROM docks WHERE docks.station_id = stations.id)
+    THEN (SELECT COUNT(*) FROM docks WHERE docks.station_id = stations.id AND docks.status = 'available')
+    ELSE MAX(COALESCE(stations.capacity, 0) - COALESCE(stations.bikes_available, 0), 0) END AS docks_available,
+  stations.capacity, stations.is_active,
+  CASE WHEN stations.is_active = 1 THEN 'open' ELSE 'closed' END AS status`;
+
+async function stations(env, includeClosed = false) {
+  const where = includeClosed ? '' : 'WHERE stations.is_active = 1';
+  const { results } = await requireDb(env).prepare(`SELECT ${STATION_FIELDS} FROM stations ${where} ORDER BY stations.name, stations.id`).all();
   return json({ stations: results || [] });
+}
+
+function numericCoordinate(value, minimum, maximum) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= minimum && number <= maximum ? number : null;
+}
+
+function distanceMeters(latitudeA, longitudeA, latitudeB, longitudeB) {
+  const radians = (degrees) => degrees * Math.PI / 180;
+  const earthRadius = 6371000;
+  const deltaLatitude = radians(latitudeB - latitudeA);
+  const deltaLongitude = radians(longitudeB - longitudeA);
+  const value = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB)) * Math.sin(deltaLongitude / 2) ** 2;
+  return Math.round(earthRadius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value)));
+}
+
+async function userStations(request, env) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  return stations(env, true);
+}
+
+async function stationDetail(request, env, stationKey) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  let key;
+  try { key = decodeURIComponent(stationKey || '').trim().slice(0, 100); }
+  catch { return json({ code: 'STATION_KEY_INVALID', error: 'Identifiant de station invalide.' }, 400); }
+  if (!key) return json({ code: 'STATION_NOT_FOUND', error: 'Station introuvable.' }, 404);
+  const station = await requireDb(env).prepare(`SELECT ${STATION_FIELDS} FROM stations WHERE CAST(stations.id AS TEXT) = ? OR stations.public_code = ? OR stations.slug = ? LIMIT 1`).bind(key, key, key).first();
+  if (!station) return json({ code: 'STATION_NOT_FOUND', error: 'Station introuvable.' }, 404);
+  return json({ station });
+}
+
+async function dashboard(request, env, url) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  const DB = requireDb(env);
+  const [activeResult, subscriptionResult, ridesResult, notificationsResult, stationsResult] = await DB.batch([
+    DB.prepare(`SELECT rides.id, rides.status, rides.started_at, bikes.public_code AS bike_code,
+      start_station.name AS start_station_name, end_station.name AS end_station_name
+      FROM rides LEFT JOIN bikes ON bikes.id = rides.bike_id
+      LEFT JOIN stations start_station ON start_station.id = rides.start_station_id
+      LEFT JOIN stations end_station ON end_station.id = rides.end_station_id
+      WHERE rides.user_id = ? AND rides.status = 'active' ORDER BY rides.started_at DESC LIMIT 1`).bind(auth.user.id),
+    DB.prepare(`SELECT subscriptions.id, subscriptions.plan, subscriptions.status, subscriptions.starts_at, subscriptions.ends_at,
+      plans.name AS plan_name, plans.billing_period
+      FROM subscriptions LEFT JOIN plans ON plans.id = subscriptions.plan_id
+      WHERE subscriptions.user_id = ? AND subscriptions.status = 'active' ORDER BY subscriptions.id DESC LIMIT 1`).bind(auth.user.id),
+    DB.prepare(`SELECT rides.id, rides.status, rides.started_at, rides.ended_at, rides.duration_seconds, rides.distance_meters,
+      bikes.public_code AS bike_code, start_station.name AS start_station_name, end_station.name AS end_station_name
+      FROM rides LEFT JOIN bikes ON bikes.id = rides.bike_id
+      LEFT JOIN stations start_station ON start_station.id = rides.start_station_id
+      LEFT JOIN stations end_station ON end_station.id = rides.end_station_id
+      WHERE rides.user_id = ? ORDER BY rides.started_at DESC LIMIT 5`).bind(auth.user.id),
+    DB.prepare(`SELECT id, type, title, body, status, created_at FROM notifications
+      WHERE user_id = ? AND channel = 'in_app' AND status NOT IN ('dismissed') ORDER BY created_at DESC LIMIT 5`).bind(auth.user.id),
+    DB.prepare(`SELECT ${STATION_FIELDS} FROM stations WHERE stations.is_active = 1 ORDER BY stations.name, stations.id`)
+  ]);
+  const latitude = numericCoordinate(url.searchParams.get('lat'), -90, 90);
+  const longitude = numericCoordinate(url.searchParams.get('lng'), -180, 180);
+  const stationRows = stationsResult.results || [];
+  let nearestStation = null;
+  if (latitude !== null && longitude !== null) {
+    nearestStation = stationRows
+      .filter((station) => station.latitude !== null && station.longitude !== null)
+      .map((station) => ({ ...station, distance_meters: distanceMeters(latitude, longitude, Number(station.latitude), Number(station.longitude)) }))
+      .sort((a, b) => a.distance_meters - b.distance_meters)[0] || null;
+  }
+  return json({
+    user: auth.user,
+    activeRide: activeResult.results?.[0] || null,
+    subscription: subscriptionResult.results?.[0] || null,
+    recentRides: ridesResult.results || [],
+    notifications: notificationsResult.results || [],
+    nearestStation,
+    summary: {
+      stations: stationRows.length,
+      bikesAvailable: stationRows.reduce((total, station) => total + Number(station.bikes_available || 0), 0)
+    }
+  });
+}
+
+async function rides(request, env) {
+  const auth = await requireUser(request, env); if (auth.response) return auth.response;
+  const { results } = await requireDb(env).prepare(`SELECT rides.id, rides.status, rides.started_at, rides.ended_at,
+    rides.duration_seconds, rides.distance_meters, rides.charged_amount_minor, bikes.public_code AS bike_code,
+    start_station.name AS start_station_name, end_station.name AS end_station_name
+    FROM rides LEFT JOIN bikes ON bikes.id = rides.bike_id
+    LEFT JOIN stations start_station ON start_station.id = rides.start_station_id
+    LEFT JOIN stations end_station ON end_station.id = rides.end_station_id
+    WHERE rides.user_id = ? ORDER BY rides.started_at DESC LIMIT 100`).bind(auth.user.id).all();
+  return json({ rides: results || [] });
 }
 
 async function plans(env) {
@@ -521,9 +621,41 @@ async function support(request, env) {
 
 async function ride(request, env) {
   const auth = await requireUser(request, env); if (auth.response) return auth.response;
-  const DB = requireDb(env); const station = await DB.prepare('SELECT id FROM stations WHERE is_active = 1 ORDER BY id LIMIT 1').first();
-  const result = await DB.prepare("INSERT INTO rides (user_id, start_station_id, status) VALUES (?, ?, 'active')").bind(auth.user.id, station?.id || null).run();
-  return json({ success: true, ride: await DB.prepare('SELECT id, user_id, start_station_id, status, started_at FROM rides WHERE id = ?').bind(result.meta.last_row_id).first() }, 201);
+  const body = await readJson(request);
+  const bikeCode = String(body?.bikeCode || '').trim().slice(0, 100);
+  if (!bikeCode) return json({ code: 'BIKE_CODE_REQUIRED', error: 'Saisissez ou scannez le code du velo.' }, 400);
+  const DB = requireDb(env);
+  const [subscription, currentRide, bike] = await Promise.all([
+    DB.prepare("SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1").bind(auth.user.id).first(),
+    DB.prepare("SELECT id FROM rides WHERE user_id = ? AND status = 'active' LIMIT 1").bind(auth.user.id).first(),
+    DB.prepare(`SELECT bikes.id, bikes.station_id, bikes.status FROM bikes
+      JOIN stations ON stations.id = bikes.station_id
+      WHERE (bikes.code = ? OR bikes.public_code = ?) AND bikes.status = 'available' AND stations.is_active = 1
+      AND NOT EXISTS (SELECT 1 FROM rides active_ride WHERE active_ride.bike_id = bikes.id AND active_ride.status = 'active') LIMIT 1`).bind(bikeCode, bikeCode).first()
+  ]);
+  if (!subscription) return json({ code: 'SUBSCRIPTION_REQUIRED', error: 'Un abonnement actif est necessaire.' }, 409);
+  if (currentRide) return json({ code: 'RIDE_ALREADY_ACTIVE', error: 'Un trajet est deja en cours.' }, 409);
+  if (!bike) return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo est introuvable ou indisponible.' }, 409);
+  const claimTimestamp = new Date().toISOString();
+  let claimResult;
+  let result;
+  try {
+    [claimResult, result] = await DB.batch([
+      DB.prepare(`UPDATE bikes SET status = 'in_use', station_id = NULL, updated_at = ?
+        WHERE id = ? AND status = 'available'
+        AND NOT EXISTS (SELECT 1 FROM rides active_ride WHERE active_ride.bike_id = bikes.id AND active_ride.status = 'active')`).bind(claimTimestamp, bike.id),
+      DB.prepare(`INSERT INTO rides (user_id, bike_id, start_station_id, status)
+        SELECT ?, ?, ?, 'active' WHERE EXISTS (
+          SELECT 1 FROM bikes WHERE id = ? AND status = 'in_use' AND updated_at = ?
+        )`).bind(auth.user.id, bike.id, bike.station_id, bike.id, claimTimestamp)
+    ]);
+  } catch (error) {
+    if (String(error?.message || '').includes('UNIQUE constraint failed')) return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo vient de devenir indisponible.' }, 409);
+    throw error;
+  }
+  if (!claimResult.meta.changes || !result.meta.changes) return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo vient de devenir indisponible.' }, 409);
+  return json({ success: true, ride: await DB.prepare(`SELECT rides.id, rides.user_id, rides.bike_id, rides.start_station_id, rides.status, rides.started_at,
+    bikes.public_code AS bike_code FROM rides LEFT JOIN bikes ON bikes.id = rides.bike_id WHERE rides.id = ?`).bind(result.meta.last_row_id).first() }, 201);
 }
 
 async function adminOverview(request, env) {
@@ -559,12 +691,17 @@ export default {
       if (request.method === 'GET' && url.pathname === '/api/me') return me(request, env);
       if (request.method === 'PATCH' && url.pathname === '/api/profile') return updateProfile(request, env);
       if (request.method === 'GET' && url.pathname === '/api/stations') return stations(env);
+      if (request.method === 'GET' && url.pathname === '/api/user/stations') return userStations(request, env);
+      if (request.method === 'GET' && url.pathname === '/api/dashboard') return dashboard(request, env, url);
+      if (request.method === 'GET' && url.pathname === '/api/rides') return rides(request, env);
+      if (request.method === 'GET' && url.pathname.startsWith('/api/stations/')) return stationDetail(request, env, url.pathname.slice('/api/stations/'.length));
       if (request.method === 'GET' && url.pathname === '/api/plans') return plans(env);
       if (request.method === 'GET' && url.pathname === '/api/profile') return profile(request, env);
       if (request.method === 'POST' && url.pathname === '/api/subscriptions') return subscription(request, env);
       if (request.method === 'POST' && url.pathname === '/api/support') return support(request, env);
       if (request.method === 'POST' && url.pathname === '/api/rides') return ride(request, env);
       if (request.method === 'GET' && url.pathname === '/api/admin/overview') return adminOverview(request, env);
+      if (request.method === 'GET' && ['/Pageuser.html', '/Pageuseren.html'].includes(url.pathname)) return redirect('/dashboard', 301);
       const privateResponse = await guardPrivatePage(request, env, url);
       if (privateResponse) return privateResponse;
     } catch (error) {

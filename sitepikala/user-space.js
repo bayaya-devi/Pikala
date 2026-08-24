@@ -1,417 +1,370 @@
-import { t } from './assets/js/i18n/index.js';
+import { getLocale, t } from './assets/js/i18n/index.js';
 import { initLayout } from './assets/js/layouts.js';
+import { mountUserShell, refreshUserIcons } from './assets/js/user-shell.js';
 import { showToast } from './assets/js/ui/components.js';
 
+mountUserShell();
 initLayout();
+refreshUserIcons();
 
 let currentUser = null;
+let dashboardData = null;
+let stationsData = [];
+let mapState = null;
+let cameraStream = null;
+let scannerLoop = 0;
 
-function fullName(user) {
-  return [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Utilisateur Pikala';
+function text(selector, value, root = document) {
+  const element = root.querySelector(selector);
+  if (element) element.textContent = value ?? '';
 }
 
-function setText(selector, value) {
-  const element = document.querySelector(selector);
-  if (element) element.textContent = value;
-}
+function fullName(user) { return [user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Pikala'; }
+function firstName(user) { return user?.first_name || fullName(user); }
 
 function friendlyApiError(data) {
-  const keys = { AUTH_REQUIRED: 'authInvalidCredentials', RATE_LIMITED: 'authRateLimited', PASSWORD_INVALID: 'authPasswordRule', CURRENT_PASSWORD_INVALID: 'authInvalidCredentials', PHONE_INVALID: 'authPhoneInvalid', NAME_INVALID: 'authNameInvalid', FORBIDDEN: 'authForbidden', DB_UNAVAILABLE: 'dbUnavailable', SERVER_ERROR: 'authServerError' };
-  return t(keys[data?.code] || 'commonError');
+  const keys = {
+    AUTH_REQUIRED: 'authInvalidCredentials', RATE_LIMITED: 'authRateLimited', PASSWORD_INVALID: 'authPasswordRule',
+    CURRENT_PASSWORD_INVALID: 'authInvalidCredentials', PHONE_INVALID: 'authPhoneInvalid', NAME_INVALID: 'authNameInvalid',
+    FORBIDDEN: 'authForbidden', DB_UNAVAILABLE: 'dbUnavailable', SERVER_ERROR: 'authServerError',
+    BIKE_CODE_REQUIRED: 'scannerCodeRequired', BIKE_UNAVAILABLE: 'scannerCodeRequired', SUBSCRIPTION_REQUIRED: 'userNoPlan',
+    RIDE_ALREADY_ACTIVE: 'userActiveRide', STATION_NOT_FOUND: 'stationNotFound'
+  };
+  return t(keys[data?.code] || 'commonErrorV2');
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', 'X-Pikala-Request': 'web', ...(options.headers || {}) }
-  });
+  let response;
+  try {
+    response = await fetch(path, {
+      ...options, credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Pikala-Request': 'web', ...(options.headers || {}) }
+    });
+  } catch {
+    const error = new Error(t('mapNetworkError')); error.code = 'NETWORK_ERROR'; throw error;
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(friendlyApiError(data));
-    error.status = response.status;
-    error.code = data?.code;
-    throw error;
+    error.status = response.status; error.code = data?.code; throw error;
   }
   return data;
 }
 
-function wait(ms) { return new Promise((resolve) => window.setTimeout(resolve, ms)); }
-
 async function requireUser() {
   if (currentUser) return currentUser;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const data = await api('/api/me');
-      currentUser = data.user;
-      return currentUser;
-    } catch (error) {
-      if (error.status === 401) {
-        window.location.href = 'connexion.html';
-        return null;
-      }
-      if (attempt === 0) {
-        await wait(600);
-        continue;
-      }
-      setText('[data-user-greeting]', error.message || t('commonUnavailable'));
-      return null;
-    }
+  try {
+    const data = await api('/api/me'); currentUser = data.user;
+    document.querySelectorAll('[data-admin-link]').forEach((link) => link.classList.toggle('is-hidden', currentUser?.role !== 'admin'));
+    return currentUser;
+  } catch (error) {
+    if (error.status === 401) window.location.assign(`/connexion.html?next=${encodeURIComponent(location.pathname + location.search)}`);
+    else showToast(error.message, { tone: 'error' });
+    return null;
   }
-  return null;
 }
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\'': '&#39;', '"': '&quot;' }[char]));
+function formatDate(value, options = { dateStyle: 'medium' }) {
+  if (!value) return '';
+  const date = new Date(value.endsWith?.('Z') ? value : `${value.replace(' ', 'T')}Z`);
+  return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat(getLocale(), options).format(date);
 }
 
-function setAdminLinks(user) {
-  document.querySelectorAll('[data-admin-link]').forEach((link) => {
-    link.classList.toggle('is-hidden', user?.role !== 'admin');
+function clientDistanceMeters(latitudeA, longitudeA, latitudeB, longitudeB) {
+  const radians = (degrees) => degrees * Math.PI / 180; const radius = 6371000;
+  const deltaLatitude = radians(latitudeB - latitudeA); const deltaLongitude = radians(longitudeB - longitudeA);
+  const value = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB)) * Math.sin(deltaLongitude / 2) ** 2;
+  return Math.round(radius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value)));
+}
+
+function formatDistance(meters) {
+  const value = Number(meters);
+  if (!Number.isFinite(value)) return '';
+  return value < 1000 ? `${Math.round(value)} m` : `${(value / 1000).toFixed(1)} km`;
+}
+
+function formatDuration(seconds, startedAt, endedAt) {
+  let value = Number(seconds);
+  if (!Number.isFinite(value) && startedAt && endedAt) value = (new Date(endedAt) - new Date(startedAt)) / 1000;
+  return t('ridesDuration', { minutes: Math.max(1, Math.round((value || 0) / 60)) });
+}
+
+function statusLabel(status) {
+  return t(status === 'active' ? 'ridesActive' : status === 'completed' ? 'ridesCompleted' : 'ridesCancelled');
+}
+
+function emptyState(key, icon = 'inbox') {
+  const element = document.createElement('div'); element.className = 'empty-state';
+  const iconElement = document.createElement('i'); iconElement.dataset.lucide = icon;
+  const message = document.createElement('p'); message.textContent = t(key);
+  element.append(iconElement, message); return element;
+}
+
+function errorState(message, retry) {
+  const element = document.createElement('div'); element.className = 'error-state';
+  const paragraph = document.createElement('p'); paragraph.textContent = message;
+  element.append(paragraph);
+  if (retry) { const button = document.createElement('button'); button.className = 'button secondary'; button.type = 'button'; button.textContent = t('commonRetryV2'); button.addEventListener('click', retry); element.append(button); }
+  return element;
+}
+
+function rideRow(ride) {
+  const row = document.createElement('div'); row.className = 'data-row';
+  const title = document.createElement('strong');
+  title.textContent = `${ride.start_station_name || t('userUnknownStation')} → ${ride.end_station_name || t('ridesUnknownDestination')}`;
+  const meta = document.createElement('p');
+  meta.textContent = ride.status === 'active' ? formatDate(ride.started_at, { timeStyle: 'short' }) : `${formatDate(ride.started_at)} · ${formatDuration(ride.duration_seconds, ride.started_at, ride.ended_at)}`;
+  const badge = document.createElement('span'); badge.className = `status-badge${ride.status === 'cancelled' ? ' is-closed' : ''}`; badge.textContent = statusLabel(ride.status);
+  row.append(title, meta, badge); return row;
+}
+
+function alertRow(notification) {
+  const row = document.createElement('div'); row.className = 'data-row';
+  const title = document.createElement('strong'); title.textContent = notification.title;
+  const body = document.createElement('p'); body.textContent = notification.body;
+  const date = document.createElement('time'); date.textContent = formatDate(notification.created_at); date.dateTime = notification.created_at;
+  row.append(title, body, date); return row;
+}
+
+function renderDashboard() {
+  if (!dashboardData) return;
+  const data = dashboardData;
+  text('[data-dashboard-greeting]', t('userDashboardHeading', { name: firstName(data.user) }));
+  text('[data-total-bikes]', String(data.summary.bikesAvailable));
+  text('[data-total-stations]', String(data.summary.stations));
+  text('[data-plan]', data.subscription?.plan_name || data.subscription?.plan || t('userNoPlan'));
+  const banner = document.querySelector('[data-active-ride]');
+  if (banner) {
+    banner.replaceChildren(); banner.classList.toggle('is-empty', !data.activeRide);
+    const copy = document.createElement('div'); const kicker = document.createElement('p'); const heading = document.createElement('h2'); const meta = document.createElement('p');
+    kicker.textContent = data.activeRide ? t('userActiveRide') : t('userDashboardSubtitle');
+    heading.textContent = data.activeRide ? (data.activeRide.start_station_name || t('userActiveRide')) : t('userFindBike');
+    meta.textContent = data.activeRide ? t('userRideStarted', { time: formatDate(data.activeRide.started_at, { timeStyle: 'short' }) }) : t('mapSubtitle');
+    copy.append(kicker, heading, meta);
+    const link = document.createElement('a'); link.className = 'button primary'; link.href = data.activeRide ? 'trajets.html' : 'stations.html'; link.textContent = data.activeRide ? t('userActiveRide') : t('userFindBike');
+    banner.append(copy, link);
+  }
+  renderNearest(data.nearestStation);
+  const rides = document.querySelector('[data-recent-rides]'); rides?.replaceChildren(...(data.recentRides.length ? data.recentRides.map(rideRow) : [emptyState('userNoRides', 'route')]));
+  const alerts = document.querySelector('[data-alerts]'); alerts?.replaceChildren(...(data.notifications.length ? data.notifications.map(alertRow) : [emptyState('userNoAlerts', 'bell-off')]));
+  refreshUserIcons();
+}
+
+function renderNearest(station) {
+  text('[data-nearest-name]', station?.name || t('userLocationUnavailable'));
+  text('[data-nearest-meta]', station ? `${t('mapBikes', { count: station.bikes_available })} · ${t('mapDistance', { distance: formatDistance(station.distance_meters) })}` : t('userEnableLocation'));
+}
+
+function geolocate(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { const error = new Error(t('mapLocationUnavailable')); error.code = 2; reject(error); return; }
+    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000, ...options });
   });
 }
 
-function wireLogout() {
-  document.querySelectorAll('[data-logout]').forEach((link) => {
-    link.addEventListener('click', async (event) => {
-      event.preventDefault();
-      try { await api('/api/logout', { method: 'POST', body: '{}' }); } catch {}
-      window.location.href = 'index.html';
-    });
-  });
+async function fetchDashboard(position) {
+  const query = position ? `?lat=${encodeURIComponent(position.coords.latitude)}&lng=${encodeURIComponent(position.coords.longitude)}` : '';
+  dashboardData = await api(`/api/dashboard${query}`); renderDashboard();
 }
 
 async function loadDashboard() {
-  const user = await requireUser();
-  if (!user) return;
-  setText('[data-user-greeting]', t('helloName', { name: user.first_name || fullName(user) }));
-  try {
-    const { stations } = await api('/api/stations');
-    const totalBikes = stations.reduce((sum, station) => sum + Number(station.bikes_available || 0), 0);
-    const nearest = stations[0];
-    setText('[data-nearest-station]', nearest ? `${nearest.name} : ${t(Number(nearest.bikes_available) === 1 ? 'bikesAvailableCount' : 'bikesAvailableCountPlural', { count: nearest.bikes_available })}.` : t('stationsNone'));
-    setText('[data-total-bikes]', String(totalBikes));
-    setText('[data-total-stations]', String(stations.length));
-  } catch (error) {
-    setText('[data-nearest-station]', error.message);
+  if (!(await requireUser())) return;
+  try { await fetchDashboard(); } catch (error) {
+    const main = document.querySelector('.user-main'); main?.append(errorState(error.message, loadDashboard)); refreshUserIcons(); return;
   }
-  try {
-    const profile = await api('/api/profile');
-    setText('[data-subscription-status]', profile.subscription ? profile.subscription.plan : t('profileNoSubscription'));
-  } catch {
-    setText('[data-subscription-status]', t('profileNoSubscription'));
-  }
+  document.querySelector('[data-dashboard-locate]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget; button.disabled = true;
+    try { await fetchDashboard(await geolocate()); } catch (error) { renderNearest(null); showToast(error.code === 1 ? t('mapLocationDenied') : t('mapLocationUnavailable'), { tone: 'error' }); }
+    finally { button.disabled = false; }
+  });
+  try { if ((await navigator.permissions?.query({ name: 'geolocation' }))?.state === 'granted') await fetchDashboard(await geolocate()); } catch {}
 }
 
+function stationClass(station) { return Number(station.bikes_available) <= 0 ? 'is-empty' : Number(station.bikes_available) <= 3 ? 'is-low' : ''; }
 
-
-function stationAvailabilityLabel(bikes) {
-  if (bikes <= 0) return t('stationsEmpty');
-  if (bikes <= 3) return t('stationsLow');
-  return t('stationsAvailable');
+function stationResult(station) {
+  const button = document.createElement('button'); button.type = 'button'; button.className = 'station-result'; button.dataset.stationId = station.id;
+  const name = document.createElement('strong'); name.textContent = station.name;
+  const address = document.createElement('small'); address.textContent = `${station.address || station.city || ''}${station.distance_meters != null ? ` · ${t('mapDistance', { distance: formatDistance(station.distance_meters) })}` : ''}`;
+  const count = document.createElement('span'); count.className = `availability-count ${stationClass(station)}`; count.textContent = station.bikes_available;
+  button.append(name, address, count); button.addEventListener('click', () => selectStation(station)); return button;
 }
 
-function stationCard(station, index) {
-  const bikes = Number(station.bikes_available || 0);
-  return '<button class="station-card" type="button" data-station-index="' + index + '">' +
-    '<span class="station-card-main"><strong>' + escapeHtml(station.name) + '</strong><small>' + escapeHtml(station.address || station.city || 'Rabat') + '</small></span>' +
-    '<span class="station-card-bubble">' + bikes + '</span>' +
-    '<span class="status">' + stationAvailabilityLabel(bikes) + '</span>' +
-  '</button>';
+function stationPanel(station) {
+  const wrapper = document.createElement('div');
+  const status = document.createElement('span'); status.className = `status-badge${station.is_active ? '' : ' is-closed'}`; status.textContent = t(station.is_active ? 'mapOpen' : 'mapClosed');
+  const heading = document.createElement('h2'); heading.textContent = station.name;
+  const address = document.createElement('p'); address.className = 'detail-address'; address.textContent = station.address || station.city || '';
+  const stats = document.createElement('div'); stats.className = 'detail-stats';
+  [['bike', station.bikes_available, t('userBikesAvailable')], ['circle-parking', station.docks_available, t('mapDocks', { count: station.docks_available })]].forEach(([icon, value, label]) => {
+    const item = document.createElement('div'); item.className = 'detail-stat'; item.innerHTML = `<i data-lucide="${icon}"></i>`;
+    const strong = document.createElement('strong'); strong.textContent = value; if (value === '—') strong.dataset.stationDistance = ''; const span = document.createElement('span'); span.textContent = label; item.append(strong, span); stats.append(item);
+  });
+  const actions = document.createElement('div'); actions.className = 'detail-actions';
+  const detail = document.createElement('a'); detail.className = 'button secondary'; detail.href = `station.html?id=${encodeURIComponent(station.public_code || station.id)}`; detail.textContent = t('mapStationDetails');
+  const scan = document.createElement('a'); scan.className = 'button primary'; scan.href = 'scanner.html'; scan.textContent = t('mapScan');
+  actions.append(detail, scan); wrapper.append(status, heading, address, stats, actions); return wrapper;
 }
 
-function stationMeta(station) {
-  const bikes = Number(station.bikes_available || 0);
-  return t(bikes === 1 ? 'bikesAvailableCount' : 'bikesAvailableCountPlural', { count: bikes }) + ' - ' + (station.address || station.city || 'Rabat');
-}
-
-let stationMapState = null;
-
-function selectStation(usableStations, index, marker) {
-  const station = usableStations[index];
+function selectStation(station) {
   if (!station) return;
-  setText('[data-selected-station]', station.name);
-  setText('[data-selected-station-meta]', stationMeta(station));
-  document.querySelectorAll('[data-station-index]').forEach((item) => {
-    item.classList.toggle('active', Number(item.dataset.stationIndex || -1) === index);
-  });
-  if (marker) marker.openPopup();
+  mapState.selected = station;
+  document.querySelectorAll('[data-station-id]').forEach((item) => item.classList.toggle('is-active', String(station.id) === item.dataset.stationId));
+  const panel = document.querySelector('[data-station-panel]'); const content = document.querySelector('[data-station-panel-content]');
+  content?.replaceChildren(stationPanel(station)); panel?.classList.add('is-open'); refreshUserIcons();
+  const marker = mapState.markers.get(String(station.id)); marker?.openPopup();
+  if (mapState.map && station.latitude !== null) mapState.map.flyTo([Number(station.latitude), Number(station.longitude)], Math.max(mapState.map.getZoom(), 15), { duration: .6 });
 }
 
-function renderStationFallback(mapElement, usableStations) {
-  mapElement.innerHTML = '<div class="map-fallback">' + usableStations.map((station, index) => {
-    const bikes = Number(station.bikes_available || 0);
-    const left = 18 + ((index * 29) % 62);
-    const top = 20 + ((index * 37) % 56);
-    const state = bikes <= 0 ? ' is-empty' : bikes <= 3 ? ' is-low' : '';
-    return '<button class="map-dot' + state + '" style="left:' + left + '%;top:' + top + '%" type="button" data-station-index="' + index + '"><span>' + bikes + '</span><small>' + escapeHtml(station.name) + '</small></button>';
-  }).join('') + '</div>';
-  mapElement.querySelectorAll('[data-station-index]').forEach((button) => {
-    button.addEventListener('click', () => selectStation(usableStations, Number(button.dataset.stationIndex || 0)));
+function filteredStations() {
+  const query = (document.querySelector('[data-map-search]')?.value || '').trim().toLocaleLowerCase(getLocale());
+  const filter = document.querySelector('[data-map-filter]')?.value || 'all';
+  return stationsData.filter((station) => {
+    const matchesText = !query || [station.name, station.address, station.city].some((value) => String(value || '').toLocaleLowerCase(getLocale()).includes(query));
+    const matchesFilter = filter === 'all' || (filter === 'available' && station.is_active && Number(station.bikes_available) > 0) || (filter === 'open' && station.is_active);
+    return matchesText && matchesFilter;
   });
 }
 
-function renderStationMap(stations) {
-  const mapElement = document.querySelector('[data-stations-map]');
-  const status = document.querySelector('[data-map-status]');
-  if (!mapElement) return [];
-  const usableStations = stations.filter((station) => Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude)));
-  if (!usableStations.length) {
-    mapElement.innerHTML = '<div class="map-empty"><strong>' + t('stationsUnavailable') + '</strong><span>' + t('stationsCoordinatesMissing') + '</span></div>';
-    if (status) status.textContent = t('stationsEmpty');
-    return [];
-  }
-  if (!window.L) {
-    renderStationFallback(mapElement, usableStations);
-    if (status) status.textContent = t('stationsSimplified');
-    selectStation(usableStations, 0);
-    stationMapState = { usableStations, markers: [] };
-    return usableStations;
-  }
-  if (stationMapState?.map) stationMapState.map.remove();
-  mapElement.dataset.ready = 'true';
-  const map = window.L.map(mapElement, { scrollWheelZoom: false, zoomControl: true });
-  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-  const bounds = [];
-  const markers = [];
-  usableStations.forEach((station, index) => {
-    const bikes = Number(station.bikes_available || 0);
-    const className = bikes <= 0 ? 'bike-bubble is-empty' : bikes <= 3 ? 'bike-bubble is-low' : 'bike-bubble';
-    const icon = window.L.divIcon({ className, html: '<span>' + bikes + '</span>', iconSize: [48, 48] });
-    const latLng = [Number(station.latitude), Number(station.longitude)];
-    bounds.push(latLng);
-    const marker = window.L.marker(latLng, { icon }).addTo(map).bindPopup('<strong>' + escapeHtml(station.name) + '</strong><br>' + escapeHtml(stationMeta(station)));
-    marker.on('click', () => selectStation(usableStations, index, marker));
-    markers[index] = marker;
-  });
-  map.fitBounds(bounds, { padding: [42, 42], maxZoom: 14 });
-  map.whenReady(() => window.setTimeout(() => map.invalidateSize(), 120));
-  if (status) status.textContent = usableStations.length + ' stations';
-  stationMapState = { map, usableStations, markers };
-  selectStation(usableStations, 0, markers[0]);
-  return usableStations;
+function renderStationResults() {
+  const stations = filteredStations(); const list = document.querySelector('[data-stations-list]');
+  list?.replaceChildren(...(stations.length ? stations.map(stationResult) : [emptyState('mapNoResults', 'search-x')]));
+  text('[data-map-count]', t('mapResults', { count: stations.length }));
+  mapState?.markers.forEach((marker, id) => { const visible = stations.some((station) => String(station.id) === id); if (visible) marker.addTo(mapState.map); else marker.remove(); });
+  refreshUserIcons();
 }
 
-async function loadStations() {
-  await requireUser();
-  const list = document.querySelector('[data-stations-list]');
-  if (!list) return;
-  list.innerHTML = '<div class="station-row"><strong>' + t('commonLoading') + '</strong><span></span><span class="status">...</span></div>';
+function initializeMap() {
+  const element = document.querySelector('[data-stations-map]');
+  if (!element || !window.L) throw new Error(t('mapLoadError'));
+  const map = window.L.map(element, { zoomControl: true, scrollWheelZoom: true }).setView([34.0209, -6.8416], 13);
+  window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+  const markers = new Map(); const bounds = [];
+  stationsData.filter((station) => Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude))).forEach((station) => {
+    const location = [Number(station.latitude), Number(station.longitude)]; bounds.push(location);
+    const icon = window.L.divIcon({ className: `bike-bubble ${stationClass(station)}`, html: `<div>${Number(station.bikes_available)}</div>`, iconSize: [44, 44], iconAnchor: [22, 22] });
+    const marker = window.L.marker(location, { icon, title: station.name }).addTo(map).bindTooltip(station.name, { direction: 'top' });
+    marker.on('click', () => selectStation(station)); markers.set(String(station.id), marker);
+  });
+  if (bounds.length) map.fitBounds(bounds, { padding: [35, 35], maxZoom: 14 });
+  mapState = { map, markers, initialBounds: bounds.length ? window.L.latLngBounds(bounds) : null, selected: null, userMarker: null };
+  window.setTimeout(() => map.invalidateSize(), 100); renderStationResults();
+}
+
+async function locateOnMap() {
   try {
-    const { stations } = await api('/api/stations');
-    const usableStations = renderStationMap(stations);
-    list.innerHTML = usableStations.map(stationCard).join('') || '<div class="station-row"><strong>Aucune station</strong><span>0 velo</span><span class="status">Fermee</span></div>';
-    list.querySelectorAll('[data-station-index]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const index = Number(button.dataset.stationIndex || 0);
-        const marker = stationMapState?.markers?.[index];
-        if (stationMapState?.map && stationMapState.usableStations[index]) {
-          stationMapState.map.flyTo([Number(stationMapState.usableStations[index].latitude), Number(stationMapState.usableStations[index].longitude)], Math.max(stationMapState.map.getZoom(), 14), { duration: 0.8 });
-        }
-        selectStation(usableStations, index, marker);
-      });
-    });
-  } catch (error) {
-    list.innerHTML = '<div class="station-row"><strong>' + escapeHtml(error.message) + '</strong><span></span><span class="status">Erreur</span></div>';
-  }
+    const position = await geolocate(); const location = [position.coords.latitude, position.coords.longitude];
+    const icon = window.L.divIcon({ className: '', html: '<div class="user-location-marker"></div>', iconSize: [20, 20], iconAnchor: [10, 10] });
+    mapState.userMarker?.remove(); mapState.userMarker = window.L.marker(location, { icon, title: t('mapLocate') }).addTo(mapState.map); mapState.map.flyTo(location, 15, { duration: .7 });
+    stationsData.forEach((station) => { if (station.latitude !== null && station.longitude !== null) station.distance_meters = clientDistanceMeters(location[0], location[1], Number(station.latitude), Number(station.longitude)); });
+    renderStationResults(); if (mapState.selected) selectStation(mapState.selected);
+    text('[data-map-feedback]', t('mapLocate'));
+  } catch (error) { const message = error.code === 1 ? t('mapLocationDenied') : t('mapLocationUnavailable'); text('[data-map-feedback]', message); document.querySelector('[data-map-feedback]')?.classList.add('is-error'); }
 }
+
+async function loadMap() {
+  if (!(await requireUser())) return;
+  try { stationsData = (await api('/api/user/stations')).stations; initializeMap(); text('[data-map-feedback]', t('mapSubtitle')); }
+  catch (error) { text('[data-map-feedback]', error.message); document.querySelector('[data-map-feedback]')?.classList.add('is-error'); document.querySelector('[data-stations-list]')?.replaceChildren(errorState(error.message, loadMap)); refreshUserIcons(); return; }
+  document.querySelector('[data-map-search]')?.addEventListener('input', renderStationResults);
+  document.querySelector('[data-map-filter]')?.addEventListener('change', renderStationResults);
+  document.querySelector('[data-map-locate]')?.addEventListener('click', locateOnMap);
+  document.querySelector('[data-map-recenter]')?.addEventListener('click', () => mapState.initialBounds && mapState.map.fitBounds(mapState.initialBounds, { padding: [35, 35], maxZoom: 14 }));
+  document.querySelector('[data-close-station]')?.addEventListener('click', () => document.querySelector('[data-station-panel]')?.classList.remove('is-open'));
+}
+
+async function loadStationPage() {
+  if (!(await requireUser())) return;
+  const host = document.querySelector('[data-station-page]'); const id = new URLSearchParams(location.search).get('id');
+  if (!id) { host?.replaceChildren(errorState(t('stationNotFound'))); return; }
+  try {
+    const { station } = await api(`/api/stations/${encodeURIComponent(id)}`);
+    const section = document.createElement('section'); section.className = 'station-page-grid';
+    const hero = document.createElement('article'); hero.className = 'surface station-page-hero';
+    const status = document.createElement('span'); status.className = `status-badge${station.is_active ? '' : ' is-closed'}`; status.textContent = t(station.is_active ? 'mapOpen' : 'mapClosed');
+    const heading = document.createElement('h1'); heading.textContent = station.name; const address = document.createElement('p'); address.className = 'muted'; address.textContent = station.address || station.city || '';
+    const facts = document.createElement('div'); facts.className = 'station-facts';
+    [[station.bikes_available, t('userBikesAvailable')], [station.docks_available, t('mapDocks', { count: station.docks_available })], ['—', t('stationDistance')]].forEach(([value, label]) => { const item = document.createElement('div'); item.className = 'station-fact'; const strong = document.createElement('strong'); strong.textContent = value; if (value === '—') strong.dataset.stationDistance = ''; const span = document.createElement('span'); span.textContent = label; item.append(strong, span); facts.append(item); });
+    const actions = document.createElement('div'); actions.className = 'detail-actions';
+    const directions = document.createElement('a'); directions.className = 'button secondary'; const destination = Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude)) ? `${station.latitude},${station.longitude}` : (station.address || station.city || station.name); directions.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`; directions.target = '_blank'; directions.rel = 'noopener'; directions.textContent = t('mapDirections');
+    const scan = document.createElement('a'); scan.className = 'button primary'; scan.href = 'scanner.html'; scan.textContent = t('mapScan'); const locate = document.createElement('button'); locate.className = 'button secondary'; locate.type = 'button'; locate.textContent = t('mapLocate'); locate.addEventListener('click', async () => { try { const position = await geolocate(); text('[data-station-distance]', formatDistance(clientDistanceMeters(position.coords.latitude, position.coords.longitude, Number(station.latitude), Number(station.longitude))), hero); } catch (error) { showToast(error.code === 1 ? t('mapLocationDenied') : t('mapLocationUnavailable'), { tone: 'error' }); } }); actions.append(directions, scan, locate); hero.append(status, heading, address, facts, actions);
+    const info = document.createElement('article'); info.className = 'surface'; const title = document.createElement('h2'); title.textContent = t('stationAvailability'); const paragraph = document.createElement('p'); paragraph.className = 'muted'; paragraph.textContent = `${t('mapBikes', { count: station.bikes_available })} · ${t('mapDocks', { count: station.docks_available })}`; info.append(title, paragraph); section.append(hero, info); host.replaceChildren(section);
+  } catch (error) { host?.replaceChildren(errorState(error.message, loadStationPage)); }
+  refreshUserIcons();
+}
+
+async function loadRides() {
+  if (!(await requireUser())) return;
+  const host = document.querySelector('[data-rides-list]');
+  try { const data = await api('/api/rides'); host?.replaceChildren(...(data.rides.length ? data.rides.map(rideRow) : [emptyState('userNoRides', 'route')])); }
+  catch (error) { host?.replaceChildren(errorState(error.message, loadRides)); }
+  refreshUserIcons();
+}
+
+async function stopCamera() {
+  cancelAnimationFrame(scannerLoop); scannerLoop = 0; cameraStream?.getTracks().forEach((track) => track.stop()); cameraStream = null;
+  const video = document.querySelector('[data-scanner-video]'); if (video) video.srcObject = null;
+  document.querySelector('[data-camera-placeholder]')?.classList.remove('is-hidden');
+  const label = document.querySelector('[data-camera-toggle] span'); if (label) label.textContent = t('scannerCameraStart');
+}
+
+async function scanFrames(video, detector) {
+  if (!cameraStream) return;
+  try { const codes = await detector.detect(video); if (codes[0]?.rawValue) { const input = document.querySelector('[name=bikeCode]'); input.value = codes[0].rawValue; await stopCamera(); input.focus(); return; } } catch {}
+  scannerLoop = requestAnimationFrame(() => scanFrames(video, detector));
+}
+
+async function toggleCamera() {
+  if (cameraStream) { await stopCamera(); return; }
+  const message = document.querySelector('[data-scanner-message]'); message?.classList.remove('is-error');
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    const video = document.querySelector('[data-scanner-video]'); video.srcObject = cameraStream; await video.play(); document.querySelector('[data-camera-placeholder]')?.classList.add('is-hidden');
+    text('[data-camera-toggle] span', t('scannerCameraStop'));
+    if ('BarcodeDetector' in window) { const detector = new BarcodeDetector({ formats: ['qr_code'] }); scanFrames(video, detector); }
+  } catch (error) { cameraStream = null; message.textContent = error.name === 'NotAllowedError' ? t('scannerPermissionDenied') : t('scannerCameraUnavailable'); message.classList.add('is-error'); }
+}
+
+async function loadScanner() {
+  if (!(await requireUser())) return;
+  document.querySelector('[data-camera-toggle]')?.addEventListener('click', toggleCamera);
+  document.querySelector('[data-ride-form]')?.addEventListener('submit', async (event) => {
+    event.preventDefault(); const form = event.currentTarget; const code = form.elements.bikeCode.value.trim(); const message = document.querySelector('[data-scanner-message]');
+    if (!code) { message.textContent = t('scannerCodeRequired'); message.classList.add('is-error'); return; }
+    const button = form.querySelector('[type=submit]'); button.disabled = true;
+    try { await api('/api/rides', { method: 'POST', body: JSON.stringify({ bikeCode: code }) }); message.textContent = t('scannerRideStarted'); message.classList.remove('is-error'); showToast(t('scannerRideStarted')); window.setTimeout(() => location.assign('dashboard.html'), 900); }
+    catch (error) { message.textContent = error.message; message.classList.add('is-error'); }
+    finally { button.disabled = false; }
+  });
+  window.addEventListener('pagehide', stopCamera, { once: true });
+}
+
 async function loadProfile() {
-  const user = await requireUser();
-  if (!user) return;
-  setText('[data-profile-name]', fullName(user));
-  setText('[data-profile-email]', user.email || '');
-  setText('[data-profile-phone]', user.phone || t('profileNoPhone'));
-  const profileForm = document.querySelector('[data-profile-form]');
-  if (profileForm) { profileForm.elements.firstName.value = user.first_name || ''; profileForm.elements.lastName.value = user.last_name || ''; profileForm.elements.phone.value = user.phone || ''; }
-  try {
-    const profile = await api('/api/profile');
-    setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} ${t('activeLabel')}` : t('profileNoSubscription'));
-  } catch (error) {
-    setText('[data-profile-subscription]', error.message);
-  }
+  const user = await requireUser(); if (!user) return;
+  text('[data-profile-name]', fullName(user)); text('[data-profile-email]', user.email || ''); text('[data-profile-phone]', user.phone || '');
+  text('[data-profile-initials]', `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'PK');
+  const form = document.querySelector('[data-profile-form]'); if (form) { form.elements.firstName.value = user.first_name || ''; form.elements.lastName.value = user.last_name || ''; form.elements.phone.value = user.phone || ''; }
+  try { const profile = await api('/api/profile'); text('[data-profile-subscription]', profile.subscription?.plan || t('userNoPlan')); } catch (error) { text('[data-profile-subscription]', error.message); }
+  wireProfileForms();
 }
 
-async function wireProfileForms() {
-  const user = await requireUser();
-  if (!user) return;
+function wireProfileForms() {
   const profileForm = document.querySelector('[data-profile-form]');
-  profileForm?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const button = profileForm.querySelector('[type="submit"]');
-    if (button) button.disabled = true;
-    try {
-      const data = await api('/api/profile', { method: 'PATCH', body: JSON.stringify({
-        firstName: profileForm.elements.firstName.value.trim(), lastName: profileForm.elements.lastName.value.trim(),
-        phone: profileForm.elements.phone.value.trim(), locale: document.documentElement.lang || 'fr'
-      }) });
-      currentUser = data.user;
-      await loadProfile();
-      showToast(t('profileUpdated'));
-    } catch (error) { showToast(error.message, { tone: 'error' }); }
-    finally { if (button) button.disabled = false; }
-  });
+  profileForm?.addEventListener('submit', async (event) => { event.preventDefault(); const button = profileForm.querySelector('[type=submit]'); button.disabled = true; try { const data = await api('/api/profile', { method: 'PATCH', body: JSON.stringify({ firstName: profileForm.elements.firstName.value.trim(), lastName: profileForm.elements.lastName.value.trim(), phone: profileForm.elements.phone.value.trim(), locale: getLocale() }) }); currentUser = data.user; showToast(t('profileUpdated')); await loadProfile(); } catch (error) { showToast(error.message, { tone: 'error' }); } finally { button.disabled = false; } }, { once: true });
   const passwordForm = document.querySelector('[data-password-form]');
-  passwordForm?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const currentPassword = passwordForm.elements.currentPassword.value;
-    const newPassword = passwordForm.elements.newPassword.value;
-    if (newPassword.length < 15 || newPassword.length > 128) return showToast(t('authPasswordRule'), { tone: 'error' });
-    const button = passwordForm.querySelector('[type="submit"]');
-    if (button) button.disabled = true;
-    try {
-      await api('/api/password/change', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
-      passwordForm.reset();
-      showToast(t('authPasswordChanged'));
-    } catch (error) { showToast(error.message, { tone: 'error' }); }
-    finally { if (button) button.disabled = false; }
-  });
+  passwordForm?.addEventListener('submit', async (event) => { event.preventDefault(); const button = passwordForm.querySelector('[type=submit]'); button.disabled = true; try { await api('/api/password/change', { method: 'POST', body: JSON.stringify({ currentPassword: passwordForm.elements.currentPassword.value, newPassword: passwordForm.elements.newPassword.value }) }); passwordForm.reset(); showToast(t('authPasswordChanged')); } catch (error) { showToast(error.message, { tone: 'error' }); } finally { button.disabled = false; } }, { once: true });
 }
 
-async function wireSubscription() {
-  const user = await requireUser();
-  const button = document.querySelector('[data-activate-subscription]');
-  if (!user || !button) return;
-  button.addEventListener('click', async (event) => {
-    event.preventDefault();
-    button.textContent = t('subscriptionActivating');
-    try {
-      await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: 'Premium' }) });
-      window.location.href = 'dashboard.html';
-    } catch (error) {
-      button.textContent = error.message;
-    }
-  });
+function wireLogout() { document.querySelectorAll('[data-logout]').forEach((button) => button.addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST', body: '{}' }); } finally { location.assign('index.html'); } })); }
+function wireBottomNavigation() { let previous = scrollY; const nav = document.querySelector('.user-bottom-nav'); addEventListener('scroll', () => { const current = scrollY; nav?.classList.toggle('is-hidden-by-scroll', current > previous && current > 120); previous = current; }, { passive: true }); }
+
+async function loadLegacyPage(page) {
+  if (!(await requireUser())) return;
+  if (page === 'support') document.querySelector('[data-support-form]')?.addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; try { await api('/api/support', { method: 'POST', body: JSON.stringify({ subject: form.elements.subject.value, message: form.elements.message.value }) }); form.reset(); showToast(t('supportSent')); } catch (error) { showToast(error.message, { tone: 'error' }); } });
+  if (page === 'subscription') document.querySelector('[data-activate-subscription]')?.addEventListener('click', async (event) => { event.preventDefault(); try { const plans = (await api('/api/plans')).plans; if (!plans.length) throw new Error(t('commonUnavailableV2')); await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: plans[0].slug }) }); location.assign('dashboard.html'); } catch (error) { showToast(error.message, { tone: 'error' }); } });
 }
 
-async function wireSupport() {
-  const user = await requireUser();
-  const form = document.querySelector('[data-support-form]');
-  if (!user || !form) return;
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const subject = form.querySelector('[name="subject"]')?.value.trim() || '';
-    const message = form.querySelector('[name="message"]')?.value.trim() || '';
-    const button = form.querySelector('button[type="submit"]');
-    if (!message) {
-      showToast(t('supportRequired'), { tone: 'error' });
-      return;
-    }
-    if (button) button.textContent = t('supportSending');
-    try {
-      await api('/api/support', { method: 'POST', body: JSON.stringify({ subject, message }) });
-      form.reset();
-      if (button) button.textContent = t('supportSent');
-      showToast(t('supportSent'));
-    } catch (error) {
-      if (button) button.textContent = t('supportSend');
-      showToast(error.message, { tone: 'error' });
-    }
-  });
-}
-
-async function wireScanner() {
-  const user = await requireUser();
-  const button = document.querySelector('[data-start-ride]');
-  if (!user || !button) return;
-  button.addEventListener('click', async (event) => {
-    event.preventDefault();
-    button.textContent = t('scannerUnlocking');
-    try {
-      await api('/api/rides', { method: 'POST', body: '{}' });
-      button.textContent = t('scannerUnlocked');
-      window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
-    } catch (error) {
-      button.textContent = error.message;
-    }
-  });
-}
-
-function setupBottomNav() {
-  const nav = document.querySelector('.bottom-nav');
-  if (!nav) return;
-  const page = document.body.dataset.userPage || 'dashboard';
-  document.querySelectorAll('[data-bottom-nav]').forEach((link) => {
-    link.classList.toggle('active', link.dataset.bottomNav === page);
-  });
-  let lastY = window.scrollY;
-  let ticking = false;
-  const update = () => {
-    const currentY = window.scrollY;
-    const goingDown = currentY > lastY + 8;
-    const goingUp = currentY < lastY - 8;
-    if (currentY < 90 || goingUp) nav.classList.remove('is-hidden-on-scroll');
-    if (goingDown && currentY > 120) nav.classList.add('is-hidden-on-scroll');
-    lastY = Math.max(currentY, 0);
-    ticking = false;
-  };
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      window.requestAnimationFrame(update);
-      ticking = true;
-    }
-  }, { passive: true });
-}
-
-function setupScrollReveals() {
-  const selectors = ['.topbar', '.panel', '.tile', '.station-row', '.quick-actions a', '.profile-list div', '.support-list a', '.scan-frame'];
-  const items = document.querySelectorAll(selectors.join(','));
-  if (!items.length) return;
-  items.forEach((item, index) => {
-    item.classList.add('user-reveal');
-    item.style.setProperty('--delay', String(Math.min(index % 4, 3) * 70) + 'ms');
-  });
-  if (!('IntersectionObserver' in window)) {
-    items.forEach((item) => item.classList.add('is-visible'));
-    return;
-  }
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('is-visible');
-      observer.unobserve(entry.target);
-    });
-  }, { threshold: 0.14, rootMargin: '0px 0px -30px 0px' });
-  items.forEach((item) => observer.observe(item));
-}
-
-wireLogout();
-setupBottomNav();
-setupScrollReveals();
-const page = document.body.dataset.userPage;
-if (page === 'dashboard') loadDashboard();
-if (page === 'stations') loadStations();
-if (page === 'profile') { loadProfile(); wireProfileForms(); }
-if (page === 'subscription') wireSubscription();
-if (page === 'support') wireSupport();
-if (page === 'scanner') wireScanner();
-if (page === 'admin') loadAdmin();
-async function loadAdmin() {
-  const user = await requireUser();
-  if (!user) return;
-  if (user.role !== 'admin') {
-    window.location.href = 'dashboard.html';
-    return;
-  }
-  setText('[data-admin-name]', fullName(user));
-  try {
-    const [overview, stationData] = await Promise.all([api('/api/admin/overview'), api('/api/stations')]);
-    const stations = stationData.stations;
-    setText('[data-admin-stations]', String(overview.stations));
-    setText('[data-admin-bikes]', String(overview.bikes));
-    const list = document.querySelector('[data-admin-station-list]');
-    if (list) {
-      list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} velos</span><span class="status">${station.latitude && station.longitude ? t('adminMapReady') : t('adminComplete')}</span></div>`).join('');
-    }
-  } catch (error) {
-    setText('[data-admin-error]', error.message);
-  }
-}
-
-
-document.addEventListener('pikala:localechange', () => {
-  if (!currentUser) return;
-  if (page === 'dashboard') loadDashboard();
-  if (page === 'stations') loadStations();
-  if (page === 'profile') loadProfile();
-  if (page === 'admin') loadAdmin();
-});
+const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: loadScanner, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: () => loadLegacyPage('subscription') };
+if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage(); else loaders[document.body.dataset.userPage]?.();
+wireLogout(); wireBottomNavigation();
+document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); refreshUserIcons(); });

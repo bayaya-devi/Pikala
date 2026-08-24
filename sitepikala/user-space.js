@@ -2,6 +2,7 @@ import { getLocale, t } from './assets/js/i18n/index.js';
 import { initLayout } from './assets/js/layouts.js';
 import { mountUserShell, refreshUserIcons } from './assets/js/user-shell.js';
 import { showToast } from './assets/js/ui/components.js';
+import { createRealRideFlows } from './assets/js/real-rides.js';
 
 mountUserShell();
 initLayout();
@@ -11,8 +12,7 @@ let currentUser = null;
 let dashboardData = null;
 let stationsData = [];
 let mapState = null;
-let cameraStream = null;
-let scannerLoop = 0;
+
 
 function text(selector, value, root = document) {
   const element = root.querySelector(selector);
@@ -27,8 +27,12 @@ function friendlyApiError(data) {
     AUTH_REQUIRED: 'authInvalidCredentials', RATE_LIMITED: 'authRateLimited', PASSWORD_INVALID: 'authPasswordRule',
     CURRENT_PASSWORD_INVALID: 'authInvalidCredentials', PHONE_INVALID: 'authPhoneInvalid', NAME_INVALID: 'authNameInvalid',
     FORBIDDEN: 'authForbidden', DB_UNAVAILABLE: 'dbUnavailable', SERVER_ERROR: 'authServerError',
-    BIKE_CODE_REQUIRED: 'scannerCodeRequired', BIKE_UNAVAILABLE: 'scannerCodeRequired', SUBSCRIPTION_REQUIRED: 'userNoPlan',
-    RIDE_ALREADY_ACTIVE: 'userActiveRide', STATION_NOT_FOUND: 'stationNotFound'
+    BIKE_CODE_REQUIRED: 'scannerCodeRequired', QR_INVALID: 'scannerQrInvalid', QR_UNKNOWN: 'scannerQrUnknown',
+    BIKE_MAINTENANCE: 'scannerBikeMaintenance', BIKE_UNAVAILABLE: 'scannerBikeUnavailable', BIKE_DOCK_INVALID: 'scannerDockInvalid',
+    SUBSCRIPTION_REQUIRED: 'userNoPlan', RIDE_ALREADY_ACTIVE: 'userActiveRide', STATION_CLOSED: 'scannerStationClosed',
+    DOCK_QR_INVALID: 'returnQrInvalid', DOCK_UNKNOWN: 'returnDockUnknown', DOCK_UNAVAILABLE: 'returnDockUnavailable',
+    RIDE_ALREADY_ENDED: 'rideAlreadyEnded', RETURN_CONFLICT: 'returnConflict', BIKE_STATE_INVALID: 'rideStateInvalid', RIDE_NOT_FOUND: 'rideNotFound',
+    INCIDENT_CATEGORY_INVALID: 'incidentInvalid', INCIDENT_DESCRIPTION_INVALID: 'incidentInvalid', STATION_NOT_FOUND: 'stationNotFound'
   };
   return t(keys[data?.code] || 'commonErrorV2');
 }
@@ -109,7 +113,7 @@ function errorState(message, retry) {
 }
 
 function rideRow(ride) {
-  const row = document.createElement('div'); row.className = 'data-row';
+  const row = document.createElement('a'); row.className = 'data-row'; row.href = `trajet.html?id=${encodeURIComponent(ride.id)}`;
   const title = document.createElement('strong');
   title.textContent = `${ride.start_station_name || t('userUnknownStation')} → ${ride.end_station_name || t('ridesUnknownDestination')}`;
   const meta = document.createElement('p');
@@ -141,7 +145,7 @@ function renderDashboard() {
     heading.textContent = data.activeRide ? (data.activeRide.start_station_name || t('userActiveRide')) : t('userFindBike');
     meta.textContent = data.activeRide ? t('userRideStarted', { time: formatDate(data.activeRide.started_at, { timeStyle: 'short' }) }) : t('mapSubtitle');
     copy.append(kicker, heading, meta);
-    const link = document.createElement('a'); link.className = 'button primary'; link.href = data.activeRide ? 'trajets.html' : 'stations.html'; link.textContent = data.activeRide ? t('userActiveRide') : t('userFindBike');
+    const link = document.createElement('a'); link.className = 'button primary'; link.href = data.activeRide ? `trajet.html?id=${encodeURIComponent(data.activeRide.id)}` : 'stations.html'; link.textContent = data.activeRide ? t('userActiveRide') : t('userFindBike');
     banner.append(copy, link);
   }
   renderNearest(data.nearestStation);
@@ -301,44 +305,6 @@ async function loadRides() {
   refreshUserIcons();
 }
 
-async function stopCamera() {
-  cancelAnimationFrame(scannerLoop); scannerLoop = 0; cameraStream?.getTracks().forEach((track) => track.stop()); cameraStream = null;
-  const video = document.querySelector('[data-scanner-video]'); if (video) video.srcObject = null;
-  document.querySelector('[data-camera-placeholder]')?.classList.remove('is-hidden');
-  const label = document.querySelector('[data-camera-toggle] span'); if (label) label.textContent = t('scannerCameraStart');
-}
-
-async function scanFrames(video, detector) {
-  if (!cameraStream) return;
-  try { const codes = await detector.detect(video); if (codes[0]?.rawValue) { const input = document.querySelector('[name=bikeCode]'); input.value = codes[0].rawValue; await stopCamera(); input.focus(); return; } } catch {}
-  scannerLoop = requestAnimationFrame(() => scanFrames(video, detector));
-}
-
-async function toggleCamera() {
-  if (cameraStream) { await stopCamera(); return; }
-  const message = document.querySelector('[data-scanner-message]'); message?.classList.remove('is-error');
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-    const video = document.querySelector('[data-scanner-video]'); video.srcObject = cameraStream; await video.play(); document.querySelector('[data-camera-placeholder]')?.classList.add('is-hidden');
-    text('[data-camera-toggle] span', t('scannerCameraStop'));
-    if ('BarcodeDetector' in window) { const detector = new BarcodeDetector({ formats: ['qr_code'] }); scanFrames(video, detector); }
-  } catch (error) { cameraStream = null; message.textContent = error.name === 'NotAllowedError' ? t('scannerPermissionDenied') : t('scannerCameraUnavailable'); message.classList.add('is-error'); }
-}
-
-async function loadScanner() {
-  if (!(await requireUser())) return;
-  document.querySelector('[data-camera-toggle]')?.addEventListener('click', toggleCamera);
-  document.querySelector('[data-ride-form]')?.addEventListener('submit', async (event) => {
-    event.preventDefault(); const form = event.currentTarget; const code = form.elements.bikeCode.value.trim(); const message = document.querySelector('[data-scanner-message]');
-    if (!code) { message.textContent = t('scannerCodeRequired'); message.classList.add('is-error'); return; }
-    const button = form.querySelector('[type=submit]'); button.disabled = true;
-    try { await api('/api/rides', { method: 'POST', body: JSON.stringify({ bikeCode: code }) }); message.textContent = t('scannerRideStarted'); message.classList.remove('is-error'); showToast(t('scannerRideStarted')); window.setTimeout(() => location.assign('dashboard.html'), 900); }
-    catch (error) { message.textContent = error.message; message.classList.add('is-error'); }
-    finally { button.disabled = false; }
-  });
-  window.addEventListener('pagehide', stopCamera, { once: true });
-}
-
 async function loadProfile() {
   const user = await requireUser(); if (!user) return;
   text('[data-profile-name]', fullName(user)); text('[data-profile-email]', user.email || ''); text('[data-profile-phone]', user.phone || '');
@@ -364,7 +330,8 @@ async function loadLegacyPage(page) {
   if (page === 'subscription') document.querySelector('[data-activate-subscription]')?.addEventListener('click', async (event) => { event.preventDefault(); try { const plans = (await api('/api/plans')).plans; if (!plans.length) throw new Error(t('commonUnavailableV2')); await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: plans[0].slug }) }); location.assign('dashboard.html'); } catch (error) { showToast(error.message, { tone: 'error' }); } });
 }
 
-const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: loadScanner, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: () => loadLegacyPage('subscription') };
+const realRideFlows = createRealRideFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, formatDuration, errorState, emptyState });
+const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: () => loadLegacyPage('subscription') };
 if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage(); else loaders[document.body.dataset.userPage]?.();
 wireLogout(); wireBottomNavigation();
 document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); refreshUserIcons(); });

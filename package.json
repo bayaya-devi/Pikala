@@ -17,7 +17,9 @@
     "test:auth:crash": "node scripts/auth-crash-test.mjs",
     "test:user-space": "node scripts/check-user-space.mjs",
     "test:user-space:crash": "node scripts/user-space-crash-test.mjs",
-    "test:user-space:browser": "node scripts/check-user-space-browser.mjs"
+    "test:user-space:browser": "node scripts/check-user-space-browser.mjs",
+    "db:seed:rides-test:local": "wrangler d1 execute pikala-db --local --file seeds/real-rides-test.sql",
+    "test:rides:crash": "node scripts/real-ride-crash-test.mjs"
   },
   "repository": {
     "type": "git",
@@ -35,6 +37,7 @@
     "wrangler": "^4.125.0"
   },
   "dependencies": {
+    "@zxing/browser": "^0.2.1",
     "lucide": "^1.33.0"
   }
 }

@@ -36,6 +36,20 @@ const setCookie = typeof loginResponse.headers.getSetCookie === 'function' ? log
 const sessionPair = setCookie.map((value) => value?.split(';')[0]).find((value) => value?.startsWith('__Host-pikala_session=') && value.length > '__Host-pikala_session='.length);
 const sessionValue = sessionPair?.slice('__Host-pikala_session='.length);
 if (!sessionValue) throw new Error('Cookie de session navigateur absent.');
+let visualRideId = null;
+if (['ride', 'summary'].includes(process.env.VISUAL_PAGE)) {
+  const authHeaders = { 'content-type': 'application/json', 'x-pikala-request': 'web', origin, cookie: sessionPair };
+  const subscription = await fetch(new URL('/api/subscriptions', base), { method: 'POST', headers: authHeaders, body: JSON.stringify({ plan: 'dev-monthly' }) });
+  if (subscription.status !== 201) throw new Error(`Abonnement visuel impossible: ${subscription.status}`);
+  const started = await fetch(new URL('/api/rides', base), { method: 'POST', headers: authHeaders, body: JSON.stringify({ qrPayload: 'dev-bike-001' }) });
+  const startedData = await started.json();
+  if (started.status !== 201) throw new Error(`Trajet visuel impossible: ${started.status} ${startedData.code || ''}`);
+  visualRideId = startedData.ride.id;
+  if (process.env.VISUAL_PAGE === 'summary') {
+    const returned = await fetch(new URL('/api/rides/' + visualRideId + '/return', base), { method: 'POST', headers: authHeaders, body: JSON.stringify({ dockCode: 'dev-dock-oudayas-04' }) });
+    if (returned.status !== 200) throw new Error('Résumé visuel impossible: ' + returned.status);
+  }
+}
 const loginPage = await openPage(`${base}/connexion.html`); await loginPage.send('Network.enable');
 const cookieResult = await loginPage.send('Network.setCookie', { name: '__Host-pikala_session', value: sessionValue, url: `${base}/`, path: '/', secure: true, httpOnly: true, sameSite: 'Lax' });
 if (cookieResult.success === false) throw new Error('Cookie de session Chrome refusé.');
@@ -45,6 +59,7 @@ let pages = [
   ['dashboard', '/dashboard.html'], ['map', '/stations.html'], ['station', '/station.html?id=dev-station-oudayas'],
   ['rides', '/trajets.html'], ['scanner', '/scanner.html'], ['profile', '/profil.html']
 ];
+if (visualRideId) pages.push([process.env.VISUAL_PAGE === 'summary' ? 'summary' : 'ride', `/trajet.html?id=${visualRideId}`]);
 let viewports = [{ name: 'mobile', width: 390, height: 844 }, { name: 'desktop', width: 1440, height: 900 }];
 let locales = ['fr', 'en', 'es', 'pt', 'ar'];
 if (process.env.VISUAL_PAGE) pages = pages.filter(([name]) => name === process.env.VISUAL_PAGE);

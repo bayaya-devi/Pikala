@@ -1,43 +1,59 @@
 # Deploiement Cloudflare
 
-Le Worker `pikala` sert `src/worker.js`, les assets de `sitepikala` et la base
-D1 `pikala-db` via le binding `DB`. Wrangler 4.125.0 est verrouille dans le
-projet.
+## Ressources attendues
 
-## Ordre obligatoire
+- Worker pikala ;
+- binding ASSETS vers sitepikala ;
+- binding D1 DB vers pikala-db ;
+- observabilite Workers activee ;
+- domaine HTTPS canonique dans PUBLIC_ORIGIN.
 
-```text
-branche -> tests -> export D1 -> dry-run Worker -> migrations D1
-        -> controles D1 -> deploy Worker -> smoke tests -> surveillance
-```
+wrangler.toml ne contient aucun secret. Le database_id est un identifiant de ressource, pas une cle d'acces.
 
-Les migrations sont appliquees avant le code qui les exige. Les migrations V2
-sont additives afin que le Worker precedent continue de fonctionner pendant
-un rollback applicatif.
+## Variables et secrets
 
-## Commandes
+Production obligatoire pour les emails : RESEND_API_KEY en secret, FROM_EMAIL et PUBLIC_ORIGIN. EMAIL_DEV_MODE doit etre absent. Un prestataire de paiement reel demandera PAYMENT_PROVIDER et ses secrets de signature. Tant qu'il n'est pas configure, le checkout payant retourne 503 et n'active rien.
 
-```powershell
-npm install
-npm run test:foundation
-npm run test:data
+~~~powershell
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put SECRET_DU_PRESTATAIRE_PAIEMENT
+~~~
+
+## Procedure de livraison
+
+~~~powershell
+npm ci
+npm run test:static
+npm audit
 npm run deploy:dry-run
+npx wrangler whoami
 npm run db:migrations:list:remote
+npx wrangler d1 export pikala-db --remote --output "$env:TEMP/pikala-before-deploy.sql" --skip-confirmation
 npm run db:migrate:remote
 npm run deploy
-```
+~~~
 
-Ne jamais executer `seeds/development.sql` avec `--remote`.
+Appliquer D1 avant le Worker. Ne jamais lancer un seed avec --remote.
 
-## Verification apres publication
+## Smoke tests
 
-```powershell
-curl.exe -sS https://pikala.aetbconseil.workers.dev/api/health
-curl.exe -sS https://pikala.aetbconseil.workers.dev/api/stations
-curl.exe -sS https://pikala.aetbconseil.workers.dev/api/plans
-npx wrangler d1 execute pikala-db --remote `
-  --command "PRAGMA foreign_key_check" --json
-```
+- GET /api/health retourne 200 ;
+- homepage, manifest, favicon et service worker retournent 200 ;
+- /dashboard.html anonyme redirige vers la connexion ;
+- inscription et verification envoient un vrai email ;
+- connexion conserve la session ;
+- /api/stations et /api/plans lisent D1 ;
+- utilisateur normal refuse sur /api/admin/overview ;
+- compte admin charge les 14 vues ;
+- logs Workers ne contiennent ni cookie, ni token, ni mot de passe.
 
-La procedure detaillee de sauvegarde, migration et restauration se trouve dans
-`docs/database.md` et `migrations/ROLLBACK.md`.
+## Rollback
+
+Les migrations etant additives, le premier rollback est le redeploiement du Worker precedent, sans suppression de table. Pour une restauration de donnees, suspendre les ecritures, conserver la base courante, restaurer l'export ou D1 Time Travel dans une nouvelle base, executer PRAGMA foreign_key_check puis changer le binding seulement apres verification. Voir migrations/ROLLBACK.md.
+
+## Blocages avant ouverture commerciale
+
+- brancher et tester un prestataire de paiement reel ;
+- configurer un domaine d'envoi email verifie et RESEND_API_KEY ;
+- charger les vraies stations, velos, quais et QR d'exploitation ;
+- definir comptes admin, procedure d'astreinte et suivi des Workers Logs.

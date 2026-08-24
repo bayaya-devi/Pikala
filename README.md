@@ -1,51 +1,106 @@
-# Pikala
+# Pikala V2
 
-Pikala est un prototype de service de velos en libre-service a Rabat. Le depot
-reunit un site statique, un espace utilisateur et une API Cloudflare Worker
-connectee a Cloudflare D1.
+Pikala est une application de velos en libre-service a Rabat. Le meme Worker Cloudflare sert le site public, la PWA, les espaces utilisateur et administration, les API et les ressources statiques. Les donnees metier sont stockees dans Cloudflare D1.
 
-## Etat actuel
+## Fonctionnalites
 
-La V1 fournit une homepage, une inscription, une connexion, des sessions, une
-liste de stations, un profil, un abonnement simplifie et un formulaire de
-support. Le scanner, le paiement, les trajets complets et l'administration
-metier ne sont pas encore reels.
+- homepage publique, stations et plans alimentes par D1 ;
+- inscription, verification email, connexion, sessions, reset et profil ;
+- carte interactive, scanner QR reel avec saisie de secours, trajets et restitution ;
+- plans, abonnements et cycle de paiement confirme par webhook ;
+- support, incidents, maintenance et notifications ;
+- administration protegee couvrant 14 vues ;
+- cinq langues : francais, anglais, arabe RTL, espagnol et portugais ;
+- PWA installable avec mode hors ligne limite et cache non critique ;
+- logs structures Cloudflare sans secret ni jeton.
 
-Le diagnostic complet et la cible V2 sont documentes ici :
+## Architecture
 
-- [Audit V1](docs/audit-v1.md)
-- [Architecture V2](docs/architecture.md)
-- [Base D1](docs/database.md)
-- [Migration V1 vers V2](docs/migration.md)
-- [Administration](docs/admin.md)
-- [Deploiement Cloudflare](docs/deployment.md)
-- [Strategie de tests](docs/testing.md)
+~~~text
+sitepikala/       HTML, design system, i18n, PWA et bibliotheques navigateur locales
+src/worker.js     Routage, auth, API publiques/privees et trajets
+src/admin/        Services d'administration et operations
+src/operations/   Support, incidents et notifications
+src/payments/     Abstraction et cycle de paiement
+migrations/       11 migrations D1 additives et versionnees
+seeds/            Donnees exclusivement locales de developpement/test
+scripts/          Controles statiques, navigateur et crash-tests API
+docs/             Architecture, D1, securite, admin, paiement et exploitation
+~~~
 
-## Architecture V1
+Voir aussi docs/architecture.md, docs/database.md, docs/deployment.md, docs/admin.md et docs/testing.md.
 
-```text
-sitepikala/       Pages, styles, scripts et medias statiques
-src/worker.js     Routage, API, auth, logique metier et acces D1
-wrangler.toml     Worker, Static Assets et binding D1
-index.html        Redirection vers le splash screen
-```
+## Prerequis
 
-## Commandes actuelles
+- Node.js 24 LTS ou version compatible avec Wrangler 4 ;
+- un compte Cloudflare pour les operations distantes ;
+- Chrome pour les tests navigateur par CDP.
 
-```powershell
-npm install
-npm run deploy
-```
+## Installation
 
-L'installation n'est pas encore reproductible : `package.json` ne declare pas
-Wrangler et aucun lockfile n'est versionne. Cette dette doit etre corrigee avant
-la premiere modification structurelle de V2.
+~~~powershell
+git clone https://github.com/bayaya-devi/Pikala.git
+cd Pikala
+npm ci
+npm run db:migrate:local
+npm run db:seed:local
+~~~
 
-## Regles de migration
+Le lockfile est versionne. Les bibliotheques navigateur necessaires a la carte, au QR et aux icones sont servies depuis sitepikala/assets/vendor et ne dependent pas d'un CDN.
 
-- Ne jamais supprimer ou recreer la base D1 de production.
-- Exporter le schema et sauvegarder D1 avant toute migration.
-- Remplacer `ensureSchema()` par des migrations versionnees et additives.
-- Conserver les URLs V1 jusqu'a validation de leurs remplacements.
-- Ne retirer une page historique qu'apres equivalence fonctionnelle testee.
-- Ne jamais enregistrer de secret dans Git.
+## Developpement local
+
+~~~powershell
+npm run dev
+~~~
+
+Ouvrir http://127.0.0.1:8787/. Pour tester les emails sans service externe :
+
+~~~powershell
+npx wrangler dev --local --var EMAIL_DEV_MODE:1 --var PUBLIC_ORIGIN:http://127.0.0.1:8787
+~~~
+
+EMAIL_DEV_MODE ne doit jamais etre active en production, car les liens de verification sont alors renvoyes par l'API.
+
+## Base D1
+
+~~~powershell
+npm run db:migrations:list:local
+npm run db:migrate:local
+npm run db:seed:local
+~~~
+
+Les seeds sont locaux uniquement. Ne jamais executer seeds/development.sql, seeds/admin-test.sql ou seeds/real-rides-test.sql avec --remote.
+
+## Tests
+
+~~~powershell
+npm run test:static
+npm run test:responsive
+npm audit
+npm run deploy:dry-run
+~~~
+
+Les crash-tests complets demandent un Worker local et les seeds de test. La procedure exacte est dans docs/testing.md.
+
+## Configuration Cloudflare
+
+Le binding D1 DB et les Static Assets ASSETS sont declares dans wrangler.toml. Configurer en production :
+
+- PUBLIC_ORIGIN : origine HTTPS canonique ;
+- RESEND_API_KEY : secret Wrangler pour l'envoi email ;
+- FROM_EMAIL : expediteur valide chez le prestataire ;
+- PAYMENT_PROVIDER et les secrets propres au prestataire lorsque celui-ci existe.
+
+Ajouter les secrets avec npx wrangler secret put NOM_DU_SECRET. Ne jamais les placer dans Git, wrangler.toml ou les logs.
+
+## Deploiement
+
+1. Verifier le compte avec npx wrangler whoami.
+2. Exporter une sauvegarde D1 distante hors du depot.
+3. Executer les tests, npm audit et npm run deploy:dry-run.
+4. Lister puis appliquer les migrations distantes.
+5. Deployer avec npm run deploy.
+6. Tester /api/health, inscription, connexion, stations, trajet et admin.
+
+La migration D1 doit toujours preceder le Worker qui utilise son schema. La procedure de retour arriere est documentee dans docs/deployment.md et migrations/ROLLBACK.md.

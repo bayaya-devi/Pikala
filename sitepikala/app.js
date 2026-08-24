@@ -86,7 +86,7 @@ async function renderMap() {
   try {
     const L = await loadLeaflet();
     mapElement.replaceChildren();
-    map = L.map(mapElement, { scrollWheelZoom: false }).setView([34.0209, -6.8416], 13);
+    map = L.map(mapElement, { scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView([34.0209, -6.8416], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
     const bounds = [];
     located.forEach((station) => {

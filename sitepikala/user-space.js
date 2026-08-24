@@ -2,8 +2,6 @@ import { getLocale, t } from './assets/js/i18n/index.js';
 import { initLayout } from './assets/js/layouts.js';
 import { mountUserShell, mountUserTopActions, refreshUserIcons } from './assets/js/user-shell.js';
 import { showToast } from './assets/js/ui/components.js';
-import { createRealRideFlows } from './assets/js/real-rides.js';
-import { createSubscriptionFlows } from './assets/js/subscriptions.js';
 import { createOperationsFlows } from './assets/js/user-operations.js';
 
 mountUserShell();
@@ -250,7 +248,7 @@ function renderStationResults() {
 function initializeMap() {
   const element = document.querySelector('[data-stations-map]');
   if (!element || !window.L) throw new Error(t('mapLoadError'));
-  const map = window.L.map(element, { zoomControl: true, scrollWheelZoom: true }).setView([34.0209, -6.8416], 13);
+  const map = window.L.map(element, { zoomControl: true, scrollWheelZoom: true, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false }).setView([34.0209, -6.8416], 13);
   window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
   const markers = new Map(); const bounds = [];
   stationsData.filter((station) => Number.isFinite(Number(station.latitude)) && Number.isFinite(Number(station.longitude))).forEach((station) => {
@@ -333,12 +331,28 @@ function wireProfileForms() {
 function wireLogout() { document.querySelectorAll('[data-logout]').forEach((button) => button.addEventListener('click', async () => { try { await api('/api/logout', { method: 'POST', body: '{}' }); } finally { location.assign('index.html'); } })); }
 function wireBottomNavigation() { let previous = scrollY; const nav = document.querySelector('.user-bottom-nav'); addEventListener('scroll', () => { const current = scrollY; nav?.classList.toggle('is-hidden-by-scroll', current > previous && current > 120); previous = current; }, { passive: true }); }
 
-const realRideFlows = createRealRideFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, formatDuration, errorState, emptyState });
-const subscriptionFlows = createSubscriptionFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons });
 const operationsFlows = createOperationsFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, errorState, emptyState });
 operationsFlows.installConnectivityStatus();
-const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: operationsFlows.loadSupport, ticket: operationsFlows.loadTicket, incidents: operationsFlows.loadIncidents, notifications: operationsFlows.loadNotifications, subscription: subscriptionFlows.loadSubscription };
-if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage(); else loaders[document.body.dataset.userPage]?.();
+const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, profile: loadProfile, support: operationsFlows.loadSupport, ticket: operationsFlows.loadTicket, incidents: operationsFlows.loadIncidents, notifications: operationsFlows.loadNotifications };
+
+let subscriptionFlows;
+async function loadSubscriptionPage() {
+  const { createSubscriptionFlows } = await import('./assets/js/subscriptions.js');
+  subscriptionFlows = createSubscriptionFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons });
+  return subscriptionFlows.loadSubscription();
+}
+
+async function loadRideFeature(page) {
+  const { createRealRideFlows } = await import('./assets/js/real-rides.js');
+  const flows = createRealRideFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, formatDuration, errorState, emptyState });
+  return page === 'scanner' ? flows.loadScanner() : flows.loadRidePage();
+}
+
+const page = document.body.dataset.userPage;
+if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage();
+else if (page === 'subscription') loadSubscriptionPage();
+else if (page === 'scanner' || page === 'ride') loadRideFeature(page);
+else loaders[page]?.();
 wireLogout(); wireBottomNavigation();
 requireUser().then((user) => user && operationsFlows.refreshNotificationBadge());
-document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); subscriptionFlows.rerender(); refreshUserIcons(); });
+document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); subscriptionFlows?.rerender(); refreshUserIcons(); });

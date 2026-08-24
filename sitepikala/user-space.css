@@ -38,3 +38,18 @@
 @media(max-width:900px){.operations-grid,.ticket-layout{grid-template-columns:1fr}.operations-list-panel{order:2}}
 @media(max-width:640px){.operations-form,.form-grid{grid-template-columns:1fr}.operations-form label,.is-wide{grid-column:1}.operations-form-panel,.operations-list-panel,.notifications-panel,.ticket-thread,.ticket-timeline,.incident-detail{padding:18px}.notification-row{padding-inline:4px}.ticket-message{max-width:94%}.section-heading{align-items:flex-start}.button.compact span{display:none}}
 @media(prefers-reduced-motion:reduce){.skeleton-list span,.operation-skeleton span{animation:none}.operation-row{transition:none}}
+
+/* Phase 11 responsive hardening */
+[dir="rtl"] .user-sidebar { inset: 0 0 0 auto; }
+.user-topbar > *, [data-layout-actions] { min-width: 0; }
+.pk-language-switch:not([open]) > .pk-language-switch__menu { display: none; }
+.pk-language-switch__menu { max-width: calc(100vw - 24px); }
+.map-workspace, .station-map { contain: strict; }
+.station-map.leaflet-container { overflow: clip; clip-path: inset(0); }
+.search-field input { height: 100%; }
+@media (max-width: 420px) {
+  .user-topbar { gap: 8px; }
+  .user-topbar h1 { font-size: 24px; }
+  .user-topbar [data-layout-actions] { flex: 0 0 auto; }
+  .user-topbar .pk-language-switch summary { max-width: 88px; padding-inline: 8px; }
+}

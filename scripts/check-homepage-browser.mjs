@@ -19,13 +19,15 @@ async function openPage(url) {
 const failures = [];
 for (const viewport of targets) {
   for (const locale of locales) {
-    const page = await openPage(`${base}?lang=${locale}`);
+    const page = await openPage('about:blank');
     await page.send('Page.enable');
     await page.send('Runtime.enable');
     await page.send('Emulation.setDeviceMetricsOverride', { width: viewport.width, height: viewport.height, deviceScaleFactor: 1, mobile: viewport.width < 600 });
-    await page.send('Page.reload', { ignoreCache: true });
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    const evaluation = await page.send('Runtime.evaluate', { returnByValue: true, expression: `(() => ({
+    await page.send('Page.navigate', { url: `${base}?lang=${locale}` });
+    let evaluation;
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      evaluation = await page.send('Runtime.evaluate', { returnByValue: true, expression: `(() => ({
       lang: document.documentElement.lang,
       dir: document.documentElement.dir,
       title: document.querySelector('h1')?.textContent.trim(),
@@ -35,8 +37,12 @@ for (const viewport of targets) {
       stationState: document.querySelector('[data-station-list]')?.textContent.trim().length > 0,
       ctaVisible: document.querySelector('.hero .button.primary')?.getBoundingClientRect().height >= 44
     }))()` });
-    const result = evaluation.result.value;
+      const candidate = evaluation.result.value;
+      if (candidate?.lang === locale && candidate?.dir && candidate?.title && candidate.stationState && candidate.ctaVisible) break;
+    }
+    const result = evaluation?.result?.value;
     const label = `${viewport.name}/${locale}`;
+    if (!result) { failures.push(`${label}: page non chargee`); page.socket.close(); await fetch(`${debug}/json/close/${page.target.id}`); continue; }
     if (result.lang !== locale) failures.push(`${label}: langue ${result.lang}`);
     if (result.dir !== (locale === 'ar' ? 'rtl' : 'ltr')) failures.push(`${label}: direction ${result.dir}`);
     if (!result.title || result.untranslated.length) failures.push(`${label}: traduction incomplète`);

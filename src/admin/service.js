@@ -40,6 +40,7 @@ async function audit(DB, actor, context, action, targetType, targetId, metadata 
     VALUES (?, ?, ?, ?, ?, ?, ?)`)
     .bind(actor.id, action, targetType, targetId == null ? null : String(targetId), context.requestId, context.ipHint,
       JSON.stringify(safeMetadata(metadata))).run();
+  context.logEvent?.('admin.action', { requestId: context.requestId, userId: actor.id, resourceType: targetType, resourceId: targetId, action, outcome: 'success' });
 }
 
 async function paged(DB, selectSql, countSql, bindings, url) {

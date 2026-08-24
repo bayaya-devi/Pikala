@@ -50,7 +50,7 @@ button, input, select { font: inherit; }
   height: 100%;
   object-fit: cover;
   opacity: 0.72;
-  transform: scale(1.02);
+  transform: none;
 }
 .auth-visual::after {
   content: "";
@@ -288,3 +288,9 @@ body.is-rtl .language-options button { text-align: right; }
 .auth-notice { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(78,159,12,.3); border-radius: var(--radius); background: rgba(114,195,26,.08); color: var(--ink); }
 .auth-notice p { margin: 0 0 .65rem; line-height: 1.5; }
 .text-button { border: 0; padding: 0; background: transparent; color: var(--green-dark); font: inherit; font-weight: 900; cursor: pointer; }
+
+/* Phase 11 accessible controls */
+.password-toggle { min-width: 44px; min-height: 44px; padding: 0 8px; }
+.check-row { min-height: 44px; align-items: center; }
+.check-row input[type="checkbox"] { width: 20px; height: 20px; }
+.language-switch:not([open]) > .language-options { display: none; }

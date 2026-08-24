@@ -1,56 +1,53 @@
 # Strategie de tests Pikala V2
 
-## Etat V1
+## Tests statiques
 
-Aucun test automatise n'est present. Les quatre fichiers JavaScript actifs ont
-passe `node --check`, mais cela ne detecte pas les erreurs d'execution du
-formulaire support ni les incoherences metier.
+~~~powershell
+npm run test:static
+npm audit
+npm run deploy:dry-run
+~~~
 
-## Pyramide cible
+test:static couvre fondations, 5 langues, D1, auth, espace utilisateur, abonnements, admin, operations, PWA, SEO et observabilite.
 
-- Tests unitaires : validation, i18n, calculs, transitions de statut et services.
-- Tests d'integration Worker/D1 local : routes, sessions, contraintes et erreurs.
-- Tests E2E navigateur : parcours publics, auth, carte, QR, abonnement, support
-  et administration.
-- Tests de concurrence : double scan, double demarrage, double restitution et
-  webhooks de paiement repetes.
+## Responsive et navigateur
 
-## Matrice critique
+Demarrer le serveur statique et Chrome avec un port DevTools, puis lancer npm run test:responsive. Le test couvre 320, 375, 390, 430, 768, 1024, 1280 et 1440 pixels, en LTR et RTL, sur 9 ecrans.
 
-| Domaine | Cas minimum |
-| --- | --- |
-| Inscription | valide, email duplique, champs invalides, D1 indisponible |
-| Connexion | valide, identifiants invalides, brute force, session expiree |
-| Autorisation | anonyme, utilisateur, admin, acces a une ressource tierce |
-| Stations | liste vide, station fermee, coordonnees absentes, fallback liste |
-| Velos | disponible, reserve, en cours, maintenance, QR inconnu |
-| Trajets | start, double start, concurrence, finish, double finish, incident |
-| Abonnements | aucun plan, expire, actif, paiement absent ou refuse |
-| Support | validation, creation, historique, reponse admin |
-| i18n | cinq langues, cles manquantes, persistance, arabe RTL |
-| Accessibilite | clavier, focus, labels, contraste, reduced motion |
+Les scripts check-homepage-browser, check-user-space-browser, check-admin-browser et check-operations-browser couvrent la homepage, 7 ecrans utilisateur, 14 vues admin et les ecrans operationnels. Ils verifient traductions, debordements, navigation, carte, donnees chargees et comportement hors ligne.
 
-## Viewports E2E
+## Crash-tests API
 
-Tester au minimum 320, 375, 390, 430, 768, 1024, 1280 et 1440 pixels, avec
-controle du scroll horizontal, des modales, de la navigation basse, des zones
-sures mobiles et de la taille des cibles tactiles.
+Preparer D1 locale :
 
-## Definition de validation d'une phase
+~~~powershell
+npm run db:migrate:local
+npm run db:seed:local
+npm run db:seed:rides-test:local
+npx wrangler d1 execute pikala-db --local --file seeds/admin-test.sql
+~~~
 
-- tests nouveaux et existants verts ;
-- aucun message SQL/D1 expose ;
-- verification locale avec D1 local ;
-- smoke test sur staging ;
-- capture desktop/mobile pour toute modification visuelle ;
-- test du chemin heureux et d'au moins trois erreurs utilisateur realistes ;
-- documentation et migration mises a jour.
+Demarrer un Worker local avec EMAIL_DEV_MODE=1. Pour l'auth, utiliser AUTH_TEST_SESSION_TTL_SECONDS=2. Pour les tests paiement uniquement, definir ENVIRONMENT=development, PAYMENT_PROVIDER=test et un PAYMENT_TEST_SECRET local d'au moins 24 caracteres.
 
-## Administration V2
+Executer ensuite les scripts test:auth:crash, test:rides:crash, test:subscriptions:crash, test:admin:crash et test:operations:crash avec l'URL locale en argument. Relancer test:subscriptions:no-provider sur un Worker sans PAYMENT_PROVIDER.
 
-- `npm run test:admin` controle les 14 vues, les routes, le RBAC, l'audit,
-  la lecture seule des paiements, la migration et les cinq dictionnaires.
-- `npm run test:admin:crash -- <origin>` execute 32 controles sur Worker/D1
-  local avec un administrateur et un utilisateur normal.
-- `npm run test:admin:browser -- <origin>` controle les 14 vues, les cinq
-  langues, le RTL arabe, desktop et tablette, sans debordement horizontal.
+## Invariants verifies
+
+- un seul trajet actif par velo et par utilisateur ;
+- double start et double restitution refuses ;
+- ownership des trajets, tickets, incidents, notifications et paiements ;
+- utilisateur normal refuse par les pages et API admin ;
+- abonnement payant active uniquement par webhook signe ;
+- incident critique rend le velo non louable ;
+- restitution avec maintenance conserve le velo hors service ;
+- aucune action hors ligne presente un faux succes.
+
+## Controle D1 apres tests
+
+~~~sql
+PRAGMA foreign_key_check;
+SELECT bike_id, COUNT(*) FROM rides WHERE status='active' GROUP BY bike_id HAVING COUNT(*) > 1;
+SELECT user_id, COUNT(*) FROM rides WHERE status='active' GROUP BY user_id HAVING COUNT(*) > 1;
+~~~
+
+Les trois resultats doivent etre vides.

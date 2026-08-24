@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /profil
+Disallow: /profile
+Disallow: /trajet
+Disallow: /trajets
+Disallow: /scanner
+Disallow: /support
+Disallow: /ticket
+Disallow: /notifications
+Disallow: /incidents
+Disallow: /abonnement
+Disallow: /admin
+Disallow: /connexion
+Disallow: /inscription
+Disallow: /mot-de-passe-oublie
+Disallow: /reinitialiser-mot-de-passe
+
+Sitemap: https://pikala.aetbconseil.workers.dev/sitemap.xml

@@ -77,3 +77,11 @@ aussi Chrome avec le port DevTools configure par le script de lancement.
 
 Le Worker V2 ne doit pas etre publie avant les migrations `0008`, `0009` et `0010`, car il lit les
 nouvelles colonnes et tables d'exploitation.
+
+## Etat final V2
+
+- Schema gere par 11 migrations additives, de 0001 a 0011.
+- 22 tables controlees par le test de couche donnees.
+- PRAGMA foreign_key_check vide apres les crash-tests finaux.
+- Aucun doublon de trajet actif par velo ou utilisateur apres les tests de concurrence.
+- Les migrations distantes doivent etre listees et sauvegardees avant deploiement.

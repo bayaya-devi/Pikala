@@ -30,7 +30,7 @@ const server = createServer(async (request, response) => {
   try {
     const info = await stat(file);
     if (!info.isFile()) throw new Error('Not a file');
-    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png' }[extname(file)] || 'application/octet-stream';
+    const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.mjs': 'text/javascript; charset=utf-8', '.webmanifest': 'application/manifest+json', '.xml': 'application/xml; charset=utf-8' }[extname(file)] || 'application/octet-stream';
     response.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-store' });
     createReadStream(file).pipe(response);
   } catch {

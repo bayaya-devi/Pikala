@@ -2,6 +2,14 @@ name = "pikala"
 main = "src/worker.js"
 compatibility_date = "2026-07-07"
 
+[observability]
+enabled = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+head_sampling_rate = 1
+
 [assets]
 directory = "./sitepikala"
 binding = "ASSETS"

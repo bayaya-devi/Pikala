@@ -176,3 +176,7 @@ La V1 est un prototype presentable avec une vraie base d'authentification et de
 sessions, mais pas encore un service de location exploitable. Le depot est pret
 pour la phase 2 a condition de commencer par rendre l'outillage reproductible,
 exporter D1 et poser l'architecture modulaire avant toute nouvelle interface.
+
+## Nettoyage final V2
+
+Les pages pikala-homepage, connexionen, inscriptionen et abonement, ainsi que leurs variantes, ont ete retirees apres verification de l'absence de reference active. Les images JPEG inutilisees ont ete supprimees ou remplacees par WebP. Les anciennes redirections Pageuser restent seulement dans le Worker pour compatibilite des anciens favoris.

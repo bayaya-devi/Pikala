@@ -1,4 +1,5 @@
 import { getPaymentProvider } from './payments/provider.js';
+import { logEvent } from './observability.js';
 import { handleAdminApi } from './admin/service.js';
 import { handleOperationsApi } from './operations/service.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
@@ -27,6 +28,25 @@ const PRIVATE_PAGES = new Set([
 ]);
 const ADMIN_PAGES = new Set(['/admin', '/admin.html']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+const NON_INDEXED_PAGES = new Set([...PRIVATE_PAGES, ...ADMIN_PAGES,
+  '/connexion', '/connexion.html', '/login', '/inscription', '/inscription.html', '/signup',
+  '/mot-de-passe-oublie', '/mot-de-passe-oublie.html', '/reinitialiser-mot-de-passe',
+  '/reinitialiser-mot-de-passe.html', '/accueil', '/accueil.html', '/offline.html'
+]);
+
+function hardenAssetResponse(response, url, id) {
+  const headers = new Headers(response.headers);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('x-frame-options', 'DENY');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  headers.set('permissions-policy', 'camera=(self), geolocation=(self), microphone=()');
+  headers.set('x-request-id', id);
+  if (NON_INDEXED_PAGES.has(url.pathname)) headers.set('x-robots-tag', 'noindex, nofollow');
+  if (NON_INDEXED_PAGES.has(url.pathname)) headers.set('cache-control', 'private, no-store');
+  else if (url.pathname.endsWith('.html') || PAGE_ROUTES.has(url.pathname) || url.pathname === '/') headers.set('cache-control', 'no-cache, must-revalidate');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 function assetRequestForCleanPath(request, url) {
   const htmlPath = PAGE_ROUTES.get(url.pathname);
@@ -179,7 +199,13 @@ async function securityEvent(DB, request, eventType, outcome, userId = null, met
   try {
     await DB.prepare('INSERT INTO security_events (user_id, event_type, outcome, request_id, ip_hash, metadata_json) VALUES (?, ?, ?, ?, ?, ?)')
       .bind(userId, eventType, outcome, requestId(request), await ipHash(request), metadata ? JSON.stringify(metadata) : null).run();
-  } catch { console.warn('security_event_write_failed', eventType); }
+  } catch { logEvent('api.error', { requestId: requestId(request), code: 'SECURITY_EVENT_WRITE_FAILED' }, 'warn'); }
+  const observedAuthEvents = {
+    signup: { success: 'auth.signup.success', failure: 'auth.signup.failure', blocked: 'auth.signup.failure' },
+    login: { success: 'auth.login.success', failure: 'auth.login.failure', blocked: 'auth.login.failure' }
+  };
+  const observedEvent = observedAuthEvents[eventType]?.[outcome];
+  if (observedEvent) logEvent(observedEvent, { requestId: requestId(request), userId, outcome, code: metadata?.reason });
 }
 
 async function rateLimit(DB, request, action, subject, limit, windowSeconds, blockSeconds) {
@@ -739,6 +765,7 @@ async function paymentWebhook(request, env, providerName) {
   }
   try {
     const result = event.status === 'paid' ? await activatePaidPayment(DB, payment, event) : await recordNonPaidEvent(DB, payment, event);
+    logEvent('payment.updated', { requestId: requestId(request), userId: payment.user_id, resourceType: 'payment', resourceId: payment.id, outcome: event.status, provider: provider.name });
     return json({ received: true, ...result });
   } catch (error) {
     if (String(error?.message || '').includes('UNIQUE constraint failed: payment_events')) return json({ received: true, duplicate: true });
@@ -889,6 +916,7 @@ async function startRide(request, env) {
   }
   if (!results[0].meta.changes || !results[1].meta.changes || !results[2].meta.changes) return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo vient de devenir indisponible.' }, 409);
   const rideRow = await DB.prepare(`SELECT ${RIDE_FIELDS} ${RIDE_JOINS} WHERE rides.id = ?`).bind(results[2].meta.last_row_id).first();
+  logEvent('ride.start', { requestId: requestId(request), userId: auth.user.id, resourceType: 'ride', resourceId: rideRow?.id, outcome: 'success' });
   return json({ success: true, ride: rideRow }, 201);
 }
 
@@ -954,6 +982,7 @@ async function returnRide(request, env, rideId) {
   }
   if (results[3]?.meta?.changes) { const record = await DB.prepare("SELECT id FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress') ORDER BY id DESC LIMIT 1").bind(rideRow.bike_id).first(); if (record) await DB.prepare("INSERT INTO workflow_events (resource_type,resource_id,actor_user_id,to_status,note) VALUES ('maintenance',?,?,'reported','Incident critique déclaré pendant le trajet')").bind(record.id,auth.user.id).run(); }
   const completedRide = await DB.prepare(`SELECT ${RIDE_FIELDS} ${RIDE_JOINS} WHERE rides.id = ?`).bind(rideRow.id).first();
+  logEvent('ride.end', { requestId: requestId(request), userId: auth.user.id, resourceType: 'ride', resourceId: rideRow.id, outcome: 'success' });
   return json({ success: true, ride: completedRide, pricing: { amountMinor: chargeMinor, currency: 'MAD', includedInPlan: chargeMinor === 0 } });
 }
 
@@ -1031,7 +1060,7 @@ export default {
       if (request.method === 'GET' && paymentStatusMatch) return paymentStatus(request, env, paymentStatusMatch[1]);
       if (url.pathname === '/api/support' || url.pathname.startsWith('/api/support/') || url.pathname === '/api/incidents' || url.pathname.startsWith('/api/incidents/') || url.pathname === '/api/notifications' || url.pathname.startsWith('/api/notifications/')) {
         const auth = await requireUser(request, env); if (auth.response) return auth.response;
-        return handleOperationsApi(request, env, auth.user, { json, readJson });
+        return handleOperationsApi(request, env, auth.user, { json, readJson, logEvent, requestId: requestId(request) });
       }
       if (request.method === 'POST' && url.pathname === '/api/rides') return startRide(request, env);
       if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') return adminPlans(request, env);
@@ -1039,18 +1068,22 @@ export default {
       if (request.method === 'PATCH' && adminPlanMatch) return adminPlanUpdate(request, env, adminPlanMatch[1]);
       if (url.pathname.startsWith('/api/admin/')) {
         const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
-        return handleAdminApi(request, env, auth.user, { json, readJson, requestId: requestId(request), ipHint: (await ipHash(request)).slice(0, 32) });
+        return handleAdminApi(request, env, auth.user, { json, readJson, requestId: requestId(request), ipHint: (await ipHash(request)).slice(0, 32), logEvent });
       }
       if (request.method === 'GET' && ['/Pageuser.html', '/Pageuseren.html'].includes(url.pathname)) return redirect('/dashboard', 301);
       const privateResponse = await guardPrivatePage(request, env, url);
       if (privateResponse) return privateResponse;
     } catch (error) {
       const id = requestId(request);
-      console.error('request_failed', id, error?.name || 'Error', error?.code || 'SERVER_ERROR');
+      logEvent('api.error', { requestId: id, code: error?.code || 'SERVER_ERROR', status: error?.name || 'Error' }, 'error');
       const unavailable = error?.code === 'DB_UNAVAILABLE';
       return json({ code: unavailable ? 'DB_UNAVAILABLE' : 'SERVER_ERROR', error: unavailable ? DB_UNAVAILABLE_MESSAGE : 'Une erreur interne est survenue.', requestId: id }, unavailable ? 503 : 500);
     }
-    if (env.ASSETS) return env.ASSETS.fetch(assetRequestForCleanPath(request, url));
+    if (env.ASSETS) {
+      const id = requestId(request);
+      const response = await env.ASSETS.fetch(assetRequestForCleanPath(request, url));
+      return hardenAssetResponse(response, url, id);
+    }
     return json({ code: 'NOT_FOUND', error: 'Route introuvable.' }, 404);
   }
 };

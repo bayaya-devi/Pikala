@@ -28,7 +28,11 @@
     "test:admin:browser": "node scripts/check-admin-browser.mjs",
     "test:operations": "node scripts/check-operations.mjs",
     "test:operations:crash": "node scripts/operations-crash-test.mjs",
-    "test:operations:browser": "node scripts/check-operations-browser.mjs"
+    "test:operations:browser": "node scripts/check-operations-browser.mjs",
+    "test:hardening": "node scripts/check-hardening.mjs",
+    "test:responsive": "node scripts/check-responsive-browser.mjs",
+    "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
+    "test:static": "npm run test:foundation && npm run test:data && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:operations && npm run test:hardening"
   },
   "repository": {
     "type": "git",
@@ -44,11 +48,5 @@
   "homepage": "https://github.com/bayaya-devi/Pikala#readme",
   "devDependencies": {
     "wrangler": "^4.125.0"
-  },
-  "dependencies": {
-    "@zxing/browser": "^0.2.1",
-    "leaflet": "^1.9.4",
-    "lucide": "^1.33.0",
-    "qrcode-generator": "^2.0.4"
   }
 }

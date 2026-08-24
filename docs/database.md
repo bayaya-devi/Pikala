@@ -181,3 +181,11 @@ execute sur D1 distante.
 La migration `0009_admin_concurrency_guards.sql` ajoute l index unique partiel `idx_maintenance_one_open_per_bike` afin d interdire atomiquement deux maintenances ouvertes pour un meme velo.
 
 La migration `0010_admin_bike_dock_guards.sql` ajoute le trigger `guard_admin_bike_station_dock_update`. Un deplacement admin vers une station est annule si aucun quai occupe par ce velo n a ete reserve dans la meme transaction.
+
+## Etat final V2
+
+- Schema gere par 11 migrations additives, de 0001 a 0011.
+- 22 tables controlees par le test de couche donnees.
+- PRAGMA foreign_key_check vide apres les crash-tests finaux.
+- Aucun doublon de trajet actif par velo ou utilisateur apres les tests de concurrence.
+- Les migrations distantes doivent etre listees et sauvegardees avant deploiement.

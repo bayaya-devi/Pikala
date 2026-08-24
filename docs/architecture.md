@@ -1,165 +1,35 @@
-# Architecture cible Pikala V2
+# Architecture Pikala V2
 
-## Principes
+## Vue generale
 
-- Un seul frontend source, sans page dupliquee par langue.
-- Une API versionnee dont les routes sont minces.
-- Toute regle critique validee cote Worker.
-- D1 modifie uniquement par migrations versionnees.
-- Donnees reelles ou etat vide explicite, jamais de faux succes.
-- Migration progressive avec compatibilite des URLs V1.
-
-## Structure cible
-
-```text
-src/
-  client/
-    pages/
-      public/
-      auth/
-      user/
-      admin/
-    components/
-    styles/
-    i18n/
-      fr.json
-      en.json
-      es.json
-      pt.json
-      ar.json
-    services/
-      api.ts
-      auth.ts
-      geolocation.ts
-      scanner.ts
-    state/
-    utils/
-    main.ts
-  worker/
-    index.ts
-    router.ts
-    middleware/
-      auth.ts
-      authorization.ts
-      security.ts
-      errors.ts
-      rate-limit.ts
-    routes/
-      auth.ts
-      stations.ts
-      bikes.ts
-      rides.ts
-      plans.ts
-      subscriptions.ts
-      payments.ts
-      support.ts
-      notifications.ts
-      admin.ts
-    services/
-      auth-service.ts
-      ride-service.ts
-      subscription-service.ts
-      support-service.ts
-    repositories/
-    validation/
-    observability/
-migrations/
-tests/
-  unit/
-  integration/
-  e2e/
-docs/
-public/
-```
+Pikala V2 est une application web multi-page servie par Cloudflare Workers Static Assets. Le Worker est l'unique frontiere de confiance : il protege les pages privees, valide les entrees, applique le RBAC, execute les transactions D1 et retourne des erreurs JSON stables.
 
 ## Frontend
 
-La cible recommandee est Vite + TypeScript avec des modules de pages et des
-composants reutilisables. Cette evolution reste proche de la V1 et evite
-d'introduire immediatement un framework lourd. Le choix pourra etre revalue
-apres un prototype du dashboard V2.
+- design system central dans sitepikala/assets/css ;
+- i18n centralisee et persistante pour fr, en, ar, es et pt ;
+- dir=rtl et adaptations directionnelles pour l'arabe ;
+- layouts public, authentification, utilisateur et admin ;
+- composants DOM construits avec textContent pour les donnees externes ;
+- Leaflet, Lucide, ZXing et QR servis localement et charges seulement sur les ecrans utiles ;
+- service worker limite aux ressources statiques non sensibles.
 
-Le frontend doit fournir :
-
-- un shell public, un shell utilisateur et un shell admin coherents ;
-- une source i18n unique avec persistance locale puis synchronisation du profil ;
-- `dir="rtl"` applique a toute l'application en arabe ;
-- chargement conditionnel de Leaflet et du scanner ;
-- etats loading, vide, erreur, hors ligne et session expiree ;
-- routes privees cote UX, sans confondre cette protection avec l'autorisation API ;
-- design tokens communs et composants accessibles.
+Les pages V1 dupliquees par langue ont ete retirees. Les URLs actives utilisent une page par fonction et le parametre de langue commun.
 
 ## Backend
 
-Le Worker devient un adaptateur HTTP : il parse la requete, applique les
-middlewares, valide un DTO et appelle un service. Les services portent les
-regles metier et les repositories isolent D1.
+src/worker.js orchestre les routes publiques, l'authentification, les abonnements et les trajets. Les domaines complexes sont separes dans src/admin, src/operations et src/payments. Toutes les requetes D1 utilisent bind, sauf des fragments SQL constants issus d'allowlists internes.
 
-Toutes les reponses API suivent un format stable :
+Les garde-fous principaux sont : CSRF par origine et en-tete applicatif, cookie __Host Secure/HttpOnly/SameSite, sessions stockees et revocables, ownership dans les requetes, requireRole pour admin, validations de taille/type/statut et transactions D1 pour les changements concurrents.
 
-```json
-{
-  "data": {},
-  "error": null,
-  "meta": { "requestId": "..." }
-}
-```
+## Donnees
 
-Les erreurs exposees utilisent un code public et un message localisable. Les
-details D1 sont uniquement journalises cote Cloudflare avec un identifiant de
-correlation.
+Le schema est gere uniquement par les migrations 0001 a 0011. Les migrations sont additives et preservent les colonnes historiques necessaires. Les contraintes et index empechent notamment deux trajets actifs par utilisateur ou par velo, plusieurs abonnements actifs et plusieurs maintenances ouvertes incompatibles.
 
-## Routes cibles principales
+## PWA et cache
 
-```text
-POST   /api/v2/auth/signup
-POST   /api/v2/auth/login
-POST   /api/v2/auth/logout
-GET    /api/v2/auth/session
-POST   /api/v2/auth/password/forgot
-POST   /api/v2/auth/password/reset
-GET    /api/v2/stations
-GET    /api/v2/stations/:code
-GET    /api/v2/bikes/:code
-POST   /api/v2/rides/start
-POST   /api/v2/rides/:id/finish
-GET    /api/v2/rides
-GET    /api/v2/plans
-POST   /api/v2/subscriptions/checkout
-GET    /api/v2/support/tickets
-POST   /api/v2/support/tickets
-/api/v2/admin/*
-```
-
-Les routes V1 restent disponibles pendant la transition et deleguent
-progressivement aux nouveaux services.
-
-## Demarrage atomique d'un trajet
-
-Le service `ride-service.ts` doit verifier dans une seule operation coherente :
-
-1. session et statut de l'utilisateur ;
-2. abonnement donnant droit a rouler ;
-3. QR et velo exacts ;
-4. station/dock et disponibilite ;
-5. absence de trajet actif de l'utilisateur ;
-6. absence d'utilisation concurrente du velo ;
-7. creation du trajet et passage du velo a `in_use` ;
-8. journalisation `ride.start`.
-
-Des contraintes uniques partielles ou une table de verrous metier doivent
-completer la transaction pour resister aux requetes concurrentes.
-
-## i18n
-
-Les cinq dictionnaires ont les memes cles et sont controles au build. L'ordre
-de resolution est : parametre explicite, locale du profil, choix persiste,
-langue du navigateur, francais. La detection IP ne doit etre qu'un indice et ne
-doit jamais remplacer le choix de l'utilisateur.
+Le manifest, les icones et le service worker rendent l'application installable. Le cache exclut /api, les pages privees, les sessions, paiements, profils et disponibilites critiques. Une navigation hors ligne affiche une page explicite sans simuler la reussite d'une action.
 
 ## Observabilite
 
-Chaque log est structure : `event`, `requestId`, `userId` si disponible,
-`status`, `durationMs` et contexte non sensible. Les evenements prioritaires
-sont l'authentification, les trajets, les paiements, les incidents, le support,
-les actions admin et les erreurs API.
+Les evenements auth, trajets, paiements, incidents, support, admin et erreurs API sont journalises en JSON avec requestId. L'allowlist de champs interdit mots de passe, secrets et jetons. Les audit logs D1 conservent les actions administratives sensibles et des metadonnees limitees.

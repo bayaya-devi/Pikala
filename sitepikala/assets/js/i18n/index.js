@@ -5,15 +5,16 @@ import pt from './locales/pt.js';
 import ar from './locales/ar.js';
 import pageCopy from './page-copy.js';
 import homeCopy from './homepage/copy.js';
+import authCopy from './authentication/copy.js';
 
 export const SUPPORTED_LOCALES = Object.freeze(['fr', 'en', 'es', 'pt', 'ar']);
 export const RTL_LOCALES = Object.freeze(['ar']);
 export const dictionaries = Object.freeze({
-  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr },
-  en: { ...en, ...pageCopy.en, ...homeCopy.en },
-  es: { ...es, ...pageCopy.es, ...homeCopy.es },
-  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt },
-  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar }
+  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr, ...authCopy.fr },
+  en: { ...en, ...pageCopy.en, ...homeCopy.en, ...authCopy.en },
+  es: { ...es, ...pageCopy.es, ...homeCopy.es, ...authCopy.es },
+  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt, ...authCopy.pt },
+  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar, ...authCopy.ar }
 });
 
 const STORAGE_KEY = 'pikala-lang';

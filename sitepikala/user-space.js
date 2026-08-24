@@ -16,18 +16,15 @@ function setText(selector, value) {
 }
 
 function friendlyApiError(data) {
-  const raw = String(data?.error || data?.message || t('commonError'));
-  if (data?.code === 'DB_UNAVAILABLE' || raw.includes('D1 DB') || raw.includes('base de donnees')) {
-    return t('dbUnavailable');
-  }
-  return raw;
+  const keys = { AUTH_REQUIRED: 'authInvalidCredentials', RATE_LIMITED: 'authRateLimited', PASSWORD_INVALID: 'authPasswordRule', CURRENT_PASSWORD_INVALID: 'authInvalidCredentials', PHONE_INVALID: 'authPhoneInvalid', NAME_INVALID: 'authNameInvalid', FORBIDDEN: 'authForbidden', DB_UNAVAILABLE: 'dbUnavailable', SERVER_ERROR: 'authServerError' };
+  return t(keys[data?.code] || 'commonError');
 }
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
     ...options,
     credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    headers: { 'Content-Type': 'application/json', 'X-Pikala-Request': 'web', ...(options.headers || {}) }
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -183,7 +180,7 @@ function renderStationMap(stations) {
     const icon = window.L.divIcon({ className, html: '<span>' + bikes + '</span>', iconSize: [48, 48] });
     const latLng = [Number(station.latitude), Number(station.longitude)];
     bounds.push(latLng);
-    const marker = window.L.marker(latLng, { icon }).addTo(map).bindPopup('<strong>' + escapeHtml(station.name) + '</strong><br>' + stationMeta(station));
+    const marker = window.L.marker(latLng, { icon }).addTo(map).bindPopup('<strong>' + escapeHtml(station.name) + '</strong><br>' + escapeHtml(stationMeta(station)));
     marker.on('click', () => selectStation(usableStations, index, marker));
     markers[index] = marker;
   });
@@ -224,12 +221,50 @@ async function loadProfile() {
   setText('[data-profile-name]', fullName(user));
   setText('[data-profile-email]', user.email || '');
   setText('[data-profile-phone]', user.phone || t('profileNoPhone'));
+  const profileForm = document.querySelector('[data-profile-form]');
+  if (profileForm) { profileForm.elements.firstName.value = user.first_name || ''; profileForm.elements.lastName.value = user.last_name || ''; profileForm.elements.phone.value = user.phone || ''; }
   try {
     const profile = await api('/api/profile');
     setText('[data-profile-subscription]', profile.subscription ? `${profile.subscription.plan} ${t('activeLabel')}` : t('profileNoSubscription'));
   } catch (error) {
     setText('[data-profile-subscription]', error.message);
   }
+}
+
+async function wireProfileForms() {
+  const user = await requireUser();
+  if (!user) return;
+  const profileForm = document.querySelector('[data-profile-form]');
+  profileForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = profileForm.querySelector('[type="submit"]');
+    if (button) button.disabled = true;
+    try {
+      const data = await api('/api/profile', { method: 'PATCH', body: JSON.stringify({
+        firstName: profileForm.elements.firstName.value.trim(), lastName: profileForm.elements.lastName.value.trim(),
+        phone: profileForm.elements.phone.value.trim(), locale: document.documentElement.lang || 'fr'
+      }) });
+      currentUser = data.user;
+      await loadProfile();
+      showToast(t('profileUpdated'));
+    } catch (error) { showToast(error.message, { tone: 'error' }); }
+    finally { if (button) button.disabled = false; }
+  });
+  const passwordForm = document.querySelector('[data-password-form]');
+  passwordForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const currentPassword = passwordForm.elements.currentPassword.value;
+    const newPassword = passwordForm.elements.newPassword.value;
+    if (newPassword.length < 15 || newPassword.length > 128) return showToast(t('authPasswordRule'), { tone: 'error' });
+    const button = passwordForm.querySelector('[type="submit"]');
+    if (button) button.disabled = true;
+    try {
+      await api('/api/password/change', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
+      passwordForm.reset();
+      showToast(t('authPasswordChanged'));
+    } catch (error) { showToast(error.message, { tone: 'error' }); }
+    finally { if (button) button.disabled = false; }
+  });
 }
 
 async function wireSubscription() {
@@ -345,7 +380,7 @@ setupScrollReveals();
 const page = document.body.dataset.userPage;
 if (page === 'dashboard') loadDashboard();
 if (page === 'stations') loadStations();
-if (page === 'profile') loadProfile();
+if (page === 'profile') { loadProfile(); wireProfileForms(); }
 if (page === 'subscription') wireSubscription();
 if (page === 'support') wireSupport();
 if (page === 'scanner') wireScanner();
@@ -359,10 +394,10 @@ async function loadAdmin() {
   }
   setText('[data-admin-name]', fullName(user));
   try {
-    const { stations } = await api('/api/stations');
-    const totalBikes = stations.reduce((sum, station) => sum + Number(station.bikes_available || 0), 0);
-    setText('[data-admin-stations]', String(stations.length));
-    setText('[data-admin-bikes]', String(totalBikes));
+    const [overview, stationData] = await Promise.all([api('/api/admin/overview'), api('/api/stations')]);
+    const stations = stationData.stations;
+    setText('[data-admin-stations]', String(overview.stations));
+    setText('[data-admin-bikes]', String(overview.bikes));
     const list = document.querySelector('[data-admin-station-list]');
     if (list) {
       list.innerHTML = stations.map((station) => `<div class="station-row"><strong>${escapeHtml(station.name)}</strong><span>${Number(station.bikes_available || 0)} velos</span><span class="status">${station.latitude && station.longitude ? t('adminMapReady') : t('adminComplete')}</span></div>`).join('');

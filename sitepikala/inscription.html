@@ -75,9 +75,10 @@
           <div class="field">
             <label for="password" data-i18n="password">Mot de passe</label>
             <div class="input-wrap">
-              <input id="password" name="password" type="password" autocomplete="new-password" placeholder="••••••••" required>
+              <input id="password" name="password" type="password" autocomplete="new-password" minlength="15" maxlength="128" placeholder="••••••••" required>
               <button class="password-toggle" type="button" data-toggle-password="#password">Voir</button>
             </div>
+            <p class="field-help" data-i18n="authPasswordRule">Utilisez entre 15 et 128 caracteres.</p>
             <div class="strength" data-strength><span></span><span></span><span></span><span></span></div>
             <div class="strength-label" data-strength-label></div>
           </div>
@@ -85,7 +86,7 @@
           <div class="field">
             <label for="confirmPassword" data-i18n="confirmPassword">Confirmer le mot de passe</label>
             <div class="input-wrap">
-              <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" placeholder="••••••••" required>
+              <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="15" maxlength="128" placeholder="••••••••" required>
               <button class="password-toggle" type="button" data-toggle-password="#confirmPassword">Voir</button>
             </div>
           </div>
@@ -94,6 +95,9 @@
 
           <button class="submit-btn" type="submit" data-i18n="signupSubmit">Créer mon compte</button>
         </form>
+
+        <div class="auth-notice" data-resend-panel hidden><p data-i18n="authEmailIfEligible">Consultez votre boite mail pour poursuivre.</p><button type="button" class="text-button" data-resend-verification data-i18n="authResend">Renvoyer le mail de confirmation</button></div>
+
 
         <p class="switch-row"><span data-i18n="signupSwitch">Déjà un compte ?</span> <a href="connexion.html" data-i18n="signupSwitchLink">Me connecter</a></p>
       </div>

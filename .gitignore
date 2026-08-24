@@ -1,2 +1,8 @@
 node_modules/
 .wrangler/
+.tmp/
+backups/
+.dev.vars
+.env
+.env.*
+!.env.example

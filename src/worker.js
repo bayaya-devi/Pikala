@@ -32,12 +32,6 @@ function assetRequestForCleanPath(request, url) {
   return new Request(assetUrl, request);
 }
 
-const FALLBACK_STATIONS = [
-  { id: 1, name: 'Kasbah des Oudayas', city: 'Rabat', address: 'Kasbah des Oudayas', latitude: 34.0318, longitude: -6.8361, bikes_available: 8, is_active: 1 },
-  { id: 2, name: 'Tour Hassan', city: 'Rabat', address: 'Tour Hassan', latitude: 34.0224, longitude: -6.8225, bikes_available: 3, is_active: 1 },
-  { id: 3, name: 'Jardins et parcs', city: 'Rabat', address: 'Centre de Rabat', latitude: 34.0209, longitude: -6.8416, bikes_available: 12, is_active: 1 },
-  { id: 4, name: 'Corniche', city: 'Rabat', address: 'Corniche de Rabat', latitude: 34.0059, longitude: -6.8445, bikes_available: 5, is_active: 1 }
-];
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -145,25 +139,6 @@ function publicUser(row) {
   };
 }
 
-async function ensureSchema(DB) {
-  await DB.prepare("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, first_name TEXT NOT NULL, last_name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, phone TEXT, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'user', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, email_verified INTEGER NOT NULL DEFAULT 0)").run();
-  await DB.prepare('CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, revoked_at TEXT, user_agent TEXT, ip_hint TEXT, FOREIGN KEY (user_id) REFERENCES users(id))').run();
-  await DB.prepare('CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, used_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id))').run();
-  await DB.prepare("CREATE TABLE IF NOT EXISTS stations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, city TEXT NOT NULL DEFAULT 'Rabat', address TEXT, latitude REAL, longitude REAL, bikes_available INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
-  await DB.prepare("CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, plan TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'active', starts_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ends_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id))").run();
-  await DB.prepare("CREATE TABLE IF NOT EXISTS rides (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, start_station_id INTEGER, end_station_id INTEGER, status TEXT NOT NULL DEFAULT 'active', started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, ended_at TEXT, FOREIGN KEY (user_id) REFERENCES users(id), FOREIGN KEY (start_station_id) REFERENCES stations(id), FOREIGN KEY (end_station_id) REFERENCES stations(id))").run();
-  await DB.prepare("CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, name TEXT, email TEXT, subject TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id))").run();
-  try { await DB.prepare('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0').run(); } catch {}
-  const stationCount = await DB.prepare('SELECT COUNT(*) AS count FROM stations').first();
-  if (!stationCount || Number(stationCount.count) === 0) {
-    for (const station of FALLBACK_STATIONS) {
-      await DB.prepare('INSERT INTO stations (name, city, address, latitude, longitude, bikes_available, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)')
-        .bind(station.name, station.city, station.address, station.latitude, station.longitude, station.bikes_available, station.is_active)
-        .run();
-    }
-  }
-}
-
 async function createSession(DB, userId, request) {
   const token = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   const tokenHash = await sha256(token);
@@ -179,7 +154,6 @@ async function createSession(DB, userId, request) {
 
 async function currentUser(request, env) {
   const DB = requireDb(env);
-  await ensureSchema(DB);
   const token = parseCookies(request)[SESSION_COOKIE];
   if (!token) return null;
   const tokenHash = await sha256(token);
@@ -228,15 +202,6 @@ async function createVerification(DB, userId) {
   return token;
 }
 
-async function debugSchema(env) {
-  const DB = requireDb(env);
-  const steps = [];
-  try { await DB.prepare('SELECT 1 AS ok').first(); steps.push('select ok'); } catch (error) { return json({ step: 'select', error: String(error.message || error) }, 500); }
-  try { await DB.prepare('CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, revoked_at TEXT, user_agent TEXT, ip_hint TEXT)').run(); steps.push('sessions ok'); } catch (error) { return json({ step: 'sessions', error: String(error.message || error), steps }, 500); }
-  try { await DB.prepare('CREATE TABLE IF NOT EXISTS email_verifications (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, expires_at TEXT NOT NULL, used_at TEXT)').run(); steps.push('email_verifications ok'); } catch (error) { return json({ step: 'email_verifications', error: String(error.message || error), steps }, 500); }
-  try { await DB.prepare('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0').run(); steps.push('alter ok'); } catch (error) { steps.push(`alter skipped: ${String(error.message || error)}`); }
-  return json({ ok: true, steps });
-}
 async function signup(request, env) {
   const body = await readJson(request);
   if (!body) return json({ error: 'Requête invalide.' }, 400);
@@ -256,7 +221,6 @@ async function signup(request, env) {
   if (!env.DB) return dbUnavailable();
 
   const DB = requireDb(env);
-  await ensureSchema(DB);
   const existing = await DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (existing) return json({ code: 'EMAIL_ALREADY_USED', error: 'Cette adresse email est déjà utilisée. Connectez-vous ou utilisez une autre adresse.' }, 409);
 
@@ -276,7 +240,6 @@ async function signup(request, env) {
 
 async function verifyEmail(request, env) {
   const DB = requireDb(env);
-  await ensureSchema(DB);
   const url = new URL(request.url);
   const token = url.searchParams.get('token') || '';
   if (!token) return json({ error: 'Lien de confirmation invalide.' }, 400);
@@ -305,7 +268,6 @@ async function login(request, env) {
   if (!env.DB) return dbUnavailable();
 
   const DB = requireDb(env);
-  await ensureSchema(DB);
   const row = await DB.prepare(`SELECT ${USER_FIELDS}, password_hash FROM users WHERE email = ?`).bind(email).first();
   if (!row) return json({ code: 'ACCOUNT_NOT_FOUND', error: 'Aucun compte Pikala ne correspond à cette adresse email.' }, 404);
   if (!(await verifyPassword(password, row.password_hash))) return json({ code: 'WRONG_PASSWORD', error: 'Mot de passe incorrect. Vérifiez votre saisie puis réessayez.' }, 401);
@@ -321,7 +283,6 @@ async function login(request, env) {
 
 async function logout(request, env) {
   const DB = requireDb(env);
-  await ensureSchema(DB);
   const token = parseCookies(request)[SESSION_COOKIE];
   if (token) {
     const tokenHash = await sha256(token);
@@ -337,38 +298,49 @@ async function me(request, env) {
 }
 
 async function stations(env) {
-  if (!env.DB) {
-    return json({ stations: FALLBACK_STATIONS, degraded: true, message: 'Base D1 indisponible : stations de démonstration affichées.' });
-  }
+  if (!env.DB) return dbUnavailable();
   const DB = requireDb(env);
-  await ensureSchema(DB);
+  const { results } = await DB.prepare(`
+    SELECT
+      stations.id,
+      stations.public_code,
+      stations.name,
+      stations.city,
+      stations.address,
+      stations.latitude,
+      stations.longitude,
+      CASE
+        WHEN EXISTS (SELECT 1 FROM bikes WHERE bikes.station_id = stations.id)
+          THEN (SELECT COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available')
+        ELSE stations.bikes_available
+      END AS bikes_available,
+      stations.capacity,
+      stations.is_active
+    FROM stations
+    WHERE stations.is_active = 1
+    ORDER BY stations.name, stations.id
+  `).all();
+  return json({ stations: results || [] });
+}
+
+async function plans(env) {
+  if (!env.DB) return dbUnavailable();
+  const DB = requireDb(env);
   const { results } = await DB.prepare(`
     SELECT
       id,
+      slug,
       name,
-      city,
-      address,
-      COALESCE(latitude, CASE
-        WHEN LOWER(name) LIKE '%oudaya%' THEN 34.0318
-        WHEN LOWER(name) LIKE '%hassan%' THEN 34.0224
-        WHEN LOWER(name) LIKE '%jardin%' OR LOWER(name) LIKE '%parc%' THEN 34.0209
-        WHEN LOWER(name) LIKE '%corniche%' THEN 34.0059
-        ELSE 34.0209
-      END) AS latitude,
-      COALESCE(longitude, CASE
-        WHEN LOWER(name) LIKE '%oudaya%' THEN -6.8361
-        WHEN LOWER(name) LIKE '%hassan%' THEN -6.8225
-        WHEN LOWER(name) LIKE '%jardin%' OR LOWER(name) LIKE '%parc%' THEN -6.8416
-        WHEN LOWER(name) LIKE '%corniche%' THEN -6.8445
-        ELSE -6.8416
-      END) AS longitude,
-      bikes_available,
-      is_active
-    FROM stations
-    WHERE is_active = 1
-    ORDER BY id
+      description AS summary,
+      amount_minor,
+      amount_minor / 100.0 AS amount_mad,
+      currency,
+      billing_period
+    FROM plans
+    WHERE status = 'active' AND amount_minor IS NOT NULL
+    ORDER BY display_order, amount_minor, id
   `).all();
-  return json({ stations: results || [] });
+  return json({ plans: results || [] }, 200, { 'cache-control': 'public, max-age=300' });
 }
 
 async function subscription(request, env) {
@@ -376,10 +348,17 @@ async function subscription(request, env) {
   if (session.response) return session.response;
   const DB = requireDb(env);
   const body = await readJson(request);
-  const plan = String(body?.plan || 'Premium').trim().slice(0, 40);
-  await DB.prepare("UPDATE subscriptions SET status = 'inactive', ends_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'").bind(session.user.id).run();
-  const result = await DB.prepare("INSERT INTO subscriptions (user_id, plan, status) VALUES (?, ?, 'active')").bind(session.user.id, plan).run();
-  const sub = await DB.prepare('SELECT id, user_id, plan, status, starts_at, ends_at FROM subscriptions WHERE id = ?').bind(result.meta.last_row_id).first();
+  const requestedPlan = String(body?.plan || '').trim().slice(0, 80);
+  if (!requestedPlan) return json({ code: 'PLAN_REQUIRED', error: 'Veuillez choisir un abonnement.' }, 400);
+  const plan = await DB.prepare("SELECT id, name FROM plans WHERE (slug = ? OR name = ?) AND status IN ('active', 'legacy') LIMIT 1")
+    .bind(requestedPlan, requestedPlan)
+    .first();
+  if (!plan) return json({ code: 'PLAN_NOT_FOUND', error: "Cet abonnement n'est pas disponible." }, 404);
+  await DB.prepare("UPDATE subscriptions SET status = 'inactive', ends_at = CURRENT_TIMESTAMP, cancelled_at = CURRENT_TIMESTAMP WHERE user_id = ? AND status = 'active'").bind(session.user.id).run();
+  const result = await DB.prepare("INSERT INTO subscriptions (user_id, plan, plan_id, status, current_period_start) VALUES (?, ?, ?, 'active', CURRENT_TIMESTAMP)")
+    .bind(session.user.id, plan.name, plan.id)
+    .run();
+  const sub = await DB.prepare('SELECT id, user_id, plan, plan_id, status, starts_at, ends_at FROM subscriptions WHERE id = ?').bind(result.meta.last_row_id).first();
   return json({ success: true, subscription: sub }, 201);
 }
 
@@ -426,6 +405,7 @@ export default {
       if (request.method === 'POST' && url.pathname === '/api/logout') return await logout(request, env);
       if (request.method === 'GET' && url.pathname === '/api/me') return await me(request, env);
       if (request.method === 'GET' && url.pathname === '/api/stations') return await stations(env);
+      if (request.method === 'GET' && url.pathname === '/api/plans') return await plans(env);
       if (request.method === 'GET' && url.pathname === '/api/profile') return await profile(request, env);
       if (request.method === 'POST' && url.pathname === '/api/subscriptions') return await subscription(request, env);
       if (request.method === 'POST' && url.pathname === '/api/support') return await support(request, env);

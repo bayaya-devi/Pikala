@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'pikala-static-v2-11-3';
+const CACHE_VERSION = 'pikala-static-v2-11-4';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/assets/css/foundation.css', '/assets/vendor/lucide.min.js', '/logo.jpeg'];
 const PRIVATE_PATHS = new Set([
@@ -41,11 +41,13 @@ self.addEventListener('fetch', (event) => {
   if (isLocalStatic(url)) {
     event.respondWith(caches.open(CACHE_VERSION).then(async (cache) => {
       const cached = await cache.match(request);
-      const refresh = fetch(request).then((response) => {
-        if (response.ok && response.type === 'basic') cache.put(request, response.clone());
+      try {
+        const response = await fetch(request);
+        if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
         return response;
-      });
-      return cached || refresh;
+      } catch {
+        return cached || Response.error();
+      }
     }));
   }
 });

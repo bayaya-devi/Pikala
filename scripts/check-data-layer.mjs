@@ -7,7 +7,9 @@ const expectedMigrations = [
   '0001_v1_compatibility_baseline.sql',
   '0002_v2_additive_model.sql',
   '0003_v2_indexes_and_guards.sql',
-  '0004_authentication_security.sql'
+  '0004_authentication_security.sql',
+  '0005_real_ride_invariants.sql',
+  '0006_unique_bike_qr_namespace.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
@@ -25,6 +27,9 @@ for (const table of expectedTables) {
   assert(new RegExp(`CREATE TABLE(?: IF NOT EXISTS)? ${table}\\b`, 'i').test(sql), `Table absente des migrations : ${table}`);
 }
 assert(!/^[ \t]*(?:DROP|DELETE|TRUNCATE)\b/im.test(sql), 'Une instruction destructive est interdite dans les migrations V2.');
+assert(/guard_one_active_ride_per_user_insert/i.test(sql), 'La concurrence des trajets actifs doit être protégée par D1.');
+assert(/guard_bike_qr_namespace_insert/i.test(sql), 'Les identifiants QR vélo doivent partager un espace unique.');
+assert(/guard_active_ride_insert/i.test(sql), 'Un trajet actif incomplet doit être refusé par D1.');
 assert((sql.match(/FOREIGN KEY/gi) || []).length >= 20, 'Le modele doit definir ses relations par cles etrangeres.');
 assert((sql.match(/CREATE (?:UNIQUE )?INDEX/gi) || []).length >= 20, 'Le modele doit definir ses index de requete.');
 assert(/PRAGMA defer_foreign_keys = ON/i.test(sql), 'La migration additive doit differer les controles de cles pendant le backfill.');

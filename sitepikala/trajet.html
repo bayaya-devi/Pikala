@@ -3,20 +3,26 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-i18n="ridesTitle">Pikala - Trajets</title>
+  <title data-i18n="ridePageTitle">Pikala - Trajet</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/foundation.css">
   <link rel="stylesheet" href="user-space.css">
   <script src="assets/vendor/lucide.min.js" defer></script>
+  <script src="assets/vendor/zxing-browser.min.js" defer></script>
   <script type="module" src="user-space.js"></script>
 </head>
-<body data-user-page="rides">
+<body data-user-page="ride">
   <div data-user-shell></div>
-  <main class="user-main">
-    <header class="user-topbar"><div><p class="user-kicker" data-i18n="ridesSubtitle">Votre activité Pikala</p><h1 data-i18n="ridesHeading">Mes trajets</h1></div><div data-layout-actions></div></header>
-    <section class="surface"><div class="data-list ride-history" data-rides-list><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div></section>
+  <main class="user-main ride-main">
+    <header class="user-topbar">
+      <a class="back-link" href="trajets.html"><i data-lucide="arrow-left"></i><span data-i18n="rideBackHistory">Mes trajets</span></a>
+      <div data-layout-actions></div>
+    </header>
+    <section data-ride-page aria-live="polite">
+      <div class="surface loading-state"><div class="skeleton-block"></div></div>
+    </section>
   </main>
 </body>
 </html>

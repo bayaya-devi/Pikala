@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dictionaries, RTL_LOCALES, SUPPORTED_LOCALES } from '../sitepikala/assets/js/i18n/index.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const activePages = ['index.html', 'connexion.html', 'inscription.html', 'mot-de-passe-oublie.html', 'reinitialiser-mot-de-passe.html', 'dashboard.html', 'stations.html', 'scanner.html', 'profil.html', 'support.html', 'abonnement.html', 'admin.html'];
+const activePages = ['index.html', 'connexion.html', 'inscription.html', 'mot-de-passe-oublie.html', 'reinitialiser-mot-de-passe.html', 'dashboard.html', 'stations.html', 'station.html', 'trajets.html', 'scanner.html', 'profil.html', 'support.html', 'abonnement.html', 'admin.html'];
 const errors = [];
 
 function check(condition, message) {

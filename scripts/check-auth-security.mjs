@@ -8,7 +8,8 @@ const failures = [];
 
 function expect(condition, message) { if (!condition) failures.push(message); }
 
-expect(worker.includes('const PASSWORD_ITERATIONS = 600000'), 'PBKDF2 doit utiliser 600 000 iterations.');
+expect(worker.includes('const PASSWORD_ITERATIONS = 100000'), 'PBKDF2 doit respecter la limite de 100 000 iterations de Cloudflare Workers.');
+expect(worker.includes('iterations > PASSWORD_ITERATIONS'), 'La verification PBKDF2 doit refuser les facteurs non supportes par le runtime.');
 expect(worker.includes("const SESSION_COOKIE = '__Host-pikala_session'"), 'Le cookie de session doit utiliser le prefixe __Host-.');
 expect(worker.includes('HttpOnly; Secure; SameSite=Strict'), 'Les attributs de cookie securises sont incomplets.');
 expect(worker.includes("request.headers.get('x-pikala-request') !== 'web'"), 'La protection CSRF par en-tete personnalise manque.');

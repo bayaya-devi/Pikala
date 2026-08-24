@@ -15,7 +15,8 @@
 
 ## Protections
 
-- mots de passe PBKDF2-HMAC-SHA-256, sel aleatoire et 600 000 iterations ;
+- mots de passe PBKDF2-HMAC-SHA-256, sel aleatoire et 100 000 iterations, soit
+  la limite acceptee par Web Crypto dans le runtime Cloudflare Workers ;
 - migration automatique des anciens hashes apres une connexion valide ;
 - cookie `__Host-pikala_session`, `Secure`, `HttpOnly`, `SameSite=Strict`, `Path=/` ;
 - identifiants de session aleatoires de 256 bits et hashes en base ;

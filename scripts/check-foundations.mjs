@@ -40,6 +40,9 @@ for (const page of activePages) {
 for (const asset of ['tokens.css', 'base.css', 'components.css', 'layouts.css', 'compatibility.css']) {
   await access(resolve(root, 'sitepikala/assets/css', asset));
 }
+const uiComponents = await readFile(resolve(root, 'sitepikala/assets/js/ui/components.js'), 'utf8');
+check(uiComponents.includes("[data-reveal], .user-reveal, .reveal"), 'Les animations doivent révéler le contenu de la homepage.');
+
 const layouts = await readFile(resolve(root, 'sitepikala/assets/css/layouts.css'), 'utf8');
 const components = await readFile(resolve(root, 'sitepikala/assets/css/components.css'), 'utf8');
 check(layouts.includes('[dir="rtl"]'), 'Les adaptations RTL du layout sont absentes.');

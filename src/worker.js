@@ -511,12 +511,8 @@ async function updateProfile(request, env) {
 }
 
 const STATION_FIELDS = `stations.id, stations.public_code, stations.slug, stations.name, stations.city, stations.address, stations.latitude, stations.longitude,
-  CASE WHEN EXISTS (SELECT 1 FROM bikes WHERE bikes.station_id = stations.id)
-    THEN (SELECT COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available')
-    ELSE stations.bikes_available END AS bikes_available,
-  CASE WHEN EXISTS (SELECT 1 FROM docks WHERE docks.station_id = stations.id)
-    THEN (SELECT COUNT(*) FROM docks WHERE docks.station_id = stations.id AND docks.status = 'available')
-    ELSE MAX(COALESCE(stations.capacity, 0) - COALESCE(stations.bikes_available, 0), 0) END AS docks_available,
+  (SELECT COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available') AS bikes_available,
+  (SELECT COUNT(*) FROM docks WHERE docks.station_id = stations.id AND docks.status = 'available') AS docks_available,
   stations.capacity, stations.is_active,
   CASE WHEN stations.is_active = 1 THEN 'open' ELSE 'closed' END AS status`;
 

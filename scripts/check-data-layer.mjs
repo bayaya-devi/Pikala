@@ -48,6 +48,8 @@ assert(/INSERT OR IGNORE INTO plans[\s\S]*FROM subscriptions/i.test(sql), 'Les l
 
 const worker = await readFile(resolve(root, 'src/worker.js'), 'utf8');
 assert(!/CREATE TABLE|ALTER TABLE|ensureSchema|debugSchema|FALLBACK_STATIONS/.test(worker), 'Le Worker ne doit plus modifier le schema au runtime.');
+assert(!worker.includes('ELSE stations.bikes_available'), 'Les API actives ne doivent pas présenter le compteur historique comme un inventaire réel.');
+assert(worker.includes("COUNT(*) FROM bikes WHERE bikes.station_id = stations.id AND bikes.status = 'available'"), 'La disponibilité doit venir des jumeaux numériques vélo.');
 assert(worker.includes("url.pathname === '/api/plans'"), 'La route publique des plans doit etre branchee sur D1.');
 
 const wrangler = await readFile(resolve(root, 'wrangler.toml'), 'utf8');

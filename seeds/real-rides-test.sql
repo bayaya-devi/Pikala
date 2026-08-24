@@ -49,3 +49,9 @@ UPDATE docks SET bike_id=(SELECT id FROM bikes WHERE code='DEV-BIKE-004'),status
 UPDATE docks SET bike_id=(SELECT id FROM bikes WHERE code='DEV-BIKE-006'),status='occupied',updated_at=CURRENT_TIMESTAMP WHERE public_code='dev-dock-hassan-03';
 UPDATE stations SET bikes_available=(SELECT COUNT(*) FROM bikes WHERE bikes.station_id=stations.id AND bikes.status='available'),updated_at=CURRENT_TIMESTAMP
 WHERE public_code IN ('dev-station-oudayas','dev-station-hassan');
+
+-- Phase 8 free plan used only by local automated tests.
+UPDATE plans SET amount_minor = 0, duration_days = 30, display_order = -100,
+  benefits_json = json_array('Local ride tests'),
+  translations_json = json_object('fr', json_object('name','Plan de test local','description','Réservé aux tests locaux.','benefits',json_array('Tests locaux')))
+WHERE slug = 'dev-monthly';

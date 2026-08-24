@@ -3,6 +3,7 @@ import { initLayout } from './assets/js/layouts.js';
 import { mountUserShell, refreshUserIcons } from './assets/js/user-shell.js';
 import { showToast } from './assets/js/ui/components.js';
 import { createRealRideFlows } from './assets/js/real-rides.js';
+import { createSubscriptionFlows } from './assets/js/subscriptions.js';
 
 mountUserShell();
 initLayout();
@@ -32,7 +33,10 @@ function friendlyApiError(data) {
     SUBSCRIPTION_REQUIRED: 'userNoPlan', RIDE_ALREADY_ACTIVE: 'userActiveRide', STATION_CLOSED: 'scannerStationClosed',
     DOCK_QR_INVALID: 'returnQrInvalid', DOCK_UNKNOWN: 'returnDockUnknown', DOCK_UNAVAILABLE: 'returnDockUnavailable',
     RIDE_ALREADY_ENDED: 'rideAlreadyEnded', RETURN_CONFLICT: 'returnConflict', BIKE_STATE_INVALID: 'rideStateInvalid', RIDE_NOT_FOUND: 'rideNotFound',
-    INCIDENT_CATEGORY_INVALID: 'incidentInvalid', INCIDENT_DESCRIPTION_INVALID: 'incidentInvalid', STATION_NOT_FOUND: 'stationNotFound'
+    INCIDENT_CATEGORY_INVALID: 'incidentInvalid', INCIDENT_DESCRIPTION_INVALID: 'incidentInvalid', STATION_NOT_FOUND: 'stationNotFound',
+    PAYMENT_PROVIDER_UNAVAILABLE: 'subscriptionProviderUnavailable', PAYMENT_START_FAILED: 'subscriptionPaymentStartError',
+    PLAN_NOT_FOUND: 'subscriptionPlanUnavailable', PLAN_REQUIRED: 'subscriptionPlanUnavailable',
+    IDEMPOTENCY_KEY_REQUIRED: 'subscriptionPaymentStartError', SUBSCRIPTION_NOT_FOUND: 'subscriptionNoActive'
   };
   return t(keys[data?.code] || 'commonErrorV2');
 }
@@ -310,7 +314,7 @@ async function loadProfile() {
   text('[data-profile-name]', fullName(user)); text('[data-profile-email]', user.email || ''); text('[data-profile-phone]', user.phone || '');
   text('[data-profile-initials]', `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() || 'PK');
   const form = document.querySelector('[data-profile-form]'); if (form) { form.elements.firstName.value = user.first_name || ''; form.elements.lastName.value = user.last_name || ''; form.elements.phone.value = user.phone || ''; }
-  try { const profile = await api('/api/profile'); text('[data-profile-subscription]', profile.subscription?.plan || t('userNoPlan')); } catch (error) { text('[data-profile-subscription]', error.message); }
+  try { const profile = await api('/api/profile'); text('[data-profile-subscription]', profile.subscription?.plan_name || profile.subscription?.plan || t('userNoPlan')); } catch (error) { text('[data-profile-subscription]', error.message); }
   wireProfileForms();
 }
 
@@ -327,11 +331,11 @@ function wireBottomNavigation() { let previous = scrollY; const nav = document.q
 async function loadLegacyPage(page) {
   if (!(await requireUser())) return;
   if (page === 'support') document.querySelector('[data-support-form]')?.addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; try { await api('/api/support', { method: 'POST', body: JSON.stringify({ subject: form.elements.subject.value, message: form.elements.message.value }) }); form.reset(); showToast(t('supportSent')); } catch (error) { showToast(error.message, { tone: 'error' }); } });
-  if (page === 'subscription') document.querySelector('[data-activate-subscription]')?.addEventListener('click', async (event) => { event.preventDefault(); try { const plans = (await api('/api/plans')).plans; if (!plans.length) throw new Error(t('commonUnavailableV2')); await api('/api/subscriptions', { method: 'POST', body: JSON.stringify({ plan: plans[0].slug }) }); location.assign('dashboard.html'); } catch (error) { showToast(error.message, { tone: 'error' }); } });
 }
 
 const realRideFlows = createRealRideFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons, formatDate, formatDuration, errorState, emptyState });
-const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: () => loadLegacyPage('subscription') };
+const subscriptionFlows = createSubscriptionFlows({ api, requireUser, t, showToast, refreshIcons: refreshUserIcons });
+const loaders = { dashboard: loadDashboard, stations: loadMap, rides: loadRides, scanner: realRideFlows.loadScanner, ride: realRideFlows.loadRidePage, profile: loadProfile, support: () => loadLegacyPage('support'), subscription: subscriptionFlows.loadSubscription };
 if (location.pathname.endsWith('/station.html') || location.pathname === '/station') loadStationPage(); else loaders[document.body.dataset.userPage]?.();
 wireLogout(); wireBottomNavigation();
-document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); refreshUserIcons(); });
+document.addEventListener('pikala:localechange', () => { if (dashboardData) renderDashboard(); if (stationsData.length) renderStationResults(); subscriptionFlows.rerender(); refreshUserIcons(); });

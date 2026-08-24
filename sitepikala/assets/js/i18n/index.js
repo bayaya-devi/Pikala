@@ -8,15 +8,16 @@ import homeCopy from './homepage/copy.js';
 import authCopy from './authentication/copy.js';
 import userSpaceCopy from './user-space/copy.js';
 import realRideCopy from './real-rides/copy.js';
+import subscriptionCopy from './subscriptions/copy.js';
 
 export const SUPPORTED_LOCALES = Object.freeze(['fr', 'en', 'es', 'pt', 'ar']);
 export const RTL_LOCALES = Object.freeze(['ar']);
 export const dictionaries = Object.freeze({
-  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr, ...authCopy.fr, ...userSpaceCopy.fr, ...realRideCopy.fr },
-  en: { ...en, ...pageCopy.en, ...homeCopy.en, ...authCopy.en, ...userSpaceCopy.en, ...realRideCopy.en },
-  es: { ...es, ...pageCopy.es, ...homeCopy.es, ...authCopy.es, ...userSpaceCopy.es, ...realRideCopy.es },
-  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt, ...authCopy.pt, ...userSpaceCopy.pt, ...realRideCopy.pt },
-  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar, ...authCopy.ar, ...userSpaceCopy.ar, ...realRideCopy.ar }
+  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr, ...authCopy.fr, ...userSpaceCopy.fr, ...realRideCopy.fr, ...subscriptionCopy.fr },
+  en: { ...en, ...pageCopy.en, ...homeCopy.en, ...authCopy.en, ...userSpaceCopy.en, ...realRideCopy.en, ...subscriptionCopy.en },
+  es: { ...es, ...pageCopy.es, ...homeCopy.es, ...authCopy.es, ...userSpaceCopy.es, ...realRideCopy.es, ...subscriptionCopy.es },
+  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt, ...authCopy.pt, ...userSpaceCopy.pt, ...realRideCopy.pt, ...subscriptionCopy.pt },
+  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar, ...authCopy.ar, ...userSpaceCopy.ar, ...realRideCopy.ar, ...subscriptionCopy.ar }
 });
 
 const STORAGE_KEY = 'pikala-lang';

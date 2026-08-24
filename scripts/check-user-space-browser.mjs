@@ -39,7 +39,7 @@ if (!sessionValue) throw new Error('Cookie de session navigateur absent.');
 let visualRideId = null;
 if (['ride', 'summary'].includes(process.env.VISUAL_PAGE)) {
   const authHeaders = { 'content-type': 'application/json', 'x-pikala-request': 'web', origin, cookie: sessionPair };
-  const subscription = await fetch(new URL('/api/subscriptions', base), { method: 'POST', headers: authHeaders, body: JSON.stringify({ plan: 'dev-monthly' }) });
+  const subscription = await fetch(new URL('/api/subscriptions/checkout', base), { method: 'POST', headers: { ...authHeaders, 'idempotency-key': `visual-${Date.now()}` }, body: JSON.stringify({ plan: 'dev-monthly' }) });
   if (subscription.status !== 201) throw new Error(`Abonnement visuel impossible: ${subscription.status}`);
   const started = await fetch(new URL('/api/rides', base), { method: 'POST', headers: authHeaders, body: JSON.stringify({ qrPayload: 'dev-bike-001' }) });
   const startedData = await started.json();
@@ -57,7 +57,7 @@ loginPage.socket.close(); await fetch(`${debug}/json/close/${loginPage.target.id
 
 let pages = [
   ['dashboard', '/dashboard.html'], ['map', '/stations.html'], ['station', '/station.html?id=dev-station-oudayas'],
-  ['rides', '/trajets.html'], ['scanner', '/scanner.html'], ['profile', '/profil.html']
+  ['rides', '/trajets.html'], ['scanner', '/scanner.html'], ['profile', '/profil.html'], ['subscription', '/abonnement.html']
 ];
 if (visualRideId) pages.push([process.env.VISUAL_PAGE === 'summary' ? 'summary' : 'ride', `/trajet.html?id=${visualRideId}`]);
 let viewports = [{ name: 'mobile', width: 390, height: 844 }, { name: 'desktop', width: 1440, height: 900 }];
@@ -99,7 +99,7 @@ for (const viewport of viewports) {
       if (viewport.name === 'mobile' ? result.bottom === 'none' : result.sidebar === 'none') failures.push(`${label}: navigation responsive absente`);
       if (result.skeletons) failures.push(`${label}: chargement non terminé`);
       if (!result.mapReady) failures.push(`${label}: carte ou bulles absentes`);
-      if ((viewport.name === 'mobile' && locale === 'ar' && name === 'map') || (viewport.name === 'desktop' && locale === 'fr' && name === 'dashboard')) {
+      if ((viewport.name === 'mobile' && locale === 'ar' && name === 'map') || (viewport.name === 'desktop' && locale === 'fr' && ['dashboard','subscription'].includes(name))) {
         const capture = await page.send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
         await writeFile(resolve(output, `${viewport.name}-${locale}-${name}.png`), Buffer.from(capture.data, 'base64'));
       }

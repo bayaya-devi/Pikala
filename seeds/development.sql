@@ -27,3 +27,9 @@ VALUES
   ((SELECT id FROM stations WHERE public_code = 'dev-station-oudayas'), 2, 'dev-dock-oudayas-02', 'occupied', (SELECT id FROM bikes WHERE code = 'DEV-BIKE-002')),
   ((SELECT id FROM stations WHERE public_code = 'dev-station-hassan'), 1, 'dev-dock-hassan-01', 'occupied', (SELECT id FROM bikes WHERE code = 'DEV-BIKE-003'));
 
+
+-- Phase 8 free plan used only by local automated tests.
+UPDATE plans SET amount_minor = 0, duration_days = 30, display_order = -100,
+  benefits_json = json_array('Local ride tests'),
+  translations_json = json_object('fr', json_object('name','Plan de test local','description','Réservé aux tests locaux.','benefits',json_array('Tests locaux')))
+WHERE slug = 'dev-monthly';

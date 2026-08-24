@@ -15,7 +15,7 @@ const MAX_JSON_BYTES = 16 * 1024;
 const DB_UNAVAILABLE_MESSAGE = 'Service temporairement indisponible.';
 
 const PAGE_ROUTES = new Map([
-  ['/accueil', '/accueil.html'], ['/home', '/index.html'], ['/dashboard', '/dashboard.html'],
+  ['/', '/index.html'], ['/accueil', '/accueil.html'], ['/home', '/index.html'], ['/dashboard', '/dashboard.html'],
   ['/stations', '/stations.html'], ['/station', '/station.html'], ['/scanner', '/scanner.html'], ['/trajets', '/trajets.html'], ['/trajet', '/trajet.html'], ['/profil', '/profil.html'],
   ['/profile', '/profil.html'], ['/support', '/support.html'], ['/ticket', '/ticket.html'], ['/incidents', '/incidents.html'], ['/notifications', '/notifications.html'], ['/abonnement', '/abonnement.html'],
   ['/connexion', '/connexion.html'], ['/login', '/connexion.html'], ['/inscription', '/inscription.html'],

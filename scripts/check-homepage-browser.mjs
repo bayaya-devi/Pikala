@@ -32,13 +32,14 @@ for (const viewport of targets) {
       dir: document.documentElement.dir,
       title: document.querySelector('h1')?.textContent.trim(),
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      heroOpacity: Number.parseFloat(getComputedStyle(document.querySelector('.hero-content')).opacity),
       untranslated: [...document.querySelectorAll('[data-i18n]')].filter(el => el.textContent.trim() === el.dataset.i18n).map(el => el.dataset.i18n),
       menuVisible: getComputedStyle(document.querySelector('[data-menu-button]')).display !== 'none',
       stationState: document.querySelector('[data-station-list]')?.textContent.trim().length > 0,
       ctaVisible: document.querySelector('.hero .button.primary')?.getBoundingClientRect().height >= 44
     }))()` });
       const candidate = evaluation.result.value;
-      if (candidate?.lang === locale && candidate?.dir && candidate?.title && candidate.stationState && candidate.ctaVisible) break;
+      if (candidate?.lang === locale && candidate?.dir && candidate?.title && candidate.stationState && candidate.ctaVisible && candidate.heroOpacity > 0.9) break;
     }
     const result = evaluation?.result?.value;
     const label = `${viewport.name}/${locale}`;
@@ -48,6 +49,7 @@ for (const viewport of targets) {
     if (!result.title || result.untranslated.length) failures.push(`${label}: traduction incomplète`);
     if (result.overflow > 1) failures.push(`${label}: débordement horizontal ${result.overflow}px`);
     if (viewport.width < 600 && !result.menuVisible) failures.push(`${label}: menu mobile absent`);
+    if (!(result.heroOpacity > 0.9)) failures.push(`${label}: contenu hero invisible (opacité ${result.heroOpacity})`);
     if (viewport.width >= 1000 && result.menuVisible) failures.push(`${label}: menu desktop incorrect`);
     if (!result.stationState || !result.ctaVisible) failures.push(`${label}: état stations ou CTA invalide`);
     page.socket.close();

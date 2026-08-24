@@ -48,7 +48,7 @@ export function initTooltips() {
 }
 
 export function initReveals(root = document) {
-  const elements = root.querySelectorAll('[data-reveal], .user-reveal');
+  const elements = root.querySelectorAll('[data-reveal], .user-reveal, .reveal');
   if (!elements.length) return;
   elements.forEach((element) => element.classList.add('pk-reveal'));
   if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

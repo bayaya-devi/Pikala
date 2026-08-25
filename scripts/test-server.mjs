@@ -19,6 +19,12 @@ function json(response, status, body) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  if (url.pathname === '/api/admin/control-center') return json(response, 200, { service:{mode:'operational',computedMode:'degraded',message:''}, metrics:{activeUsers:12,bikes:{total:50,available:31,inUse:8,maintenance:6,unavailable:5},stations:{normal:6,weak:2,full:1,closed:1},activeRides:8,openIncidents:3,overdueMaintenance:2,criticalTickets:1,overdueMissions:2,offlineDevices:1}, attention:[{type:'mission_overdue',severity:'critical',resource_id:4,title:'Mission en retard',message:'MIS-0004 · Rééquilibrage centre'}], configuration:{database:'operational',email:'missing',payment:'missing',devices:'degraded'}, generatedAt:new Date().toISOString() });
+  if (/^\/api\/admin\/control-center\/[a-z-]+$/.test(url.pathname)) return json(response, 200, { items:[], pagination:{page:1,limit:25,total:0,pages:1} });
+  if (url.pathname === '/api/admin/settings') return json(response, 200, { settings:[] });
+  if (url.pathname === '/api/admin/plans') return json(response, 200, { plans:[], pagination:{page:1,limit:25,total:0,pages:1} });
+  if (url.pathname.startsWith('/api/admin/')) return json(response, 200, { items:[], pagination:{page:1,limit:25,total:0,pages:1} });
+  if (url.pathname === '/api/login' && request.method === 'POST') { response.writeHead(200, { 'Content-Type':'application/json; charset=utf-8', 'Set-Cookie':'__Host-pikala_session=test-control-session; Path=/; HttpOnly; SameSite=Lax' }); response.end(JSON.stringify({ user })); return; }
   if (url.pathname === '/api/me') return json(response, 200, { user });
   if (url.pathname === '/api/stations') return json(response, 200, { stations });
   if (url.pathname === '/api/profile') return json(response, 200, { user, subscription: { plan: 'Premium', status: 'active' } });

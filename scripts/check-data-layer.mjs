@@ -14,12 +14,15 @@ const expectedMigrations = [
   '0008_admin_operations.sql',
   '0009_admin_concurrency_guards.sql',
   '0010_admin_bike_dock_guards.sql',
-  '0011_operational_workflows.sql'
+  '0011_operational_workflows.sql',
+  '0012_control_center.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
   'stations', 'bikes', 'docks', 'plans', 'subscriptions', 'payments',
-  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events', 'payment_events', 'maintenance_records', 'app_settings', 'support_ticket_messages', 'workflow_events'
+  'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events', 'payment_events', 'maintenance_records', 'app_settings', 'support_ticket_messages', 'workflow_events',
+  'employee_profiles', 'inspections', 'missions', 'mission_bikes', 'rebalancing_recommendations',
+  'automation_rules', 'network_alerts', 'devices', 'admin_overrides', 'manual_entitlements'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
@@ -41,6 +44,9 @@ assert(/idx_maintenance_one_open_per_bike/i.test(sql), 'Une seule maintenance ou
 assert(/guard_admin_bike_station_dock_update/i.test(sql), 'Un deplacement admin doit reserver un quai atomiquement.');
 assert(/support_ticket_messages/i.test(sql) && /workflow_events/i.test(sql), 'Les historiques operationnels doivent etre persistants.');
 assert(/maintenance_required/i.test(sql), 'Le blocage des velos critiques doit etre persistant.');
+assert(/guard_overrides_no_update/i.test(sql) && /guard_overrides_no_delete/i.test(sql), 'Les overrides administrateur doivent etre immuables.');
+assert(/manual_entitlements/i.test(sql), 'Les avantages manuels doivent rester distincts des paiements.');
+assert(/employee_profiles/i.test(sql) && /missions/i.test(sql) && /devices/i.test(sql), 'Les domaines operationnels du Control Center doivent etre persistants.');
 assert((sql.match(/FOREIGN KEY/gi) || []).length >= 20, 'Le modele doit definir ses relations par cles etrangeres.');
 assert((sql.match(/CREATE (?:UNIQUE )?INDEX/gi) || []).length >= 20, 'Le modele doit definir ses index de requete.');
 assert(/PRAGMA defer_foreign_keys = ON/i.test(sql), 'La migration additive doit differer les controles de cles pendant le backfill.');

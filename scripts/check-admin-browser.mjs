@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 const base = process.argv[2] || 'http://127.0.0.1:8831';
 const debug = process.env.CHROME_DEBUG || 'http://127.0.0.1:9335';
 const origin = new URL(base).origin;
-const views = ['dashboard','users','stations','bikes','rides','plans','subscriptions','payments','incidents','maintenance','support','notifications','settings','audit'];
+const views = ['dashboard','users','employees','stations','docks','bikes','rides','inspections','missions','rebalancing','plans','subscriptions','payments','incidents','maintenance','support','notifications','alerts','automations','devices','entitlements','overrides','settings','audit','system'];
 const locales = ['fr','en','es','pt','ar'];
 const viewports = [{ name:'desktop', width:1440, height:900 }, { name:'tablet', width:800, height:900 }];
 const output = resolve(import.meta.dirname, '../tmp/admin-screenshots');
@@ -67,7 +67,7 @@ for (const { viewport, locale, view } of cases) {
       });
       await page.send('Page.navigate', { url:`${base}/admin.html?view=${view}&lang=${locale}` });
       let result;
-      for (let attempt = 0; attempt < 30; attempt += 1) {
+      for (let attempt = 0; attempt < 60; attempt += 1) {
         await new Promise((resolveWait) => setTimeout(resolveWait, 180));
         result = (await page.send('Runtime.evaluate', { returnByValue:true, expression:`(() => ({
           path: location.pathname,
@@ -89,7 +89,7 @@ for (const { viewport, locale, view } of cases) {
       if (result?.path !== '/admin.html') failures.push(`${label}: redirection inattendue vers ${result?.path}`);
       if (result?.lang !== locale || result?.dir !== (locale === 'ar' ? 'rtl' : 'ltr')) failures.push(`${label}: langue ou direction incorrecte`);
       if (result?.busy !== 'false' || result?.error) failures.push(`${label}: vue non chargée ${result?.error || ''}`);
-      if (!result?.heading || result.navCount !== 14 || result.active !== view) failures.push(`${label}: navigation ou titre incomplet`);
+      if (!result?.heading || result.navCount !== 25 || result.active !== view) failures.push(`${label}: navigation ou titre incomplet`);
       if (result?.overflow > 1) failures.push(`${label}: débordement horizontal ${result.overflow}px`);
       if (result?.untranslated) failures.push(`${label}: ${result.untranslated} traduction(s) brute(s)`);
       if (viewport.name === 'desktop' && result?.menuDisplay !== 'none') failures.push(`${label}: bouton menu desktop visible`);
@@ -105,4 +105,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'));
   process.exit(1);
 }
-console.log(`Administration visuelle valide: ${cases.length} parcours couvrant 14 vues, 5 langues, desktop et tablette.`);
+console.log(`Administration visuelle valide: ${cases.length} parcours couvrant 25 vues, 5 langues, desktop et tablette.`);

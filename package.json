@@ -32,8 +32,10 @@
     "test:hardening": "node scripts/check-hardening.mjs",
     "test:responsive": "node scripts/check-responsive-browser.mjs",
     "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
-    "test:static": "npm run test:foundation && npm run test:data && npm run test:homepage && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:operations && npm run test:hardening",
-    "test:homepage": "node scripts/check-homepage.mjs"
+    "test:static": "npm run test:foundation && npm run test:data && npm run test:homepage && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:control-center && npm run test:operations && npm run test:hardening",
+    "test:homepage": "node scripts/check-homepage.mjs",
+    "test:control-center": "node scripts/check-control-center.mjs",
+    "test:control-center:crash": "node scripts/control-center-crash-test.mjs"
   },
   "repository": {
     "type": "git",

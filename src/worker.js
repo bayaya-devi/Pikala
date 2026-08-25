@@ -861,11 +861,18 @@ async function startRide(request, env) {
   if (!bikeCode) return json({ code: 'QR_INVALID', error: 'QR velo invalide.' }, 400);
   const DB = requireDb(env);
   const [subscriptionResult, currentRideResult, bikeResult] = await DB.batch([
-    DB.prepare(`SELECT subscriptions.id, subscriptions.plan, plans.currency FROM subscriptions
-      LEFT JOIN plans ON plans.id = subscriptions.plan_id
+    DB.prepare(`SELECT id, plan, currency FROM (
+      SELECT subscriptions.id, subscriptions.plan, plans.currency, subscriptions.ends_at
+      FROM subscriptions LEFT JOIN plans ON plans.id = subscriptions.plan_id
       WHERE subscriptions.user_id = ? AND subscriptions.status = 'active'
-      AND (subscriptions.ends_at IS NULL OR subscriptions.ends_at > CURRENT_TIMESTAMP)
-      ORDER BY subscriptions.id DESC LIMIT 1`).bind(auth.user.id),
+        AND (subscriptions.ends_at IS NULL OR subscriptions.ends_at > CURRENT_TIMESTAMP)
+      UNION ALL
+      SELECT -manual_entitlements.id, 'manual:' || manual_entitlements.benefit_type, COALESCE(plans.currency,'MAD'), manual_entitlements.ends_at
+      FROM manual_entitlements LEFT JOIN plans ON plans.id = manual_entitlements.plan_id
+      WHERE manual_entitlements.user_id = ? AND manual_entitlements.status = 'active'
+        AND manual_entitlements.benefit_type IN ('ride_access','subscription_extension')
+        AND manual_entitlements.starts_at <= CURRENT_TIMESTAMP AND manual_entitlements.ends_at > CURRENT_TIMESTAMP
+    ) ORDER BY ends_at DESC LIMIT 1`).bind(auth.user.id, auth.user.id),
     DB.prepare("SELECT id FROM rides WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1").bind(auth.user.id),
     DB.prepare(`SELECT bikes.id, bikes.public_code, bikes.station_id, bikes.status, bikes.maintenance_required, stations.is_active AS station_active,
       docks.id AS dock_id, docks.status AS dock_status

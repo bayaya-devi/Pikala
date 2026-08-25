@@ -1,4 +1,5 @@
 import { handleAdminOperationsApi } from './operations.js';
+import { handleControlCenterApi } from './control-center.js';
 
 const USER_ROLES = new Set(['user', 'support', 'operator', 'admin']);
 const USER_STATUSES = new Set(['active', 'suspended', 'disabled']);
@@ -7,7 +8,7 @@ const INCIDENT_STATUSES = new Set(['open', 'triaged', 'in_progress', 'resolved',
 const SUPPORT_STATUSES = new Set(['open', 'in_progress', 'waiting_user', 'resolved', 'closed']);
 const PRIORITIES = new Set(['low', 'normal', 'high', 'urgent']);
 const MAINTENANCE_STATUSES = new Set(['open', 'in_progress', 'resolved', 'cancelled']);
-const SETTINGS = new Set(['service_status', 'support_contact', 'ride_monitoring']);
+const SETTINGS = new Set(['support_contact', 'ride_monitoring', 'control_center']);
 const NOTIFICATION_TYPES = new Set(['ride_started','ride_completed','subscription','payment','support','incident','service','security','announcement']);
 
 function pagination(url) {
@@ -113,6 +114,7 @@ async function userUpdate(request, DB, json, actor, context, id, readJson) {
   const existing = await DB.prepare('SELECT id, role, status FROM users WHERE id = ?').bind(id).first(); if (!existing) return missing(json, 'Utilisateur');
   const role = String(body.role ?? existing.role); const status = String(body.status ?? existing.status); const reason = text(body.statusReason ?? '', 300);
   if (!USER_ROLES.has(role) || !USER_STATUSES.has(status) || reason === null) return invalid(json);
+  if (id !== actor.id && status !== existing.status) return conflict(json, 'Utilisez une commande forte du Control Center pour modifier ce statut.');
   if (id === actor.id && (role !== 'admin' || status !== 'active')) return conflict(json, 'Vous ne pouvez pas retirer votre propre acces administrateur.');
   const preservingActiveAdmin = role === 'admin' && status === 'active';
   const result = await DB.prepare(`UPDATE users SET role = ?, status = ?, status_reason = ?,
@@ -197,6 +199,7 @@ async function stationDetail(DB, json, id) {
 async function stationUpdate(request, DB, json, actor, context, id, readJson) {
   const existing = await DB.prepare(`${STATION_SELECT} WHERE stations.id = ? GROUP BY stations.id`).bind(id).first(); if (!existing) return missing(json, 'Station');
   const input = stationInput(await readJson(request), existing); if (!input) return invalid(json);
+  if (input.isActive !== Boolean(existing.is_active)) return conflict(json, 'Utilisez une commande forte du Control Center pour ouvrir ou fermer la station.');
   try {
     await DB.prepare(`UPDATE stations SET public_code=?, slug=?, name=?, city=?, address=?, latitude=?, longitude=?, capacity=?, is_active=?, opening_hours_json=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
       .bind(input.publicCode,input.slug,input.name,input.city,input.address||null,input.latitude,input.longitude,input.capacity,input.isActive?1:0,JSON.stringify(input.openingHours),id).run();
@@ -207,19 +210,8 @@ async function stationUpdate(request, DB, json, actor, context, id, readJson) {
 }
 
 async function stationDisable(DB, json, actor, context, id) {
-  const station = await DB.prepare('SELECT id FROM stations WHERE id = ?').bind(id).first(); if (!station) return missing(json, 'Station');
-  const [inUse, bikes] = await DB.batch([
-    DB.prepare("SELECT COUNT(*) count FROM rides WHERE status = 'active' AND start_station_id = ?").bind(id),
-    DB.prepare('SELECT COUNT(*) count FROM bikes WHERE station_id = ?').bind(id)
-  ]);
-  if (Number(inUse.results?.[0]?.count || 0) > 0) return conflict(json, 'Cette station est liee a un trajet actif.');
-  if (Number(bikes.results?.[0]?.count || 0) > 0) return conflict(json, 'Deplacez les velos avant de desactiver cette station.');
-  await DB.batch([
-    DB.prepare('UPDATE stations SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(id),
-    DB.prepare("UPDATE docks SET status = 'disabled', updated_at = CURRENT_TIMESTAMP WHERE station_id = ? AND bike_id IS NULL").bind(id)
-  ]);
-  await audit(DB, actor, context, 'station.disable', 'station', id);
-  return json({ success: true });
+  void DB; void actor; void context; void id;
+  return conflict(json, 'Utilisez la commande forte station.close du Control Center.');
 }
 
 const BIKE_SELECT = `SELECT bikes.id, bikes.code, bikes.public_code, bikes.station_id, stations.name station_name, bikes.status, bikes.battery_level,
@@ -261,7 +253,7 @@ async function bikeDetail(DB,json,id){const bike=await DB.prepare(`${BIKE_SELECT
   return json({bike,rides:rides.results||[],maintenance:maintenance.results||[],incidents:incidents.results||[]});}
 
 async function bikeUpdate(request,DB,json,actor,context,id,readJson){const existing=await DB.prepare('SELECT * FROM bikes WHERE id=?').bind(id).first();if(!existing)return missing(json,'Velo');const input=bikeInput(await readJson(request),existing);if(!input)return invalid(json);
-  const moving=(input.stationId??null)!==(existing.station_id??null);if(existing.status==='in_use'&&(input.status!=='in_use'||moving))return conflict(json,'Un velo en trajet ne peut pas etre deplace ou desactive.');
+  const moving=(input.stationId??null)!==(existing.station_id??null);if(moving||input.status!==existing.status)return conflict(json,'Utilisez une commande forte du Control Center pour déplacer ou changer le statut du vélo.');if(existing.status==='in_use'&&(input.status!=='in_use'||moving))return conflict(json,'Un velo en trajet ne peut pas etre deplace ou desactive.');
   if(input.stationId&&!await DB.prepare('SELECT id FROM stations WHERE id=? AND is_active=1').bind(input.stationId).first())return invalid(json,'STATION_INVALID','Station inactive ou introuvable.');
   if(moving&&input.stationId&&!await freeDock(DB,input.stationId))return conflict(json,'Aucun quai libre dans cette station.');
   try{const statements=[];if(moving){statements.push(DB.prepare("UPDATE docks SET bike_id=NULL,status=CASE WHEN status='disabled' THEN status ELSE 'available' END,updated_at=CURRENT_TIMESTAMP WHERE bike_id=?").bind(id));if(input.stationId)statements.push(DB.prepare("UPDATE docks SET bike_id=?,status='occupied',updated_at=CURRENT_TIMESTAMP WHERE id=(SELECT id FROM docks WHERE station_id=? AND status='available' AND bike_id IS NULL ORDER BY position LIMIT 1)").bind(id,input.stationId));}
@@ -272,11 +264,10 @@ async function bikeUpdate(request,DB,json,actor,context,id,readJson){const exist
 
 async function bikeQr(DB,json,id){const bike=await DB.prepare('SELECT id,public_code,status FROM bikes WHERE id=?').bind(id).first();if(!bike)return missing(json,'Velo');return json({bikeId:bike.id,publicCode:bike.public_code,payload:`pikala://bike/${bike.public_code}`,printUrl:`/admin.html?view=bikes&qr=${encodeURIComponent(bike.public_code)}`});}
 
-async function maintenanceStart(request,DB,json,actor,context,bikeId,readJson){const body=await readJson(request);const reason=text(body?.reason,500,5);const incidentId=body?.incidentId?integer(body.incidentId):null;const assignee=body?.assignedToUserId?integer(body.assignedToUserId):null;if(!reason)return invalid(json);
-  const bike=await DB.prepare('SELECT id,status FROM bikes WHERE id=?').bind(bikeId).first();if(!bike)return missing(json,'Velo');if(bike.status==='in_use')return conflict(json,'Le velo est actuellement utilise.');
-  const existing=await DB.prepare("SELECT id FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress')").bind(bikeId).first();if(existing)return conflict(json,'Une maintenance est deja ouverte pour ce velo.');
-  const result=await DB.batch([DB.prepare(`INSERT INTO maintenance_records (bike_id,incident_id,opened_by_user_id,assigned_to_user_id,status,reason,started_at,workflow_stage) VALUES (?,?,?,?, 'in_progress',?,CURRENT_TIMESTAMP,'maintenance')`).bind(bikeId,incidentId,actor.id,assignee,reason),DB.prepare("UPDATE bikes SET status='maintenance',maintenance_required=1,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(bikeId),DB.prepare("UPDATE bike_incidents SET status='in_progress',assigned_to_user_id=COALESCE(?,assigned_to_user_id),updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(assignee,incidentId||0)]);
-  const recordId=result[0].meta.last_row_id;await DB.prepare("INSERT INTO workflow_events (resource_type,resource_id,actor_user_id,to_status,note) VALUES ('maintenance',?,?, 'maintenance',?)").bind(recordId,actor.id,reason).run();await audit(DB,actor,context,'maintenance.open','maintenance',recordId,{bikeId,incidentId});return json({success:true,id:recordId},201);}
+async function maintenanceStart(request,DB,json,actor,context,bikeId,readJson){
+  void request; void DB; void actor; void context; void bikeId; void readJson;
+  return conflict(json,'Utilisez la commande forte bike.maintenance du Control Center.');
+}
 
 async function maintenanceUpdate(request,DB,json,actor,context,id,readJson){const body=await readJson(request);const status=String(body?.status||'');const notes=text(body?.resolutionNotes??'',1000);const assignee=body?.assignedToUserId?integer(body.assignedToUserId):null;if(!MAINTENANCE_STATUSES.has(status)||notes===null)return invalid(json);
   const record=await DB.prepare('SELECT * FROM maintenance_records WHERE id=?').bind(id).first();if(!record)return missing(json,'Maintenance');if(['resolved','cancelled'].includes(record.status))return conflict(json,'Cette maintenance est deja terminee.');
@@ -302,19 +293,20 @@ async function incidentUpdate(request,DB,json,actor,context,id,readJson){const b
 
 async function supportUpdate(request,DB,json,actor,context,id,readJson){const body=await readJson(request);const status=String(body?.status||'');const priority=String(body?.priority||'normal');const assignee=body?.assignedToUserId?integer(body.assignedToUserId):null;const notes=text(body?.resolutionNotes??'',2000);if(!SUPPORT_STATUSES.has(status)||!PRIORITIES.has(priority)||notes===null)return invalid(json);const result=await DB.prepare(`UPDATE support_tickets SET status=?,priority=?,assigned_to_user_id=?,resolution_notes=?,closed_at=CASE WHEN ? IN ('resolved','closed') THEN CURRENT_TIMESTAMP ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(status,priority,assignee,notes||null,status,id).run();if(!result.meta.changes)return missing(json,'Ticket');await audit(DB,actor,context,'support.update','support_ticket',id,{status,priority,assignee});return json({success:true});}
 
-async function notificationsCreate(request,DB,json,actor,context,readJson){const body=await readJson(request);const title=text(body?.title,120,2);const message=text(body?.body,1000,2);const type=code(body?.type||'service',40);const locale=String(body?.locale||'all');const target=String(body?.target||'active');const ids=Array.isArray(body?.userIds)?[...new Set(body.userIds.map(integer).filter(Boolean))].slice(0,100):[];if(!title||!message||!type||!NOTIFICATION_TYPES.has(type)||!['all','fr','en','es','pt','ar'].includes(locale)||!['active','all','users'].includes(target)||(target==='users'&&!ids.length))return invalid(json);
-  let statement;if(target==='users'){const placeholders=ids.map(()=>'?').join(',');statement=DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at) SELECT id,?,?,?,'in_app','sent',CURRENT_TIMESTAMP FROM users WHERE id IN (${placeholders}) AND status='active'`).bind(type,title,message,...ids);}else{statement=DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at) SELECT id,?,?,?,'in_app','sent',CURRENT_TIMESTAMP FROM users WHERE (?='all' OR status='active') AND (?='all' OR locale=?)`).bind(type,title,message,target,locale,locale);}const result=await statement.run();await audit(DB,actor,context,'notification.broadcast','notification',null,{target,locale,count:result.meta.changes});return json({success:true,count:result.meta.changes},201);}
+async function notificationsCreate(request,DB,json,actor,context,readJson){const body=await readJson(request);const title=text(body?.title,120,2);const message=text(body?.body,1000,2);const type=code(body?.type||'service',40);const locale=String(body?.locale||'all');const target=String(body?.target||'active');const ids=Array.isArray(body?.userIds)?[...new Set(body.userIds.map(integer).filter(Boolean))].slice(0,100):[];const reason=text(body?.reason,500,10);const idempotencyKey=text(body?.idempotencyKey,120,16);if(!title||!message||!type||!NOTIFICATION_TYPES.has(type)||!['all','fr','en','es','pt','ar'].includes(locale)||!['active','all','users'].includes(target)||(target==='users'&&!ids.length)||!reason||!idempotencyKey||body?.confirmation!=='PIKALA NOTIFICATION.SEND')return invalid(json,'CONTROL_CONFIRMATION_REQUIRED','Motif et confirmation forte requis.');
+  const duplicate=await DB.prepare('SELECT id FROM admin_overrides WHERE idempotency_key=?').bind(idempotencyKey).first();if(duplicate)return json({success:true,idempotent:true});let statement;if(target==='users'){const placeholders=ids.map(()=>'?').join(',');statement=DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at) SELECT id,?,?,?,'in_app','sent',CURRENT_TIMESTAMP FROM users WHERE id IN (${placeholders}) AND status='active'`).bind(type,title,message,...ids);}else{statement=DB.prepare(`INSERT INTO notifications (user_id,type,title,body,channel,status,sent_at) SELECT id,?,?,?,'in_app','sent',CURRENT_TIMESTAMP FROM users WHERE (?='all' OR status='active') AND (?='all' OR locale=?)`).bind(type,title,message,target,locale,locale);}const result=await statement.run();await DB.prepare(`INSERT INTO admin_overrides (actor_user_id,action,target_type,target_id,reason,idempotency_key,outcome,request_id,details_json) VALUES (?,'notification.broadcast','notification','broadcast',?,?,'applied',?,?)`).bind(actor.id,reason,idempotencyKey,context.requestId,JSON.stringify({target,locale,count:result.meta.changes})).run();await audit(DB,actor,context,'notification.broadcast','notification',null,{target,locale,count:result.meta.changes,reason});return json({success:true,count:result.meta.changes},201);}
 
 async function settingsGet(DB,json){const rows=(await DB.prepare('SELECT key,value_json,description,updated_at FROM app_settings ORDER BY key').all()).results||[];return json({settings:rows.map((row)=>({...row,value:jsonValue(row.value_json,null)}))});}
-function validSetting(key,value){if(!SETTINGS.has(key)||!value||typeof value!=='object'||Array.isArray(value)||JSON.stringify(value).length>2000)return false;if(key==='ride_monitoring')return Number.isInteger(Number(value.longRideMinutes))&&Number(value.longRideMinutes)>=30&&Number(value.longRideMinutes)<=1440;if(key==='service_status')return ['operational','degraded','paused'].includes(value.mode)&&String(value.message||'').length<=300;if(key==='support_contact')return String(value.email||'').length<=254&&String(value.phone||'').length<=30;return false;}
+function validSetting(key,value){if(!SETTINGS.has(key)||!value||typeof value!=='object'||Array.isArray(value)||JSON.stringify(value).length>2000)return false;if(key==='ride_monitoring')return Number.isInteger(Number(value.longRideMinutes))&&Number(value.longRideMinutes)>=30&&Number(value.longRideMinutes)<=1440;if(key==='control_center')return Number.isInteger(Number(value.stationLowBikes))&&Number(value.stationLowBikes)>=0&&Number(value.stationLowBikes)<=20&&Number.isInteger(Number(value.deviceOfflineMinutes))&&Number(value.deviceOfflineMinutes)>=5&&Number(value.deviceOfflineMinutes)<=1440&&Number.isInteger(Number(value.maintenanceOverdueHours))&&Number(value.maintenanceOverdueHours)>=1&&Number(value.maintenanceOverdueHours)<=720;if(key==='support_contact')return String(value.email||'').length<=254&&String(value.phone||'').length<=30;return false;}
 async function settingsUpdate(request,DB,json,actor,context,readJson){const body=await readJson(request);const key=String(body?.key||'');const value=body?.value;if(!validSetting(key,value))return invalid(json);await DB.prepare('UPDATE app_settings SET value_json=?,updated_by_user_id=?,updated_at=CURRENT_TIMESTAMP WHERE key=?').bind(JSON.stringify(value),actor.id,key).run();await audit(DB,actor,context,'setting.update','setting',key,{key});return json({success:true});}
 
 async function auditList(DB,json,url){const search=query(url,'search');const action=query(url,'action',80);const where=`WHERE (?='' OR lower(admin_audit_logs.action || ' ' || admin_audit_logs.target_type || ' ' || COALESCE(admin_audit_logs.target_id,'') || ' ' || COALESCE(users.email,'')) LIKE '%' || lower(?) || '%') AND (?='' OR admin_audit_logs.action=?)`;const bindings=[search,search,action,action];return json(await paged(DB,`SELECT admin_audit_logs.id,admin_audit_logs.action,admin_audit_logs.target_type,admin_audit_logs.target_id,admin_audit_logs.metadata_json,admin_audit_logs.created_at,users.email admin_email FROM admin_audit_logs LEFT JOIN users ON users.id=admin_audit_logs.actor_user_id ${where} ORDER BY admin_audit_logs.id DESC`,`SELECT COUNT(*) count FROM admin_audit_logs LEFT JOIN users ON users.id=admin_audit_logs.actor_user_id ${where}`,bindings,url));}
 
 export async function handleAdminApi(request, env, actor, utilities) {
-  const { json, readJson, requestId, ipHint } = utilities; const DB = env.DB; const url = new URL(request.url); const path = url.pathname; const method = request.method; const context = { requestId, ipHint };
+  const { json, readJson, requestId, ipHint, logEvent } = utilities; const DB = env.DB; const url = new URL(request.url); const path = url.pathname; const method = request.method; const context = { requestId, ipHint, logEvent };
   if (!DB) return json({ code:'DB_UNAVAILABLE', error:'Service temporairement indisponible.' },503);
   try {
+    const controlCenterResponse=await handleControlCenterApi(request,env,actor,{json,readJson,requestId,ipHint,logEvent});if(controlCenterResponse)return controlCenterResponse;
     const operationsResponse=await handleAdminOperationsApi(request,DB,actor,{json,readJson,requestId,ipHint});if(operationsResponse)return operationsResponse;
     if(method==='GET'&&path==='/api/admin/overview')return overview(DB,json);
     if(method==='GET'&&path==='/api/admin/users')return usersList(DB,json,url);

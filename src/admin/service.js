@@ -4,6 +4,8 @@ import { handleStaffApi } from './staff.js';
 import { handleTwinApi } from './digital-twins.js';
 import { handleWorkshopApi } from './workshop.js';
 import { handleFieldOperationsApi } from './field-operations.js';
+import { handleSupervisionApi } from './supervision.js';
+import { handleIotAdminApi } from '../iot/service.js';
 import { adminRoutePermission, hasPermission } from '../auth/rbac.js';
 
 const USER_ROLES = new Set(['user', 'support', 'operator', 'admin']);
@@ -331,6 +333,8 @@ export async function handleAdminApi(request, env, actor, utilities) {
     const twinResponse=await handleTwinApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(twinResponse)return twinResponse;
     const workshopResponse=await handleWorkshopApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(workshopResponse)return workshopResponse;
     const fieldResponse=await handleFieldOperationsApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(fieldResponse)return fieldResponse;
+    const supervisionResponse=await handleSupervisionApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(supervisionResponse)return supervisionResponse;
+    const iotResponse=await handleIotAdminApi(request,env,actor,{json,readJson,requestId,ipHint,logEvent});if(iotResponse)return iotResponse;
     const controlCenterResponse=await handleControlCenterApi(request,env,actor,{json,readJson,requestId,ipHint,logEvent});if(controlCenterResponse)return controlCenterResponse;
     const operationsResponse=await handleAdminOperationsApi(request,DB,actor,{json,readJson,requestId,ipHint});if(operationsResponse)return operationsResponse;
     if(method==='GET'&&path==='/api/admin/overview')return overview(DB,json);

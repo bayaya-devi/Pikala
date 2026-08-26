@@ -15,6 +15,17 @@ function cameraErrorKey(error) {
 }
 
 export function createRealRideFlows({ api, requireUser, t, showToast, refreshIcons, formatDate, formatDuration, errorState, emptyState }) {
+  async function waitForRideStatus(rideId, expectedStatus, timeoutMs = 20000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const data = await api(`/api/rides/${encodeURIComponent(rideId)}`);
+      if (data.ride?.status === expectedStatus) return data;
+      if (['cancelled', 'failed'].includes(data.ride?.status)) throw new Error(t('returnConflict'));
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+    }
+    throw new Error(t('returnConflict'));
+  }
+
   async function stopCamera() {
     try { scannerControls?.stop(); } catch {}
     scannerControls = null;
@@ -73,8 +84,9 @@ export function createRealRideFlows({ api, requireUser, t, showToast, refreshIco
     message.textContent = t('scannerChecking');
     message.classList.remove('is-error');
     try {
-      const data = await api('/api/rides', { method: 'POST', body: JSON.stringify({ qrPayload: String(payload).trim() }) });
+      const data = await api('/api/rides', { method: 'POST', body: JSON.stringify({ qrPayload: String(payload).trim(), idempotencyKey: crypto.randomUUID() }) });
       await stopCamera();
+      if (data.pendingHardware) await waitForRideStatus(data.ride.id, 'active');
       showToast(t('scannerRideStarted'));
       location.assign(`trajet.html?id=${encodeURIComponent(data.ride.id)}`);
     } catch (error) {
@@ -166,8 +178,9 @@ export function createRealRideFlows({ api, requireUser, t, showToast, refreshIco
       if (!String(payload || '').trim()) { message.textContent = t('returnDockRequired'); message.classList.add('is-error'); return; }
       actionPending = true; submit.disabled = true; message.textContent = t('returnChecking'); message.classList.remove('is-error');
       try {
-        const data = await api(`/api/rides/${ride.id}/return`, { method: 'POST', body: JSON.stringify({ qrPayload: String(payload).trim() }) });
-        await stopCamera(); showToast(t('returnSuccess')); renderRide(data.ride, host, data.pricing);
+        const data = await api(`/api/rides/${ride.id}/return`, { method: 'POST', body: JSON.stringify({ qrPayload: String(payload).trim(), idempotencyKey: crypto.randomUUID() }) });
+        const completed = data.pendingHardware ? await waitForRideStatus(ride.id, 'completed') : data;
+        await stopCamera(); showToast(t('returnSuccess')); renderRide(completed.ride, host, completed.pricing);
       } catch (error) { message.textContent = error.message; message.classList.add('is-error'); }
       finally { actionPending = false; submit.disabled = false; }
     };

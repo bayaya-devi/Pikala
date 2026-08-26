@@ -1,6 +1,6 @@
 export const STAFF_ROLES = ['super_admin','admin','operations_manager','station_manager','technician','field_agent','support_agent','finance','analyst'];
 export const VIEW_PERMISSIONS = Object.freeze({dashboard:'dashboard.view',users:'users.read_limited',stations:'stations.read',bikes:'bikes.read',rides:'rides.read',plans:'plans.read',subscriptions:'subscriptions.read',payments:'payments.read',incidents:'incidents.read',maintenance:'maintenance.read',support:'support.read',notifications:'notifications.read',settings:'settings.read',audit:'audit.read',employees:'employees.read',missions:'missions.read',inspections:'inspections.read',docks:'docks.read',rebalancing:'rebalancing.read',devices:'devices.read',alerts:'alerts.read',automations:'automations.read',entitlements:'entitlements.manage',overrides:'audit.read',system:'dashboard.view'});
-export const ACTION_PERMISSIONS = Object.freeze({'station.open':'stations.manage','station.close':'stations.manage','bike.block':'bikes.manage','bike.restore':'bikes.manage','bike.maintenance':'maintenance.manage','bike.move':'bikes.move','dock.correct':'docks.manage','user.suspend':'users.manage','user.reactivate':'users.manage','ride.force_end':'rides.force_end','maintenance.assign':'maintenance.manage','mission.create':'missions.manage','mission.assign':'missions.manage','notification.send':'notifications.send','service.maintenance':'service.override','service.restore':'service.override','alert.acknowledge':'alerts.manage','alert.resolve':'alerts.manage','automation.toggle':'automations.manage','device.status':'devices.manage','entitlement.grant':'entitlements.manage','entitlement.revoke':'entitlements.manage'});
+export const ACTION_PERMISSIONS = Object.freeze({'station.open':'stations.manage','station.close':'stations.manage','bike.block':'bikes.manage','bike.restore':'bikes.manage','bike.maintenance':'maintenance.manage','bike.move':'bikes.move','dock.correct':'docks.manage','user.suspend':'users.manage','user.reactivate':'users.manage','ride.force_end':'rides.force_end','maintenance.assign':'maintenance.manage','mission.create':'missions.manage','mission.assign':'missions.manage','notification.send':'notifications.send','service.maintenance':'service.override','service.restore':'service.override','alert.acknowledge':'alerts.manage','alert.resolve':'alerts.manage','alert.status':'alerts.manage','automation.toggle':'automations.manage','device.status':'devices.manage','entitlement.grant':'entitlements.manage','entitlement.revoke':'entitlements.manage'});
 export const CONTROL_NAV = [
   ['adminWorkforce', [['employees','id-card','adminEmployees'],['missions','clipboard-list','adminMissions'],['inspections','clipboard-check','adminInspections']]],
   ['adminNetwork', [['docks','panel-top','adminDocks'],['rebalancing','arrow-left-right','adminRebalancing'],['devices','router','adminDevices']]],
@@ -19,7 +19,7 @@ export const CONTROL_COLUMNS = {
   rebalancing: [['source_station','adminDeparture'],['destination_station','adminArrival'],['suggested_bikes','adminBikes'],['priority','adminPriority'],['reason','adminReason'],['status','adminStatus']],
   automations: [['public_code','adminCode'],['name','adminName'],['rule_type','adminCategory'],['severity','adminSeverity'],['last_run_at','adminLastRun'],['status','adminStatus']],
   devices: [['public_code','adminCode'],['device_type','adminCategory'],['station_name','adminStation'],['bike_code','adminBike'],['firmware_version','Firmware'],['last_seen_at','adminLastSeen'],['status','adminStatus']],
-  alerts: [['detected_at','adminDate'],['severity','adminSeverity'],['alert_type','adminCategory'],['title','adminSubject'],['message','adminMessage'],['status','adminStatus']],
+  alerts: [['detected_at','adminDate'],['severity','adminSeverity'],['rule_code','adminCategory'],['title','adminSubject'],['message','adminMessage'],['status','adminStatus']],
   entitlements: [['email','adminUser'],['benefit_type','adminBenefit'],['plan_name','adminPlan'],['starts_at','adminStart'],['ends_at','adminEnd'],['granted_by','Admin'],['status','adminStatus']],
   overrides: [['created_at','adminDate'],['actor_email','Admin'],['action','adminAction'],['target_type','adminResource'],['target_id','ID'],['reason','adminReason'],['outcome','adminStatus']]
 };
@@ -28,7 +28,7 @@ export const CONTROL_STATUSES = {
   employees: ['active','inactive','suspended'], docks: ['available','occupied','maintenance','disabled'],
   inspections: ['scheduled','in_progress','passed','failed','cancelled'], missions: ['created','assigned','accepted','in_progress','completed','cancelled','failed'],
   rebalancing: ['open','accepted','dismissed','completed','expired'], automations: ['active','disabled'],
-  devices: ['provisioning','online','offline','maintenance','disabled'], alerts: ['open','acknowledged','resolved','dismissed'],
+  devices: ['provisioning','online','offline','maintenance','disabled'], alerts: ['new','acknowledged','in_progress','resolved','ignored'],
   entitlements: ['active','expired','revoked'], overrides: ['applied','rejected','failed']
 };
 
@@ -61,7 +61,7 @@ export function actionFor(view, item) {
   ], {missionType:'rebalancing',title:`Rééquilibrage #${item.id}`,priority:item.priority,sourceStationId:item.source_station_id,destinationStationId:item.destination_station_id});
   if (view === 'automations') return action('automation.toggle', item.id, [{name:'enabled',label:'adminActive',type:'checkbox'}], {enabled:item.status!=='active'});
   if (view === 'devices') return action('device.status', item.id, [{name:'status',label:'adminStatus',type:'select',options:['online','offline','maintenance','disabled'].map((value)=>[value,value])}], {status:item.status});
-  if (view === 'alerts') return action(item.status === 'open' ? 'alert.acknowledge' : 'alert.resolve', item.id);
+  if (view === 'alerts' && !['resolved','ignored'].includes(item.status)) return action('alert.status', item.id, [{name:'status',label:'adminStatus',type:'select',options:['acknowledged','in_progress','resolved','ignored'].map((value)=>[value,value])}], {status:item.status==='new'?'acknowledged':'resolved'});
   if (view === 'entitlements' && item.status === 'active') return action('entitlement.revoke', item.id);
   return null;
 }

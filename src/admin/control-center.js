@@ -4,7 +4,7 @@ const ACTIONS = new Set([
   'station.open', 'station.close', 'bike.block', 'bike.restore', 'bike.maintenance', 'bike.move',
   'dock.correct', 'user.suspend', 'user.reactivate', 'ride.force_end', 'maintenance.assign',
   'employee.upsert', 'inspection.create', 'mission.create', 'mission.assign', 'notification.send',
-  'service.maintenance', 'service.restore', 'alert.acknowledge', 'alert.resolve', 'automation.toggle',
+  'service.maintenance', 'service.restore', 'alert.acknowledge', 'alert.resolve', 'alert.status', 'automation.toggle',
   'device.status', 'entitlement.grant', 'entitlement.revoke'
 ]);
 
@@ -330,13 +330,15 @@ async function applyAction(request, DB, json, actor, context, readJson) {
     const mode = action.endsWith('restore') ? 'operational' : 'paused';
     await DB.prepare("UPDATE app_settings SET value_json=json_object('mode',?,'message',?),updated_by_user_id=?,updated_at=CURRENT_TIMESTAMP WHERE key='service_status'").bind(mode, action.endsWith('restore') ? '' : reason, actor.id).run();
     resolvedTarget = 'service_status'; targetType = 'setting';
-  } else if (action === 'alert.acknowledge' || action === 'alert.resolve') {
-    const status = action.endsWith('resolve') ? 'resolved' : 'acknowledged';
-    result = await DB.prepare(`UPDATE network_alerts SET status=?,acknowledged_by_user_id=?,acknowledged_at=COALESCE(acknowledged_at,CURRENT_TIMESTAMP),resolved_at=CASE WHEN ?='resolved' THEN CURRENT_TIMESTAMP ELSE resolved_at END WHERE id=? AND status IN ('open','acknowledged')`).bind(status, actor.id, status, targetId).run();
+  } else if (action === 'alert.acknowledge' || action === 'alert.resolve' || action === 'alert.status') {
+    const status = action === 'alert.status' ? String(data.status || '') : (action.endsWith('resolve') ? 'resolved' : 'acknowledged');
+    if (!['acknowledged','in_progress','resolved','ignored'].includes(status)) return error(json, 'CONTROL_INPUT_INVALID', 'Statut d alerte invalide.');
+    result = await DB.prepare(`UPDATE supervision_alerts SET status=?,acknowledged_by_user_id=CASE WHEN ?='acknowledged' THEN ? ELSE acknowledged_by_user_id END,acknowledged_at=CASE WHEN ?='acknowledged' THEN CURRENT_TIMESTAMP ELSE acknowledged_at END,in_progress_by_user_id=CASE WHEN ?='in_progress' THEN ? ELSE in_progress_by_user_id END,in_progress_at=CASE WHEN ?='in_progress' THEN CURRENT_TIMESTAMP ELSE in_progress_at END,resolved_by_user_id=CASE WHEN ?='resolved' THEN ? ELSE resolved_by_user_id END,resolved_at=CASE WHEN ?='resolved' THEN CURRENT_TIMESTAMP ELSE resolved_at END,ignored_by_user_id=CASE WHEN ?='ignored' THEN ? ELSE ignored_by_user_id END,ignored_at=CASE WHEN ?='ignored' THEN CURRENT_TIMESTAMP ELSE ignored_at END WHERE id=? AND status IN ('new','acknowledged','in_progress')`).bind(status,status,actor.id,status,status,actor.id,status,status,actor.id,status,status,actor.id,status,status,actor.id,status,targetId).run();
     if (!result.meta.changes) return error(json, 'CONTROL_CONFLICT', 'Alerte active introuvable.', 409);
+    await DB.prepare(`INSERT INTO supervision_alert_events(alert_id,actor_user_id,event_type,details_json) VALUES(?,?,?,?)`).bind(targetId,actor.id,'status_changed',JSON.stringify({to:status,reason})).run();
   } else if (action === 'automation.toggle') {
     const enabled = data.enabled === true || data.enabled === 1;
-    result = await DB.prepare('UPDATE automation_rules SET enabled=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(enabled ? 1 : 0, targetId).run();
+    result = await DB.prepare('UPDATE supervision_rules SET is_active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(enabled ? 1 : 0, targetId).run();
     if (!result.meta.changes) return error(json, 'CONTROL_CONFLICT', 'Règle introuvable.', 409);
   } else if (action === 'device.status') {
     const status = String(data.status || '');

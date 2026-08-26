@@ -36,7 +36,7 @@ async function openPage(url) {
 const login = await fetch(new URL('/api/login', base), {
   method:'POST',
   headers:{ 'content-type':'application/json', 'x-pikala-request':'web', origin },
-  body:JSON.stringify({ email:'admin-phase9@example.test', password:'Pikala admin phase nine password!' }),
+  body:JSON.stringify({ email:'rbac-super@example.test', password:'Pikala admin phase nine password!' }),
 });
 if (login.status !== 200) throw new Error(`Connexion admin navigateur impossible: ${login.status}`);
 const cookies = typeof login.headers.getSetCookie === 'function' ? login.headers.getSetCookie() : [login.headers.get('set-cookie')];

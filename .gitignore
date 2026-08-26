@@ -1,6 +1,8 @@
 node_modules/
 .wrangler/
+.wrangler-*-test/
 .tmp/
+tmp/
 backups/
 .dev.vars
 .env

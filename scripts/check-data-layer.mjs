@@ -18,7 +18,8 @@ const expectedMigrations = [
   '0012_control_center.sql',
   '0013_staff_rbac.sql',
   '0014_infrastructure_digital_twins.sql',
-  '0015_professional_maintenance.sql'
+  '0015_professional_maintenance.sql',
+  '0016_field_operations.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
@@ -27,6 +28,7 @@ const expectedTables = [
   'employee_profiles', 'inspections', 'missions', 'mission_bikes', 'rebalancing_recommendations',
   'automation_rules', 'network_alerts', 'devices', 'admin_overrides', 'manual_entitlements',
   'staff_members', 'staff_zones', 'staff_member_zones', 'staff_role_permissions', 'staff_permission_overrides', 'staff_activity_logs',
+  'field_tasks', 'field_task_bikes', 'field_task_events', 'field_scan_records',
   'infrastructure_events', 'maintenance_parts', 'maintenance_part_usages', 'inspection_check_items',
   'maintenance_comments', 'maintenance_schedules', 'maintenance_reminders'
 ];

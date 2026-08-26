@@ -3,7 +3,7 @@ const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/assets/css/foundation.css', '/assets/vendor/lucide.min.js', '/logo.jpeg'];
 const PRIVATE_PATHS = new Set([
   '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/station', '/station.html',
-  '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html',
+  '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html', '/terrain', '/terrain.html',
   '/profil', '/profil.html', '/profile', '/support', '/support.html', '/ticket', '/ticket.html',
   '/incidents', '/incidents.html', '/notifications', '/notifications.html', '/abonnement',
   '/abonnement.html', '/admin', '/admin.html'

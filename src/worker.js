@@ -22,14 +22,14 @@ const PAGE_ROUTES = new Map([
   ['/stations', '/stations.html'], ['/station', '/station.html'], ['/scanner', '/scanner.html'], ['/trajets', '/trajets.html'], ['/trajet', '/trajet.html'], ['/profil', '/profil.html'],
   ['/profile', '/profil.html'], ['/support', '/support.html'], ['/ticket', '/ticket.html'], ['/incidents', '/incidents.html'], ['/notifications', '/notifications.html'], ['/abonnement', '/abonnement.html'],
   ['/connexion', '/connexion.html'], ['/login', '/connexion.html'], ['/inscription', '/inscription.html'],
-  ['/signup', '/inscription.html'], ['/mot-de-passe-oublie', '/mot-de-passe-oublie.html'],
+  ['/signup', '/inscription.html'], ['/terrain', '/terrain.html'], ['/mot-de-passe-oublie', '/mot-de-passe-oublie.html'],
   ['/reinitialiser-mot-de-passe', '/reinitialiser-mot-de-passe.html'], ['/admin', '/admin.html']
 ]);
 const PRIVATE_PAGES = new Set([
   '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/station', '/station.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html',
   '/profil', '/profil.html', '/profile', '/support', '/support.html', '/ticket', '/ticket.html', '/incidents', '/incidents.html', '/notifications', '/notifications.html', '/abonnement', '/abonnement.html'
 ]);
-const ADMIN_PAGES = new Set(['/admin', '/admin.html', '/atelier', '/atelier.html']);
+const ADMIN_PAGES = new Set(['/admin', '/admin.html', '/atelier', '/atelier.html', '/terrain', '/terrain.html']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const NON_INDEXED_PAGES = new Set([...PRIVATE_PAGES, ...ADMIN_PAGES,

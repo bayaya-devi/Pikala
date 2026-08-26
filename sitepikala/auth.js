@@ -22,7 +22,7 @@ function safeNext() {
   if (!raw) return 'dashboard.html';
   try {
     const target = new URL(raw, window.location.origin);
-    const allowed = new Set(['/dashboard', '/dashboard.html', '/stations', '/stations.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html', '/profil', '/profil.html', '/support', '/support.html', '/abonnement', '/abonnement.html']);
+    const allowed = new Set(['/dashboard', '/dashboard.html', '/stations', '/stations.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html', '/profil', '/profil.html', '/support', '/support.html', '/abonnement', '/abonnement.html', '/terrain', '/terrain.html', '/atelier', '/atelier.html', '/admin', '/admin.html']);
     return target.origin === window.location.origin && allowed.has(target.pathname) ? `${target.pathname}${target.search}` : 'dashboard.html';
   } catch { return 'dashboard.html'; }
 }

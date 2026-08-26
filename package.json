@@ -32,7 +32,7 @@
     "test:hardening": "node scripts/check-hardening.mjs",
     "test:responsive": "node scripts/check-responsive-browser.mjs",
     "dev": "wrangler dev --local --ip 127.0.0.1 --port 8787",
-    "test:static": "npm run test:foundation && npm run test:data && npm run test:homepage && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:control-center && npm run test:rbac && npm run test:operations && npm run test:twins && npm run test:hardening",
+    "test:static": "npm run test:foundation && npm run test:data && npm run test:homepage && npm run test:auth && npm run test:user-space && npm run test:subscriptions && npm run test:admin && npm run test:control-center && npm run test:rbac && npm run test:operations && npm run test:twins && npm run test:workshop && npm run test:hardening",
     "test:homepage": "node scripts/check-homepage.mjs",
     "test:control-center": "node scripts/check-control-center.mjs",
     "test:control-center:crash": "node scripts/control-center-crash-test.mjs",
@@ -40,6 +40,8 @@
     "test:rbac:crash": "node scripts/rbac-crash-test.mjs",
     "test:twins": "node scripts/check-digital-twins.mjs",
     "test:twins:crash": "node scripts/digital-twins-crash-test.mjs"
+    ,"test:workshop": "node scripts/check-workshop.mjs"
+    ,"test:workshop:crash": "node scripts/workshop-crash-test.mjs"
   },
   "repository": {
     "type": "git",

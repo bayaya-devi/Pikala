@@ -52,6 +52,7 @@ export function adminRoutePermission(method, path) {
   if (control) return ({employees:'employees.read',docks:'docks.read',inspections:'inspections.read',missions:'missions.read',rebalancing:'rebalancing.read',automations:'automations.read',devices:'devices.read',alerts:'alerts.read',entitlements:'entitlements.manage',overrides:'audit.read'})[control] || 'dashboard.view';
   if (path === '/api/admin/control-center/actions') return 'staff.access';
   if (path === '/api/admin/overview') return 'dashboard.view';
+  if (path.startsWith('/api/admin/workshop')) return method === 'GET' ? 'maintenance.read' : 'maintenance.manage';
   if (path.startsWith('/api/admin/users')) return method === 'GET' ? 'users.read_limited' : 'users.manage';
   if (path.startsWith('/api/admin/stations')) return method === 'GET' ? 'stations.read' : 'stations.manage';
   if (path.startsWith('/api/admin/bikes')) return method === 'GET' ? 'bikes.read' : 'bikes.manage';

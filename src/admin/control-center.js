@@ -253,7 +253,7 @@ async function applyAction(request, DB, json, actor, context, readJson) {
     const maintenance = await DB.prepare("SELECT id FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress')").bind(targetId).first();
     if (maintenance) return error(json, 'CONTROL_CONFLICT', 'Une maintenance est déjà ouverte.', 409);
     const rows = await DB.batch([
-      DB.prepare("INSERT INTO maintenance_records (bike_id,opened_by_user_id,status,reason,workflow_stage,started_at) VALUES (?,?,'in_progress',?,'maintenance',CURRENT_TIMESTAMP)").bind(targetId, actor.id, reason),
+      DB.prepare("INSERT INTO maintenance_records (bike_id,opened_by_user_id,assigned_to_user_id,status,reason,workflow_stage,process_version,workshop_stage,problem_text) VALUES (?,?,?,'open',?,'reported',2,'reported',?)").bind(targetId, actor.id, actor.id, reason, reason),
       DB.prepare("UPDATE bikes SET status='maintenance',maintenance_required=1,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(targetId)
     ]);
     resolvedTarget = rows[0].meta.last_row_id;

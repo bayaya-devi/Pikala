@@ -17,7 +17,8 @@ const expectedMigrations = [
   '0011_operational_workflows.sql',
   '0012_control_center.sql',
   '0013_staff_rbac.sql',
-  '0014_infrastructure_digital_twins.sql'
+  '0014_infrastructure_digital_twins.sql',
+  '0015_professional_maintenance.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
@@ -26,7 +27,8 @@ const expectedTables = [
   'employee_profiles', 'inspections', 'missions', 'mission_bikes', 'rebalancing_recommendations',
   'automation_rules', 'network_alerts', 'devices', 'admin_overrides', 'manual_entitlements',
   'staff_members', 'staff_zones', 'staff_member_zones', 'staff_role_permissions', 'staff_permission_overrides', 'staff_activity_logs',
-  'infrastructure_events'
+  'infrastructure_events', 'maintenance_parts', 'maintenance_part_usages', 'inspection_check_items',
+  'maintenance_comments', 'maintenance_schedules', 'maintenance_reminders'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
@@ -53,6 +55,8 @@ assert(/manual_entitlements/i.test(sql), 'Les avantages manuels doivent rester d
 assert(/employee_profiles/i.test(sql) && /missions/i.test(sql) && /devices/i.test(sql), 'Les domaines operationnels du Control Center doivent etre persistants.');
 assert(/guard_dock_twin_update/i.test(sql) && /guard_bike_twin_update/i.test(sql), 'Les incoherences velo-dock doivent etre bloquees par D1.');
 assert(/guard_infrastructure_events_no_update/i.test(sql) && /guard_infrastructure_events_no_delete/i.test(sql), 'L historique des jumeaux numeriques doit etre immuable.');
+assert(/guard_professional_workflow_update/i.test(sql) && /guard_professional_return_to_service/i.test(sql), 'Le workflow atelier professionnel doit etre protege par D1.');
+assert(/guard_maintenance_required_ride/i.test(sql), 'D1 doit refuser la location d un velo exigeant une maintenance.');
 assert((sql.match(/FOREIGN KEY/gi) || []).length >= 20, 'Le modele doit definir ses relations par cles etrangeres.');
 assert((sql.match(/CREATE (?:UNIQUE )?INDEX/gi) || []).length >= 20, 'Le modele doit definir ses index de requete.');
 assert(/PRAGMA defer_foreign_keys = ON/i.test(sql), 'La migration additive doit differer les controles de cles pendant le backfill.');

@@ -13,15 +13,16 @@ import adminCopy from './admin/copy.js';
 import adminOperationsCopy from './admin/operations.js';
 import operationsCopy from './operations/copy.js';
 import operationsErrors from './operations/errors.js';
+import workshopCopy from './workshop/copy.js';
 
 export const SUPPORTED_LOCALES = Object.freeze(['fr', 'en', 'es', 'pt', 'ar']);
 export const RTL_LOCALES = Object.freeze(['ar']);
 export const dictionaries = Object.freeze({
-  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr, ...authCopy.fr, ...userSpaceCopy.fr, ...realRideCopy.fr, ...subscriptionCopy.fr, ...adminCopy.fr, ...adminOperationsCopy.fr, ...operationsCopy.fr, ...operationsErrors.fr },
-  en: { ...en, ...pageCopy.en, ...homeCopy.en, ...authCopy.en, ...userSpaceCopy.en, ...realRideCopy.en, ...subscriptionCopy.en, ...adminCopy.en, ...adminOperationsCopy.en, ...operationsCopy.en, ...operationsErrors.en },
-  es: { ...es, ...pageCopy.es, ...homeCopy.es, ...authCopy.es, ...userSpaceCopy.es, ...realRideCopy.es, ...subscriptionCopy.es, ...adminCopy.es, ...adminOperationsCopy.es, ...operationsCopy.es, ...operationsErrors.es },
-  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt, ...authCopy.pt, ...userSpaceCopy.pt, ...realRideCopy.pt, ...subscriptionCopy.pt, ...adminCopy.pt, ...adminOperationsCopy.pt, ...operationsCopy.pt, ...operationsErrors.pt },
-  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar, ...authCopy.ar, ...userSpaceCopy.ar, ...realRideCopy.ar, ...subscriptionCopy.ar, ...adminCopy.ar, ...adminOperationsCopy.ar, ...operationsCopy.ar, ...operationsErrors.ar }
+  fr: { ...fr, ...pageCopy.fr, ...homeCopy.fr, ...authCopy.fr, ...userSpaceCopy.fr, ...realRideCopy.fr, ...subscriptionCopy.fr, ...adminCopy.fr, ...adminOperationsCopy.fr, ...operationsCopy.fr, ...operationsErrors.fr, ...workshopCopy.fr },
+  en: { ...en, ...pageCopy.en, ...homeCopy.en, ...authCopy.en, ...userSpaceCopy.en, ...realRideCopy.en, ...subscriptionCopy.en, ...adminCopy.en, ...adminOperationsCopy.en, ...operationsCopy.en, ...operationsErrors.en, ...workshopCopy.en },
+  es: { ...es, ...pageCopy.es, ...homeCopy.es, ...authCopy.es, ...userSpaceCopy.es, ...realRideCopy.es, ...subscriptionCopy.es, ...adminCopy.es, ...adminOperationsCopy.es, ...operationsCopy.es, ...operationsErrors.es, ...workshopCopy.es },
+  pt: { ...pt, ...pageCopy.pt, ...homeCopy.pt, ...authCopy.pt, ...userSpaceCopy.pt, ...realRideCopy.pt, ...subscriptionCopy.pt, ...adminCopy.pt, ...adminOperationsCopy.pt, ...operationsCopy.pt, ...operationsErrors.pt, ...workshopCopy.pt },
+  ar: { ...ar, ...pageCopy.ar, ...homeCopy.ar, ...authCopy.ar, ...userSpaceCopy.ar, ...realRideCopy.ar, ...subscriptionCopy.ar, ...adminCopy.ar, ...adminOperationsCopy.ar, ...operationsCopy.ar, ...operationsErrors.ar, ...workshopCopy.ar }
 });
 
 const STORAGE_KEY = 'pikala-lang';

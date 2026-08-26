@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const read=(path)=>fs.readFileSync(path,'utf8');const migration=read('migrations/0016_field_operations.sql');const backend=read('src/admin/field-operations.js');const page=read('sitepikala/terrain.html');const client=read('sitepikala/terrain.js');const copy=read('sitepikala/assets/js/i18n/field-operations/copy.js');
+const checks=[];function check(condition,message){if(!condition)throw new Error(message);checks.push(message);}
+for(const table of ['field_tasks','field_task_bikes','field_task_events','field_scan_records'])check(migration.includes(`CREATE TABLE ${table}`),`Table ${table}`);
+for(const type of ['redistribution','bike_move','inspection','maintenance','retrieval','station_check','emergency','other'])check(migration.includes(`'${type}'`),`Type ${type}`);
+for(const state of ['created','assigned','accepted','in_progress','completed','cancelled'])check(migration.includes(`'${state}'`),`Statut ${state}`);
+check(migration.includes('field events are append-only')&&migration.includes('field scans are append-only'),'Historique terrain immuable');
+check(migration.includes('apply_field_pickup_scan')&&migration.includes('apply_field_deposit_scan'),'Déplacements appliqués uniquement par scans validés');
+check(migration.includes('field task physical steps incomplete'),'Fin de mission protégée par D1');
+check(migration.includes('field task custody must be resolved before cancellation'),'Annulation bloquée tant qu’un vélo est en garde');
+check(migration.includes('bike is already planned in an active field task'),'Un vélo ne peut pas appartenir à deux missions actives');
+check(migration.includes('rebalancing_recommendation_id INTEGER UNIQUE'),'Une suggestion ne peut créer qu’une mission');
+check(backend.includes("hasPermission(actor,'field_tasks.execute_assigned')")&&backend.includes('assigned_to_user_id'),'Périmètre agent vérifié côté serveur');
+check(backend.includes("status='available' AND maintenance_required=0"),'Vélos indisponibles exclus du rééquilibrage');
+check(backend.includes("action==='ignore'")&&backend.includes("action!=='accept'"),'Acceptation et rejet des suggestions');
+check(page.includes('data-video')&&client.includes('BrowserQRCodeReader')&&client.includes('scanControls?.stop()'),'Scanner QR réel et arrêt caméra');
+check(client.includes('bikeIds')&&client.includes('/api/admin/field/tasks'),'Création manuelle de mission');
+for(const locale of ['fr','en','es','pt','ar'])check(copy.includes(`${locale}:{`),`Traductions ${locale}`);
+check(read('src/worker.js').includes("'/terrain', '/terrain.html'"),'Page terrain privée');
+console.log(`Validation terrain réussie : ${checks.length} contrôles.`);

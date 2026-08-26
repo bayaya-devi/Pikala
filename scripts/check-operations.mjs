@@ -12,6 +12,6 @@ check(frontend.includes('navigator.onLine')&&frontend.includes('operationsNetwor
 check(shell.includes('data-notification-badge')&&user.includes('refreshNotificationBadge'),'Badge non lu absent.');
 check(!frontend.includes('.innerHTML'),'Rendu opérationnel avec innerHTML interdit.');
 check(css.includes('@media(max-width:640px)')&&css.includes('.is-rtl'),'Responsive ou RTL opérationnel absent.');
-check(adminUi.includes("workflowStage")&&adminUi.includes('/messages'),'Interface admin des workflows incomplète.');
+check(adminUi.includes('/atelier.html?intervention=')&&adminUi.includes('/messages'),'Interface admin des workflows incomplète.');
 const keys=[...Object.keys(copy.fr),...Object.keys(errors.fr)];for(const locale of ['fr','en','es','pt','ar'])check(keys.every((key)=>Object.hasOwn(copy[locale],key)||Object.hasOwn(errors[locale],key)),`${locale}: traductions opérationnelles incomplètes.`);
 if(failures.length){console.error(failures.map((item)=>`- ${item}`).join('\n'));process.exit(1);}console.log(`Opérations valides: ${keys.length} clés x 5 langues, support, incidents, maintenance, notifications et hors ligne.`);

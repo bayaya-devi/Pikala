@@ -1,6 +1,7 @@
 import { getPaymentProvider } from './payments/provider.js';
 import { logEvent } from './observability.js';
 import { handleAdminApi } from './admin/service.js';
+import { refreshMaintenanceReminders } from './admin/workshop.js';
 import { handleOperationsApi } from './operations/service.js';
 import { hasPermission, loadStaffActor } from './auth/rbac.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
@@ -28,7 +29,7 @@ const PRIVATE_PAGES = new Set([
   '/dashboard', '/dashboard.html', '/stations', '/stations.html', '/station', '/station.html', '/scanner', '/scanner.html', '/trajets', '/trajets.html', '/trajet', '/trajet.html',
   '/profil', '/profil.html', '/profile', '/support', '/support.html', '/ticket', '/ticket.html', '/incidents', '/incidents.html', '/notifications', '/notifications.html', '/abonnement', '/abonnement.html'
 ]);
-const ADMIN_PAGES = new Set(['/admin', '/admin.html']);
+const ADMIN_PAGES = new Set(['/admin', '/admin.html', '/atelier', '/atelier.html']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const NON_INDEXED_PAGES = new Set([...PRIVATE_PAGES, ...ADMIN_PAGES,
@@ -979,8 +980,8 @@ async function returnRide(request, env, rideId) {
       WHERE id = ? AND station_id = ? AND status = 'available' AND bike_id IS NULL
       AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)
       AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status IN ('available','maintenance') AND station_id = ? AND updated_at = ?)`).bind(rideRow.bike_id, endedAt, dock.id, dock.station_id, rideRow.id, endedAt, rideRow.bike_id, dock.station_id, endedAt),
-    DB.prepare(`INSERT INTO maintenance_records (bike_id,incident_id,opened_by_user_id,status,reason,workflow_stage)
-      SELECT ?,bike_incidents.id,?,'open',bike_incidents.description,'reported' FROM bike_incidents
+    DB.prepare(`INSERT INTO maintenance_records (bike_id,incident_id,opened_by_user_id,status,reason,workflow_stage,process_version,workshop_stage,problem_text)
+      SELECT ?,bike_incidents.id,?,'open',bike_incidents.description,'reported',2,'reported',bike_incidents.description FROM bike_incidents
       WHERE bike_incidents.bike_id=? AND bike_incidents.status IN ('open','triaged','in_progress')
       AND EXISTS (SELECT 1 FROM bikes WHERE id=? AND maintenance_required=1)
       AND NOT EXISTS (SELECT 1 FROM maintenance_records WHERE bike_id=? AND status IN ('open','in_progress'))
@@ -1105,5 +1106,6 @@ export default {
       return hardenAssetResponse(response, url, id);
     }
     return json({ code: 'NOT_FOUND', error: 'Route introuvable.' }, 404);
-  }
+  },
+  async scheduled(_controller,env){if(!env.DB)return;try{const result=await refreshMaintenanceReminders(env.DB);logEvent('maintenance.reminders.generated',{count:Number(result.meta?.changes||0),outcome:'success'});}catch(error){logEvent('maintenance.reminders.failure',{code:error?.code||'SCHEDULE_ERROR',outcome:'failure'},'error');throw error;}}
 };

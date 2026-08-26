@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title data-i18n="workshopTitle">Atelier Pikala</title>
+  <link rel="stylesheet" href="assets/css/foundation.css"><link rel="stylesheet" href="atelier.css">
+  <link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#245c11">
+  <script type="module" src="atelier.js"></script>
+</head>
+<body>
+  <header class="workshop-header"><a href="admin.html?view=maintenance" class="pk-button pk-button--ghost" data-i18n="workshopBack">Administration</a><img src="logo.jpeg" alt="Pikala"><select class="pk-select" data-locale aria-label="Langue"><option value="fr">FR</option><option value="en">EN</option><option value="es">ES</option><option value="pt">PT</option><option value="ar">AR</option></select></header>
+  <main class="workshop-shell">
+    <section class="workshop-intro"><p>Pikala Control Center</p><h1 data-i18n="workshopTitle">Atelier Pikala</h1><span data-i18n="workshopSubtitle">Missions, inspections et réparations</span></section>
+    <nav class="workshop-tabs" aria-label="Atelier"><button data-tab="missions" class="is-active" data-i18n="workshopMissions">Missions</button><button data-tab="interventions" data-i18n="workshopInterventions">Interventions</button><button data-tab="parts" data-i18n="workshopParts">Pièces</button><button data-tab="reminders" data-i18n="workshopReminders">Rappels</button></nav>
+    <section data-workshop-content aria-live="polite" aria-busy="true"><div class="pk-state"><span class="pk-loader"></span><p data-i18n="workshopLoading">Chargement...</p></div></section>
+  </main>
+  <dialog class="pk-modal" data-workshop-dialog><form method="dialog" class="dialog-head"><h2 data-dialog-title></h2><button class="pk-button pk-button--icon" value="cancel" aria-label="Fermer">×</button></form><div data-dialog-body></div></dialog>
+</body>
+</html>

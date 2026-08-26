@@ -904,9 +904,9 @@ async function startRide(request, env) {
   let results;
   try {
     results = await DB.batch([
-      DB.prepare(`UPDATE docks SET status = 'available', bike_id = NULL, updated_at = ?
+      DB.prepare(`UPDATE docks SET status = 'available', bike_id = NULL, lock_status='unlocked', updated_at = ?
         WHERE id = ? AND station_id = ? AND status = 'occupied' AND bike_id = ?`).bind(claimTimestamp, bike.dock_id, bike.station_id, bike.id),
-      DB.prepare(`UPDATE bikes SET status = 'in_use', station_id = NULL, updated_at = ?
+      DB.prepare(`UPDATE bikes SET status = 'in_use', station_id = NULL, lock_status='unlocked', updated_at = ?
         WHERE id = ? AND status = 'available' AND maintenance_required = 0 AND station_id = ?
         AND EXISTS (SELECT 1 FROM docks WHERE id = ? AND status = 'available' AND bike_id IS NULL AND updated_at = ?)`).bind(claimTimestamp, bike.id, bike.station_id, bike.dock_id, claimTimestamp),
       DB.prepare(`INSERT INTO rides (user_id, bike_id, start_station_id, start_dock_id, status, updated_at)
@@ -970,10 +970,12 @@ async function returnRide(request, env, rideId) {
       WHERE id = ? AND user_id = ? AND bike_id = ? AND status = 'active'
       AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status = 'in_use')
       AND EXISTS (SELECT 1 FROM docks WHERE id = ? AND station_id = ? AND status = 'available' AND bike_id IS NULL)`).bind(dock.station_id, dock.id, endedAt, endedAt, chargeMinor, endedAt, rideRow.id, auth.user.id, rideRow.bike_id, rideRow.bike_id, dock.id, dock.station_id),
-    DB.prepare(`UPDATE bikes SET status = CASE WHEN maintenance_required = 1 THEN 'maintenance' ELSE 'available' END, station_id = ?, updated_at = ?
+    DB.prepare(`UPDATE bikes SET status = CASE WHEN maintenance_required = 1 THEN 'maintenance' ELSE 'available' END, station_id = ?, lock_status='locked',
+      total_rides=total_rides+1,total_usage_seconds=total_usage_seconds+COALESCE((SELECT duration_seconds FROM rides WHERE id=?),0),
+      odometer_meters=odometer_meters+COALESCE((SELECT distance_meters FROM rides WHERE id=?),0),updated_at = ?
       WHERE id = ? AND status = 'in_use'
-      AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)`).bind(dock.station_id, endedAt, rideRow.bike_id, rideRow.id, endedAt),
-    DB.prepare(`UPDATE docks SET status = 'occupied', bike_id = ?, updated_at = ?
+      AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)`).bind(dock.station_id,rideRow.id,rideRow.id,endedAt,rideRow.bike_id,rideRow.id,endedAt),
+    DB.prepare(`UPDATE docks SET status = 'occupied', bike_id = ?, lock_status='locked', updated_at = ?
       WHERE id = ? AND station_id = ? AND status = 'available' AND bike_id IS NULL
       AND EXISTS (SELECT 1 FROM rides WHERE id = ? AND status = 'completed' AND updated_at = ?)
       AND EXISTS (SELECT 1 FROM bikes WHERE id = ? AND status IN ('available','maintenance') AND station_id = ? AND updated_at = ?)`).bind(rideRow.bike_id, endedAt, dock.id, dock.station_id, rideRow.id, endedAt, rideRow.bike_id, dock.station_id, endedAt),

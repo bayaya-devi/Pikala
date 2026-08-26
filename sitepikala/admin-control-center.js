@@ -13,7 +13,7 @@ export const CONTROL_VIEWS = new Set(CONTROL_NAV.flatMap(([, items]) => items.ma
 
 export const CONTROL_COLUMNS = {
   employees: [['employee_code','adminCode'],['first_name','adminName'],['email','adminEmail'],['role','adminRole'],['zones','adminZones'],['last_activity_at','adminLastActivity'],['status','adminStatus']],
-  docks: [['public_code','adminCode'],['station_name','adminStation'],['position','#'],['bike_code','adminBike'],['status','adminStatus'],['updated_at','adminDate']],
+  docks: [['public_code','adminCode'],['station_name','adminStation'],['position','#'],['bike_code','adminBike'],['lock_status','adminLock'],['connectivity_status','adminConnectivity'],['last_seen_at','adminLastSeen'],['status','adminStatus']],
   inspections: [['public_code','adminCode'],['inspection_type','adminCategory'],['bike_code','adminBike'],['station_name','adminStation'],['inspector_email','adminAssigned'],['due_at','adminDue'],['status','adminStatus']],
   missions: [['public_code','adminCode'],['mission_type','adminCategory'],['title','adminSubject'],['priority','adminPriority'],['assignee_email','adminAssigned'],['due_at','adminDue'],['status','adminStatus']],
   rebalancing: [['source_station','adminDeparture'],['destination_station','adminArrival'],['suggested_bikes','adminBikes'],['priority','adminPriority'],['reason','adminReason'],['status','adminStatus']],

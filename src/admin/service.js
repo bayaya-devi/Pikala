@@ -1,6 +1,7 @@
 import { handleAdminOperationsApi } from './operations.js';
 import { handleControlCenterApi } from './control-center.js';
 import { handleStaffApi } from './staff.js';
+import { handleTwinApi } from './digital-twins.js';
 import { adminRoutePermission, hasPermission } from '../auth/rbac.js';
 
 const USER_ROLES = new Set(['user', 'support', 'operator', 'admin']);
@@ -138,11 +139,13 @@ async function userUpdate(request, DB, json, actor, context, id, readJson) {
 }
 
 const STATION_SELECT = `SELECT stations.id, stations.public_code, stations.slug, stations.name, stations.city, stations.address,
-  stations.latitude, stations.longitude, stations.capacity, stations.is_active, stations.opening_hours_json, stations.created_at, stations.updated_at,
+  stations.latitude, stations.longitude, stations.capacity, stations.is_active, stations.opening_hours_json, stations.connectivity_status,stations.last_seen_at,stations.created_at, stations.updated_at,
   COUNT(DISTINCT CASE WHEN docks.status <> 'disabled' THEN docks.id END) dock_count,
   COUNT(DISTINCT CASE WHEN docks.status = 'available' THEN docks.id END) docks_available,
   COUNT(DISTINCT CASE WHEN bikes.status = 'available' THEN bikes.id END) bikes_available,
-  COUNT(DISTINCT bikes.id) bikes_total FROM stations
+  COUNT(DISTINCT bikes.id) bikes_total,
+  (SELECT COUNT(*) FROM rides WHERE start_station_id=stations.id OR end_station_id=stations.id) rides_total,
+  (SELECT COUNT(*) FROM bike_incidents WHERE station_id=stations.id AND status IN ('open','triaged','in_progress')) open_incidents FROM stations
   LEFT JOIN docks ON docks.station_id = stations.id LEFT JOIN bikes ON bikes.station_id = stations.id`;
 
 async function stationsList(DB, json, url) {
@@ -195,11 +198,14 @@ async function stationCreate(request, DB, json, actor, context, readJson) {
 
 async function stationDetail(DB, json, id) {
   const station = await DB.prepare(`${STATION_SELECT} WHERE stations.id = ? GROUP BY stations.id`).bind(id).first(); if (!station) return missing(json, 'Station');
-  const [bikes, docks] = await DB.batch([
+  const [bikes, docks, incidents, inspections, events] = await DB.batch([
     DB.prepare('SELECT id, public_code, status, model, battery_level FROM bikes WHERE station_id = ? ORDER BY public_code').bind(id),
-    DB.prepare('SELECT id, position, public_code, status, bike_id FROM docks WHERE station_id = ? ORDER BY position').bind(id)
+    DB.prepare('SELECT id,position,public_code,status,bike_id,lock_status,connectivity_status,last_seen_at FROM docks WHERE station_id=? ORDER BY position').bind(id),
+    DB.prepare("SELECT id,public_code,incident_type,severity,status,created_at FROM bike_incidents WHERE station_id=? ORDER BY id DESC LIMIT 20").bind(id),
+    DB.prepare("SELECT id,public_code,status,outcome,due_at,completed_at FROM inspections WHERE station_id=? ORDER BY id DESC LIMIT 20").bind(id),
+    DB.prepare("SELECT id,event_type,from_status,to_status,metadata_json,created_at FROM infrastructure_events WHERE asset_type='station' AND asset_id=? ORDER BY id DESC LIMIT 50").bind(id)
   ]);
-  return json({ station: { ...station, openingHours: jsonValue(station.opening_hours_json, {}) }, bikes: bikes.results || [], docks: docks.results || [] });
+  return json({ station: { ...station, freePlaces:Number(station.docks_available||0), openingHours: jsonValue(station.opening_hours_json, {}) }, bikes: bikes.results || [], docks: docks.results || [], incidents:incidents.results||[], inspections:inspections.results||[], events:events.results||[] });
 }
 
 async function stationUpdate(request, DB, json, actor, context, id, readJson) {
@@ -221,10 +227,13 @@ async function stationDisable(DB, json, actor, context, id) {
 }
 
 const BIKE_SELECT = `SELECT bikes.id, bikes.code, bikes.public_code, bikes.station_id, stations.name station_name, bikes.status, bikes.battery_level,
-  bikes.model, bikes.serial_number, bikes.maintenance_required, bikes.last_service_at, bikes.retired_at, bikes.created_at, bikes.updated_at,
+  bikes.model,bikes.serial_number,bikes.maintenance_required,bikes.last_service_at,bikes.retired_at,bikes.lock_status,bikes.connectivity_status,bikes.last_seen_at,
+  bikes.gps_latitude,bikes.gps_longitude,bikes.odometer_meters,bikes.total_usage_seconds,bikes.total_rides,bikes.created_at,bikes.updated_at,
+  docks.id dock_id,docks.public_code dock_code,docks.position dock_position,
   (SELECT MAX(started_at) FROM rides WHERE bike_id = bikes.id) last_ride_at,
-  (SELECT COUNT(*) FROM maintenance_records WHERE bike_id = bikes.id AND status IN ('open','in_progress')) open_maintenance
-  FROM bikes LEFT JOIN stations ON stations.id = bikes.station_id`;
+  (SELECT COUNT(*) FROM maintenance_records WHERE bike_id = bikes.id AND status IN ('open','in_progress')) open_maintenance,
+  (SELECT COUNT(*) FROM bike_incidents WHERE bike_id=bikes.id AND status IN ('open','triaged','in_progress')) open_incidents
+  FROM bikes LEFT JOIN stations ON stations.id = bikes.station_id LEFT JOIN docks ON docks.bike_id=bikes.id`;
 
 async function bikesList(DB, json, url) {
   const search=query(url,'search');const status=query(url,'status',20);const stationId=integer(query(url,'stationId',20))||0;
@@ -255,8 +264,8 @@ async function bikeCreate(request,DB,json,actor,context,readJson){const input=bi
   }catch(error){const message=String(error.message);if(message.includes('bike station requires occupied dock'))return conflict(json,'Le quai vient d etre reserve. Reessayez.');if(message.includes('UNIQUE'))return conflict(json,'Le code ou le numero de serie existe deja.');throw error;}}
 
 async function bikeDetail(DB,json,id){const bike=await DB.prepare(`${BIKE_SELECT} WHERE bikes.id=?`).bind(id).first();if(!bike)return missing(json,'Velo');
-  const [rides,maintenance,incidents]=await DB.batch([DB.prepare('SELECT id,status,started_at,ended_at FROM rides WHERE bike_id=? ORDER BY id DESC LIMIT 10').bind(id),DB.prepare('SELECT * FROM maintenance_records WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id),DB.prepare('SELECT id,category,severity,status,description,created_at FROM bike_incidents WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id)]);
-  return json({bike,rides:rides.results||[],maintenance:maintenance.results||[],incidents:incidents.results||[]});}
+  const [rides,maintenance,incidents,inspections,events]=await DB.batch([DB.prepare('SELECT id,status,started_at,ended_at,duration_seconds,distance_meters FROM rides WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id),DB.prepare('SELECT * FROM maintenance_records WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id),DB.prepare('SELECT id,public_code,incident_type,severity,status,description,created_at FROM bike_incidents WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id),DB.prepare('SELECT id,public_code,status,outcome,due_at,completed_at FROM inspections WHERE bike_id=? ORDER BY id DESC LIMIT 20').bind(id),DB.prepare("SELECT id,event_type,from_status,to_status,from_station_id,to_station_id,ride_id,metadata_json,created_at FROM infrastructure_events WHERE asset_type='bike' AND asset_id=? ORDER BY id DESC LIMIT 50").bind(id)]);
+  return json({bike,rides:rides.results||[],maintenance:maintenance.results||[],incidents:incidents.results||[],inspections:inspections.results||[],events:events.results||[]});}
 
 async function bikeUpdate(request,DB,json,actor,context,id,readJson){const existing=await DB.prepare('SELECT * FROM bikes WHERE id=?').bind(id).first();if(!existing)return missing(json,'Velo');const input=bikeInput(await readJson(request),existing);if(!input)return invalid(json);
   const moving=(input.stationId??null)!==(existing.station_id??null);if(moving||input.status!==existing.status)return conflict(json,'Utilisez une commande forte du Control Center pour déplacer ou changer le statut du vélo.');if(existing.status==='in_use'&&(input.status!=='in_use'||moving))return conflict(json,'Un velo en trajet ne peut pas etre deplace ou desactive.');
@@ -317,6 +326,7 @@ export async function handleAdminApi(request, env, actor, utilities) {
     const assignedRead=requiredPermission==='missions.read'&&hasPermission(actor,'missions.read_assigned');
     if(!hasPermission(actor,requiredPermission)&&!assignedRead)return json({code:'FORBIDDEN',error:'Permission insuffisante.'},403);
     const staffResponse=await handleStaffApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(staffResponse)return staffResponse;
+    const twinResponse=await handleTwinApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(twinResponse)return twinResponse;
     const controlCenterResponse=await handleControlCenterApi(request,env,actor,{json,readJson,requestId,ipHint,logEvent});if(controlCenterResponse)return controlCenterResponse;
     const operationsResponse=await handleAdminOperationsApi(request,DB,actor,{json,readJson,requestId,ipHint});if(operationsResponse)return operationsResponse;
     if(method==='GET'&&path==='/api/admin/overview')return overview(DB,json);

@@ -2,6 +2,7 @@ import { getPaymentProvider } from './payments/provider.js';
 import { logEvent } from './observability.js';
 import { handleAdminApi } from './admin/service.js';
 import { handleOperationsApi } from './operations/service.js';
+import { hasPermission, loadStaffActor } from './auth/rbac.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
 const USER_FIELDS = 'id, first_name, last_name, email, phone, role, status, locale, created_at, email_verified, auth_version';
 const JOINED_USER_FIELDS = USER_FIELDS.split(', ').map((field) => `users.${field} AS ${field}`).join(', ');
@@ -270,6 +271,17 @@ async function requireUser(request, env) {
   const session = await currentUser(request, env);
   if (!session) return { response: json({ code: 'AUTH_REQUIRED', error: 'Authentification requise.' }, 401, {}, clearSessionCookies()) };
   return session;
+}
+
+async function requireStaff(request, env, permission = 'staff.access') {
+  const session = await requireUser(request, env);
+  if (session.response) return session;
+  const actor = await loadStaffActor(requireDb(env), session.user, { touch: true });
+  if (!actor || !hasPermission(actor, permission)) {
+    await securityEvent(requireDb(env), request, 'authorization_denied', 'blocked', session.user.id, { permission });
+    return { response: json({ code: 'FORBIDDEN', error: 'Acces refuse.' }, 403) };
+  }
+  return { ...session, user: actor };
 }
 
 async function requireRole(request, env, roles) {
@@ -806,8 +818,7 @@ function normalizePlanInput(body, existing = {}) {
   return { slug, name, description, amountMinor, currency, durationDays, billingPeriod, status, displayOrder, featured, benefits, translations };
 }
 
-async function adminPlans(request, env) {
-  const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+async function adminPlans(request, env, actor) {
   const DB = requireDb(env);
   if (request.method === 'GET') {
     const { results } = await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans ORDER BY display_order, id`).all();
@@ -819,12 +830,11 @@ async function adminPlans(request, env) {
     (slug,name,description,amount_minor,currency,billing_period,status,display_order,duration_days,benefits_json,translations_json,is_featured,version)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)`).bind(input.slug,input.name,input.description,input.amountMinor,input.currency,input.billingPeriod,input.status,input.displayOrder,input.durationDays,JSON.stringify(input.benefits),JSON.stringify(input.translations),input.featured?1:0).run();
   await DB.prepare('INSERT INTO admin_audit_logs (actor_user_id, action, target_type, target_id, request_id, ip_hint) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(auth.user.id, 'plan.create', 'plan', String(result.meta.last_row_id), requestId(request), (await ipHash(request)).slice(0,32)).run();
+    .bind(actor.id, 'plan.create', 'plan', String(result.meta.last_row_id), requestId(request), (await ipHash(request)).slice(0,32)).run();
   return json({ plan: serializePlan(await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans WHERE id = ?`).bind(result.meta.last_row_id).first()) }, 201);
 }
 
-async function adminPlanUpdate(request, env, planId) {
-  const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+async function adminPlanUpdate(request, env, planId, actor) {
   if (!validRideId(planId)) return json({ code: 'PLAN_NOT_FOUND', error: 'Offre introuvable.' }, 404);
   const DB = requireDb(env); const existing = await DB.prepare('SELECT * FROM plans WHERE id = ?').bind(planId).first();
   if (!existing) return json({ code: 'PLAN_NOT_FOUND', error: 'Offre introuvable.' }, 404);
@@ -834,7 +844,7 @@ async function adminPlanUpdate(request, env, planId) {
     duration_days=?,benefits_json=?,translations_json=?,is_featured=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
     .bind(input.slug,input.name,input.description,input.amountMinor,input.currency,input.billingPeriod,input.status,input.displayOrder,input.durationDays,JSON.stringify(input.benefits),JSON.stringify(input.translations),input.featured?1:0,planId).run();
   await DB.prepare('INSERT INTO admin_audit_logs (actor_user_id, action, target_type, target_id, request_id, ip_hint) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(auth.user.id, 'plan.update', 'plan', String(planId), requestId(request), (await ipHash(request)).slice(0,32)).run();
+    .bind(actor.id, 'plan.update', 'plan', String(planId), requestId(request), (await ipHash(request)).slice(0,32)).run();
   return json({ plan: serializePlan(await DB.prepare(`SELECT ${PLAN_FIELDS} FROM plans WHERE id = ?`).bind(planId).first()) });
 }
 
@@ -1019,7 +1029,7 @@ async function adminOverview(request, env) {
 
 async function guardPrivatePage(request, env, url) {
   if (!PRIVATE_PAGES.has(url.pathname) && !ADMIN_PAGES.has(url.pathname)) return null;
-  const auth = ADMIN_PAGES.has(url.pathname) ? await requireRole(request, env, ['admin']) : await requireUser(request, env);
+  const auth = ADMIN_PAGES.has(url.pathname) ? await requireStaff(request, env) : await requireUser(request, env);
   if (!auth.response) return null;
   return auth.response.status === 403 ? redirect('/dashboard.html?access=denied') : redirect(`/connexion.html?next=${encodeURIComponent(url.pathname + url.search)}`, 302, clearSessionCookies());
 }
@@ -1067,11 +1077,15 @@ export default {
         return handleOperationsApi(request, env, auth.user, { json, readJson, logEvent, requestId: requestId(request) });
       }
       if (request.method === 'POST' && url.pathname === '/api/rides') return startRide(request, env);
-      if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') return adminPlans(request, env);
-      const adminPlanMatch = url.pathname.match(/^\/api\/admin\/plans\/([1-9][0-9]*)$/);
-      if (request.method === 'PATCH' && adminPlanMatch) return adminPlanUpdate(request, env, adminPlanMatch[1]);
       if (url.pathname.startsWith('/api/admin/')) {
-        const auth = await requireRole(request, env, ['admin']); if (auth.response) return auth.response;
+        const auth = await requireStaff(request, env); if (auth.response) return auth.response;
+        if (['GET','POST'].includes(request.method) && url.pathname === '/api/admin/plans') {
+          const permission=request.method==='GET'?'plans.read':'plans.manage';
+          if(!hasPermission(auth.user,permission))return json({code:'FORBIDDEN',error:'Permission insuffisante.'},403);
+          return adminPlans(request,env,auth.user);
+        }
+        const adminPlanMatch=url.pathname.match(/^\/api\/admin\/plans\/([1-9][0-9]*)$/);
+        if(request.method==='PATCH'&&adminPlanMatch){if(!hasPermission(auth.user,'plans.manage'))return json({code:'FORBIDDEN',error:'Permission insuffisante.'},403);return adminPlanUpdate(request,env,adminPlanMatch[1],auth.user);}
         return handleAdminApi(request, env, auth.user, { json, readJson, requestId: requestId(request), ipHint: (await ipHash(request)).slice(0, 32), logEvent });
       }
       if (request.method === 'GET' && ['/Pageuser.html', '/Pageuseren.html'].includes(url.pathname)) return redirect('/dashboard', 301);

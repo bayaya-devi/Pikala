@@ -9,6 +9,11 @@ Object.assign(ar,{adminWorkforce:'فرق الميدان',adminNetwork:'الشب�
 Object.assign(fr,{adminTakeControl:'Reprendre la main',adminTakeControlHint:'Commandes manuelles protégées et auditées',adminOpenCommand:'Ouvrir la commande'});
 Object.assign(en,{adminTakeControl:'Take control',adminTakeControlHint:'Protected and audited manual commands',adminOpenCommand:'Open command'});
 Object.assign(ar,{adminTakeControl:'التدخل اليدوي',adminTakeControlHint:'أوامر يدوية محمية ومسجلة',adminOpenCommand:'فتح الأمر'});
+Object.assign(fr,{adminZones:'Zones',adminLastActivity:'Dernière activité',adminHireDate:"Date d'arrivée",adminActivity:"Historique d'activité"});
+Object.assign(en,{adminZones:'Zones',adminLastActivity:'Last activity',adminHireDate:'Hire date',adminActivity:'Activity history'});
+Object.assign(es,{adminZones:'Zonas',adminLastActivity:'Última actividad',adminHireDate:'Fecha de incorporación',adminActivity:'Historial de actividad'});
+Object.assign(pt,{adminZones:'Zonas',adminLastActivity:'Última atividade',adminHireDate:'Data de entrada',adminActivity:'Histórico de atividade'});
+Object.assign(ar,{adminZones:'المناطق',adminLastActivity:'آخر نشاط',adminHireDate:'تاريخ الانضمام',adminActivity:'سجل النشاط'});
 for(const locale of [es,pt])for(const [key,value] of Object.entries(fr))if(!Object.hasOwn(locale,key))locale[key]=value;
 Object.assign(fr,{adminControlCenter:'Pikala Control Center'});
 Object.assign(en,{adminControlCenter:'Pikala Control Center'});

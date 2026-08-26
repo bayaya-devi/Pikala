@@ -19,6 +19,7 @@ function json(response, status, body) {
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  if (url.pathname === '/api/admin/session') return json(response, 200, { user:{ ...user, employee_code:'TEST-ADMIN-001', staff_id:1, permissions:['*','staff.access'], zones:[{id:1,code:'RABAT',name:'Rabat',city:'Rabat'}] } });
   if (url.pathname === '/api/admin/control-center') return json(response, 200, { service:{mode:'operational',computedMode:'degraded',message:''}, metrics:{activeUsers:12,bikes:{total:50,available:31,inUse:8,maintenance:6,unavailable:5},stations:{normal:6,weak:2,full:1,closed:1},activeRides:8,openIncidents:3,overdueMaintenance:2,criticalTickets:1,overdueMissions:2,offlineDevices:1}, attention:[{type:'mission_overdue',severity:'critical',resource_id:4,title:'Mission en retard',message:'MIS-0004 · Rééquilibrage centre'}], configuration:{database:'operational',email:'missing',payment:'missing',devices:'degraded'}, generatedAt:new Date().toISOString() });
   if (/^\/api\/admin\/control-center\/[a-z-]+$/.test(url.pathname)) return json(response, 200, { items:[], pagination:{page:1,limit:25,total:0,pages:1} });
   if (url.pathname === '/api/admin/settings') return json(response, 200, { settings:[] });

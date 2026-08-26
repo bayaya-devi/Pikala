@@ -11,14 +11,14 @@ VALUES
   ('dev-station-oudayas', 'dev-oudayas', 'Station Dev Oudayas', 'Rabat', 'Kasbah des Oudayas', 34.0318, -6.8361, 12, 0, 1, CURRENT_TIMESTAMP),
   ('dev-station-hassan', 'dev-hassan', 'Station Dev Hassan', 'Rabat', 'Tour Hassan', 34.0224, -6.8225, 12, 0, 1, CURRENT_TIMESTAMP);
 
-INSERT OR IGNORE INTO bikes (code, public_code, station_id, status, battery_level, model, updated_at)
+INSERT OR IGNORE INTO bikes (code, public_code, station_id, status, battery_level, model, maintenance_required, updated_at)
 VALUES
-  ('DEV-BIKE-001', 'dev-bike-001', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 100, 'Test', CURRENT_TIMESTAMP),
-  ('DEV-BIKE-002', 'dev-bike-002', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 90, 'Test', CURRENT_TIMESTAMP),
-  ('DEV-BIKE-003', 'dev-bike-003', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'available', 90, 'Test', CURRENT_TIMESTAMP),
-  ('DEV-BIKE-004', 'dev-bike-004', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'maintenance', 40, 'Test', CURRENT_TIMESTAMP),
-  ('DEV-BIKE-005', 'dev-bike-005', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 85, 'Test', CURRENT_TIMESTAMP),
-  ('DEV-BIKE-006', 'dev-bike-006', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'available', 75, 'Test', CURRENT_TIMESTAMP);
+  ('DEV-BIKE-001', 'dev-bike-001', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 100, 'Test', 0, CURRENT_TIMESTAMP),
+  ('DEV-BIKE-002', 'dev-bike-002', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 90, 'Test', 0, CURRENT_TIMESTAMP),
+  ('DEV-BIKE-003', 'dev-bike-003', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'available', 90, 'Test', 0, CURRENT_TIMESTAMP),
+  ('DEV-BIKE-004', 'dev-bike-004', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'maintenance', 40, 'Test', 1, CURRENT_TIMESTAMP),
+  ('DEV-BIKE-005', 'dev-bike-005', (SELECT id FROM stations WHERE public_code='dev-station-oudayas'), 'available', 85, 'Test', 0, CURRENT_TIMESTAMP),
+  ('DEV-BIKE-006', 'dev-bike-006', (SELECT id FROM stations WHERE public_code='dev-station-hassan'), 'available', 75, 'Test', 0, CURRENT_TIMESTAMP);
 
 UPDATE rides SET status='cancelled', ended_at=COALESCE(ended_at,CURRENT_TIMESTAMP), updated_at=CURRENT_TIMESTAMP
 WHERE status='active' AND bike_id IN (SELECT id FROM bikes WHERE code LIKE 'DEV-BIKE-%');
@@ -27,7 +27,8 @@ WHERE station_id IN (SELECT id FROM stations WHERE public_code IN ('dev-station-
 UPDATE bikes SET station_id=CASE WHEN code IN ('DEV-BIKE-001','DEV-BIKE-002','DEV-BIKE-005')
   THEN (SELECT id FROM stations WHERE public_code='dev-station-oudayas')
   ELSE (SELECT id FROM stations WHERE public_code='dev-station-hassan') END,
-  status=CASE WHEN code='DEV-BIKE-004' THEN 'maintenance' ELSE 'available' END, updated_at=CURRENT_TIMESTAMP
+  status=CASE WHEN code='DEV-BIKE-004' THEN 'maintenance' ELSE 'available' END,
+  maintenance_required=CASE WHEN code='DEV-BIKE-004' THEN 1 ELSE 0 END, updated_at=CURRENT_TIMESTAMP
 WHERE code IN ('DEV-BIKE-001','DEV-BIKE-002','DEV-BIKE-003','DEV-BIKE-004','DEV-BIKE-005','DEV-BIKE-006');
 
 INSERT OR IGNORE INTO docks (station_id, position, public_code, status)

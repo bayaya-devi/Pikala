@@ -66,6 +66,8 @@ export function adminRoutePermission(method, path) {
   if (path.startsWith('/api/admin/settings')) return method === 'GET' ? 'settings.read' : 'settings.manage';
   if (path.startsWith('/api/admin/audit-logs')) return 'audit.read';
   if (path.startsWith('/api/admin/staff')) return method === 'GET' ? 'employees.read' : 'employees.manage';
+  if (path.startsWith('/api/admin/docks')) return method === 'GET' ? 'docks.read' : 'docks.manage';
+  if (path.startsWith('/api/admin/twins') || path.startsWith('/api/admin/bulk')) return 'staff.access';
   return 'staff.access';
 }
 

@@ -53,6 +53,7 @@ npx wrangler secret list
 1. Exporter une sauvegarde D1 distante.
 2. Appliquer les migrations D1 versionnees.
 3. Configurer `RESEND_API_KEY` et `FROM_EMAIL`.
+4. Vérifier le domaine expéditeur dans Resend, ajouter les enregistrements DNS demandés, puis tester inscription, renvoi et mot de passe oublié en production. Sans ces deux valeurs, l'API répond explicitement `EMAIL_PROVIDER_UNAVAILABLE` et ne prétend pas avoir envoyé un message.
 4. Executer `npm run test:auth`, `npm run test:data` et le dry-run Wrangler.
 5. Deployer le Worker.
 6. Tester inscription, reception du mail, verification, connexion, reset et acces admin refuse.

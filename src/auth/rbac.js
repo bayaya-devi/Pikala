@@ -54,6 +54,10 @@ export function adminRoutePermission(method, path) {
   if (path === '/api/admin/overview') return 'dashboard.view';
   if (path.startsWith('/api/admin/workshop')) return method === 'GET' ? 'maintenance.read' : 'maintenance.manage';
   if (path.startsWith('/api/admin/field/')) return 'staff.access';
+  if (path.startsWith('/api/admin/supervision/alerts')) return method === 'GET' ? 'alerts.read' : 'alerts.manage';
+  if (path.startsWith('/api/admin/supervision/rules')) return method === 'GET' ? 'automations.read' : 'automations.manage';
+  if (path === '/api/admin/supervision/run') return 'automations.manage';
+  if (path.startsWith('/api/admin/iot/')) return method === 'GET' ? 'devices.read' : 'devices.manage';
   if (path.startsWith('/api/admin/users')) return method === 'GET' ? 'users.read_limited' : 'users.manage';
   if (path.startsWith('/api/admin/stations')) return method === 'GET' ? 'stations.read' : 'stations.manage';
   if (path.startsWith('/api/admin/bikes')) return method === 'GET' ? 'bikes.read' : 'bikes.manage';
@@ -78,6 +82,6 @@ export const CONTROL_ACTION_PERMISSIONS = Object.freeze({
   'bike.maintenance':'maintenance.manage','bike.move':'bikes.move','dock.correct':'docks.manage','user.suspend':'users.manage','user.reactivate':'users.manage',
   'ride.force_end':'rides.force_end','maintenance.assign':'maintenance.manage','employee.upsert':'employees.manage','inspection.create':'inspections.manage',
   'mission.create':'missions.manage','mission.assign':'missions.manage','notification.send':'notifications.send','service.maintenance':'service.override','service.restore':'service.override',
-  'alert.acknowledge':'alerts.manage','alert.resolve':'alerts.manage','automation.toggle':'automations.manage','device.status':'devices.manage',
+  'alert.acknowledge':'alerts.manage','alert.resolve':'alerts.manage','alert.status':'alerts.manage','automation.toggle':'automations.manage','device.status':'devices.manage',
   'entitlement.grant':'entitlements.manage','entitlement.revoke':'entitlements.manage'
 });

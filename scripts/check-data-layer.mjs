@@ -19,7 +19,9 @@ const expectedMigrations = [
   '0013_staff_rbac.sql',
   '0014_infrastructure_digital_twins.sql',
   '0015_professional_maintenance.sql',
-  '0016_field_operations.sql'
+  '0016_field_operations.sql',
+  '0017_supervision_engine.sql',
+  '0018_iot_core.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
@@ -30,7 +32,9 @@ const expectedTables = [
   'staff_members', 'staff_zones', 'staff_member_zones', 'staff_role_permissions', 'staff_permission_overrides', 'staff_activity_logs',
   'field_tasks', 'field_task_bikes', 'field_task_events', 'field_scan_records',
   'infrastructure_events', 'maintenance_parts', 'maintenance_part_usages', 'inspection_check_items',
-  'maintenance_comments', 'maintenance_schedules', 'maintenance_reminders'
+  'maintenance_comments', 'maintenance_schedules', 'maintenance_reminders',
+  'supervision_rules', 'supervision_alerts', 'supervision_alert_events',
+  'device_credentials', 'device_commands', 'device_command_results', 'device_events', 'device_telemetry', 'device_rate_limits'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };
@@ -59,6 +63,9 @@ assert(/guard_dock_twin_update/i.test(sql) && /guard_bike_twin_update/i.test(sql
 assert(/guard_infrastructure_events_no_update/i.test(sql) && /guard_infrastructure_events_no_delete/i.test(sql), 'L historique des jumeaux numeriques doit etre immuable.');
 assert(/guard_professional_workflow_update/i.test(sql) && /guard_professional_return_to_service/i.test(sql), 'Le workflow atelier professionnel doit etre protege par D1.');
 assert(/guard_maintenance_required_ride/i.test(sql), 'D1 doit refuser la location d un velo exigeant une maintenance.');
+assert(/guard_device_command_transition/i.test(sql), 'Le cycle de commande IoT doit etre protege par D1.');
+assert(/guard_device_assignment_insert/i.test(sql) && /guard_device_assignment_update/i.test(sql), 'Un device doit appartenir a un seul jumeau numerique.');
+assert(/UNIQUE \(device_id,nonce\)/i.test(sql), 'Les evenements IoT rejoues doivent etre bloques par D1.');
 assert((sql.match(/FOREIGN KEY/gi) || []).length >= 20, 'Le modele doit definir ses relations par cles etrangeres.');
 assert((sql.match(/CREATE (?:UNIQUE )?INDEX/gi) || []).length >= 20, 'Le modele doit definir ses index de requete.');
 assert(/PRAGMA defer_foreign_keys = ON/i.test(sql), 'La migration additive doit differer les controles de cles pendant le backfill.');

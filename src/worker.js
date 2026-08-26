@@ -1,7 +1,10 @@
 import { getPaymentProvider } from './payments/provider.js';
+import { getEmailProvider } from './email/provider.js';
 import { logEvent } from './observability.js';
 import { handleAdminApi } from './admin/service.js';
 import { refreshMaintenanceReminders } from './admin/workshop.js';
+import { runSupervision } from './admin/supervision.js';
+import { handleDeviceEvent, requestIotReturn, reserveIotRide } from './iot/service.js';
 import { handleOperationsApi } from './operations/service.js';
 import { hasPermission, loadStaffActor } from './auth/rbac.js';
 import { PLAN_FIELDS, activatePaidPayment, findActivePlan, listActivePlans, parseJson, recordNonPaidEvent, refreshUserSubscriptions, serializePlan, subscriptionOverview } from './payments/service.js';
@@ -299,9 +302,7 @@ function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, (char) => 
 function publicOrigin(env) { try { return new URL(env.PUBLIC_ORIGIN || 'https://pikala.aetbconseil.workers.dev').origin; } catch { return 'https://pikala.aetbconseil.workers.dev'; } }
 
 async function sendEmail(env, { to, subject, html }) {
-  if (!env.RESEND_API_KEY || !env.FROM_EMAIL) return false;
-  const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: env.FROM_EMAIL, to, subject, html }) });
-  return response.ok;
+  return (await getEmailProvider(env).send({ to, subject, html })).ok;
 }
 
 async function sendVerificationEmail(env, email, token, firstName) {
@@ -340,6 +341,7 @@ async function signup(request, env) {
   if (!validEmail(email)) return json({ code: 'EMAIL_INVALID', error: 'Adresse email invalide.' }, 400);
   if (!validPhone(phone)) return json({ code: 'PHONE_INVALID', error: 'Numero de telephone invalide.' }, 400);
   if (!validPassword(password)) return json({ code: 'PASSWORD_INVALID', error: 'Le mot de passe doit contenir entre 15 et 128 caracteres.' }, 400);
+  if (!getEmailProvider(env).configured) return json({ code: 'EMAIL_PROVIDER_UNAVAILABLE', error: "L'inscription est temporairement indisponible car le service email n'est pas configure." }, 503);
   const DB = requireDb(env);
   const limit = await rateLimit(DB, request, 'signup', email, 5, 900, 900);
   if (!limit.allowed) return json({ code: 'RATE_LIMITED', error: 'Trop de tentatives. Reessayez plus tard.' }, 429, { 'retry-after': String(limit.retryAfter) });
@@ -362,6 +364,7 @@ async function signup(request, env) {
   const token = await createEmailToken(DB, 'email_verifications', result.meta.last_row_id, request, EMAIL_TOKEN_TTL_SECONDS);
   const emailResult = await sendVerificationEmail(env, email, token, firstName);
   await securityEvent(DB, request, 'signup', 'success', result.meta.last_row_id, { emailDispatched: emailResult.sent });
+  if (!emailResult.sent) return json({ code: 'EMAIL_DELIVERY_FAILED', error: "Le compte est en attente, mais l'email de confirmation n'a pas pu etre envoye. Reessayez l'envoi." }, 503);
   return genericEmailResponse({ pendingVerification: true, verificationUrl: emailResult.url });
 }
 
@@ -383,6 +386,7 @@ async function resendVerification(request, env) {
   const body = await readJson(request);
   const email = String(body?.email || '').trim().toLowerCase();
   if (!validEmail(email)) return genericEmailResponse();
+  if (!getEmailProvider(env).configured) return json({ code: 'EMAIL_PROVIDER_UNAVAILABLE', error: 'Le service email est temporairement indisponible.' }, 503);
   const DB = requireDb(env);
   const limit = await rateLimit(DB, request, 'resend_verification', email, 3, 3600, 3600);
   if (!limit.allowed) return genericEmailResponse();
@@ -446,6 +450,7 @@ async function forgotPassword(request, env) {
   const body = await readJson(request);
   const email = String(body?.email || '').trim().toLowerCase();
   if (!validEmail(email)) return genericEmailResponse();
+  if (!getEmailProvider(env).configured) return json({ code: 'EMAIL_PROVIDER_UNAVAILABLE', error: 'Le service email est temporairement indisponible.' }, 503);
   const DB = requireDb(env);
   const limit = await rateLimit(DB, request, 'forgot_password', email, 3, 3600, 3600);
   if (!limit.allowed) return genericEmailResponse();
@@ -895,8 +900,22 @@ async function startRide(request, env) {
   const currentRide = currentRideResult.results?.[0];
   const bike = bikeResult.results?.[0];
   if (!subscriptionRow) return json({ code: 'SUBSCRIPTION_REQUIRED', error: 'Un abonnement actif est necessaire.' }, 409);
-  if (currentRide) return json({ code: 'RIDE_ALREADY_ACTIVE', error: 'Un trajet est deja en cours.' }, 409);
   if (!bike) return json({ code: 'QR_UNKNOWN', error: 'Ce QR ne correspond a aucun velo Pikala.' }, 404);
+  try {
+    const pending = await reserveIotRide(DB, env, {
+      userId: auth.user.id, bike, requestId: requestId(request),
+      idempotencyKey: String(body.idempotencyKey || request.headers.get('idempotency-key') || '').trim()
+    });
+    if (pending) {
+      logEvent('ride.unlock.requested', { requestId: requestId(request), userId: auth.user.id, resourceType: 'ride', resourceId: pending.rideId, outcome: 'pending' });
+      return json({ success: true, pendingHardware: true, ride: { id: pending.rideId, status: 'reserved' }, command: { id: pending.command.command_id, status: pending.command.status } }, 202);
+    }
+  } catch (error) {
+    const messages={IOT_COMMAND_INVALID:'Une nouvelle tentative est necessaire.',DEVICE_PROVIDER_UNAVAILABLE:'Le service de deverrouillage est indisponible.',BIKE_LOCK_UNAVAILABLE:'La serrure de ce velo est indisponible.',DEVICE_OFFLINE:'La serrure de ce velo est hors ligne.',BIKE_UNAVAILABLE:'Ce velo vient de devenir indisponible.',BIKE_MAINTENANCE:'Ce velo est en maintenance.',STATION_CLOSED:'La station de ce velo est fermee.',BIKE_DOCK_INVALID:"Le velo n'est pas correctement attache a un dock.",RIDE_ALREADY_ACTIVE:'Un trajet est deja en cours.'};
+    if(messages[error?.code])return json({code:error.code,error:messages[error.code]},error.code==='IOT_COMMAND_INVALID'?400:409);
+    throw error;
+  }
+  if (currentRide) return json({ code: 'RIDE_ALREADY_ACTIVE', error: 'Un trajet est deja en cours.' }, 409);
   if (bike.status === 'maintenance' || Number(bike.maintenance_required) === 1) return json({ code: 'BIKE_MAINTENANCE', error: 'Ce velo est en maintenance.' }, 409);
   if (bike.status !== 'available') return json({ code: 'BIKE_UNAVAILABLE', error: 'Ce velo est deja utilise ou indisponible.' }, 409);
   if (!bike.station_id || Number(bike.station_active) !== 1) return json({ code: 'STATION_CLOSED', error: 'La station de ce velo est fermee.' }, 409);
@@ -962,6 +981,20 @@ async function returnRide(request, env, rideId) {
   if (!dock) return json({ code: 'DOCK_UNKNOWN', error: 'Ce QR ne correspond a aucun dock Pikala.' }, 404);
   if (Number(dock.station_active) !== 1) return json({ code: 'STATION_CLOSED', error: 'Cette station est fermee.' }, 409);
   if (dock.status !== 'available' || dock.bike_id !== null) return json({ code: 'DOCK_UNAVAILABLE', error: "Ce dock n'est pas disponible." }, 409);
+  try {
+    const pending = await requestIotReturn(DB, env, {
+      userId: auth.user.id, ride: rideRow, dock, requestId: requestId(request),
+      idempotencyKey: String(body.idempotencyKey || request.headers.get('idempotency-key') || '').trim()
+    });
+    if (pending) {
+      logEvent('ride.lock.requested', { requestId: requestId(request), userId: auth.user.id, resourceType: 'ride', resourceId: rideRow.id, outcome: 'pending' });
+      return json({ success: true, pendingHardware: true, ride: { ...rideRow, status: 'active' }, command: { id: pending.command.command_id, status: pending.command.status } }, 202);
+    }
+  } catch (error) {
+    const messages={IOT_COMMAND_INVALID:'Une nouvelle tentative est necessaire.',DEVICE_PROVIDER_UNAVAILABLE:'Le service de verrouillage est indisponible.',DOCK_DEVICE_UNAVAILABLE:'Le dispositif de restitution est indisponible.',DEVICE_OFFLINE:'Le dispositif de restitution est hors ligne.'};
+    if(messages[error?.code])return json({code:error.code,error:messages[error.code]},error.code==='IOT_COMMAND_INVALID'?400:409);
+    throw error;
+  }
   const endedAt = new Date().toISOString();
   const chargeMinor = calculateRideChargeMinor();
   const results = await DB.batch([
@@ -1042,8 +1075,10 @@ export default {
     const url = new URL(request.url);
     try {
       const paymentWebhookMatch = url.pathname.match(/^\/api\/payments\/webhooks\/([a-z0-9-]+)$/);
-      if (!paymentWebhookMatch && !csrfAllowed(request, env)) return json({ code: 'CSRF_REJECTED', error: 'Requete refusee.' }, 403);
+      const iotEventPath = request.method === 'POST' && url.pathname === '/api/iot/events';
+      if (!paymentWebhookMatch && !iotEventPath && !csrfAllowed(request, env)) return json({ code: 'CSRF_REJECTED', error: 'Requete refusee.' }, 403);
       if (request.method === 'POST' && paymentWebhookMatch) return paymentWebhook(request, env, paymentWebhookMatch[1]);
+      if (iotEventPath) return handleDeviceEvent(request, env, { json });
       if (request.method === 'GET' && url.pathname === '/api/health') return json({ ok: true });
       if (request.method === 'POST' && url.pathname === '/api/signup') return signup(request, env);
       if (request.method === 'GET' && url.pathname === '/api/verify-email') return verifyEmail(request, env);
@@ -1107,5 +1142,5 @@ export default {
     }
     return json({ code: 'NOT_FOUND', error: 'Route introuvable.' }, 404);
   },
-  async scheduled(_controller,env){if(!env.DB)return;try{const result=await refreshMaintenanceReminders(env.DB);logEvent('maintenance.reminders.generated',{count:Number(result.meta?.changes||0),outcome:'success'});}catch(error){logEvent('maintenance.reminders.failure',{code:error?.code||'SCHEDULE_ERROR',outcome:'failure'},'error');throw error;}}
+  async scheduled(_controller,env){if(!env.DB)return;try{const result=await refreshMaintenanceReminders(env.DB);const supervision=await runSupervision(env.DB);logEvent('maintenance.reminders.generated',{count:Number(result.meta?.changes||0),outcome:'success'});logEvent('supervision.run',{count:supervision.created,outcome:'success'});}catch(error){logEvent('supervision.failure',{code:error?.code||'SCHEDULE_ERROR',outcome:'failure'},'error');throw error;}}
 };

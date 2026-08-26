@@ -1,3 +1,6 @@
+export const STAFF_ROLES = ['super_admin','admin','operations_manager','station_manager','technician','field_agent','support_agent','finance','analyst'];
+export const VIEW_PERMISSIONS = Object.freeze({dashboard:'dashboard.view',users:'users.read_limited',stations:'stations.read',bikes:'bikes.read',rides:'rides.read',plans:'plans.read',subscriptions:'subscriptions.read',payments:'payments.read',incidents:'incidents.read',maintenance:'maintenance.read',support:'support.read',notifications:'notifications.read',settings:'settings.read',audit:'audit.read',employees:'employees.read',missions:'missions.read',inspections:'inspections.read',docks:'docks.read',rebalancing:'rebalancing.read',devices:'devices.read',alerts:'alerts.read',automations:'automations.read',entitlements:'entitlements.manage',overrides:'audit.read',system:'dashboard.view'});
+export const ACTION_PERMISSIONS = Object.freeze({'station.open':'stations.manage','station.close':'stations.manage','bike.block':'bikes.manage','bike.restore':'bikes.manage','bike.maintenance':'maintenance.manage','bike.move':'bikes.move','dock.correct':'docks.manage','user.suspend':'users.manage','user.reactivate':'users.manage','ride.force_end':'rides.force_end','maintenance.assign':'maintenance.manage','mission.create':'missions.manage','mission.assign':'missions.manage','notification.send':'notifications.send','service.maintenance':'service.override','service.restore':'service.override','alert.acknowledge':'alerts.manage','alert.resolve':'alerts.manage','automation.toggle':'automations.manage','device.status':'devices.manage','entitlement.grant':'entitlements.manage','entitlement.revoke':'entitlements.manage'});
 export const CONTROL_NAV = [
   ['adminWorkforce', [['employees','id-card','adminEmployees'],['missions','clipboard-list','adminMissions'],['inspections','clipboard-check','adminInspections']]],
   ['adminNetwork', [['docks','panel-top','adminDocks'],['rebalancing','arrow-left-right','adminRebalancing'],['devices','router','adminDevices']]],
@@ -9,7 +12,7 @@ export const CONTROL_NAV = [
 export const CONTROL_VIEWS = new Set(CONTROL_NAV.flatMap(([, items]) => items.map(([view]) => view)));
 
 export const CONTROL_COLUMNS = {
-  employees: [['employee_code','adminCode'],['email','adminEmail'],['job_role','adminRole'],['team_name','adminTeam'],['availability','adminAvailability'],['status','adminStatus'],['updated_at','adminDate']],
+  employees: [['employee_code','adminCode'],['first_name','adminName'],['email','adminEmail'],['role','adminRole'],['zones','adminZones'],['last_activity_at','adminLastActivity'],['status','adminStatus']],
   docks: [['public_code','adminCode'],['station_name','adminStation'],['position','#'],['bike_code','adminBike'],['status','adminStatus'],['updated_at','adminDate']],
   inspections: [['public_code','adminCode'],['inspection_type','adminCategory'],['bike_code','adminBike'],['station_name','adminStation'],['inspector_email','adminAssigned'],['due_at','adminDue'],['status','adminStatus']],
   missions: [['public_code','adminCode'],['mission_type','adminCategory'],['title','adminSubject'],['priority','adminPriority'],['assignee_email','adminAssigned'],['due_at','adminDue'],['status','adminStatus']],
@@ -47,11 +50,7 @@ function action(actionName, targetId, fields = [], initial = {}) {
 }
 
 export function actionFor(view, item) {
-  if (view === 'employees') return action('employee.upsert', item.user_id, [
-    {name:'userId',label:'adminUser',type:'number',required:true},{name:'employeeCode',label:'adminCode',required:true},
-    {name:'jobRole',label:'adminRole',type:'select',options:['operator','technician','support','supervisor','finance','administrator'].map((value)=>[value,value])},
-    {name:'teamName',label:'adminTeam'}
-  ], {userId:item.user_id,employeeCode:item.employee_code,jobRole:item.job_role,teamName:item.team_name||''});
+  if (view === 'employees') return null;
   if (view === 'docks') return action('dock.correct', item.id, [{name:'status',label:'adminStatus',type:'select',options:['available','maintenance','disabled'].map((value)=>[value,value])}], {status:item.status});
   if (view === 'missions') return action('mission.assign', item.id, [{name:'userId',label:'adminAssigned',type:'number',required:true}]);
   if (view === 'rebalancing') return action('mission.create', null, [
@@ -68,7 +67,7 @@ export function actionFor(view, item) {
 }
 
 export function createActionFor(view) {
-  if (view === 'employees') return actionFor('employees', {user_id:null,employee_code:'',job_role:'operator',team_name:''});
+  if (view === 'employees') return null;
   if (view === 'inspections') return action('inspection.create', null, [
     {name:'inspectionType',label:'adminCategory',type:'select',options:['bike','station','dock','safety'].map((value)=>[value,value])},
     {name:'bikeId',label:'adminBike',type:'number'},{name:'stationId',label:'adminStation',type:'number'},

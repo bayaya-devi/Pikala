@@ -15,14 +15,16 @@ const expectedMigrations = [
   '0009_admin_concurrency_guards.sql',
   '0010_admin_bike_dock_guards.sql',
   '0011_operational_workflows.sql',
-  '0012_control_center.sql'
+  '0012_control_center.sql',
+  '0013_staff_rbac.sql'
 ];
 const expectedTables = [
   'users', 'sessions', 'email_verifications', 'password_reset_tokens',
   'stations', 'bikes', 'docks', 'plans', 'subscriptions', 'payments',
   'rides', 'support_tickets', 'bike_incidents', 'notifications', 'admin_audit_logs', 'auth_rate_limits', 'security_events', 'payment_events', 'maintenance_records', 'app_settings', 'support_ticket_messages', 'workflow_events',
   'employee_profiles', 'inspections', 'missions', 'mission_bikes', 'rebalancing_recommendations',
-  'automation_rules', 'network_alerts', 'devices', 'admin_overrides', 'manual_entitlements'
+  'automation_rules', 'network_alerts', 'devices', 'admin_overrides', 'manual_entitlements',
+  'staff_members', 'staff_zones', 'staff_member_zones', 'staff_role_permissions', 'staff_permission_overrides', 'staff_activity_logs'
 ];
 const failures = [];
 const assert = (condition, message) => { if (!condition) failures.push(message); };

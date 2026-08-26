@@ -1,5 +1,7 @@
 import { handleAdminOperationsApi } from './operations.js';
 import { handleControlCenterApi } from './control-center.js';
+import { handleStaffApi } from './staff.js';
+import { adminRoutePermission, hasPermission } from '../auth/rbac.js';
 
 const USER_ROLES = new Set(['user', 'support', 'operator', 'admin']);
 const USER_STATUSES = new Set(['active', 'suspended', 'disabled']);
@@ -81,17 +83,19 @@ async function overview(DB, json) {
   }, ridesByDay: results[9].results || [] });
 }
 
-async function usersList(DB, json, url) {
+async function usersList(DB, json, url, actor) {
   const search = query(url, 'search'); const role = query(url, 'role', 20); const status = query(url, 'status', 20);
   const conditions = ['(? = \'\' OR lower(users.first_name || \' \' || users.last_name || \' \' || users.email || \' \' || COALESCE(users.phone,\'\')) LIKE \'%\' || lower(?) || \'%\')', '(? = \'\' OR users.role = ?)', '(? = \'\' OR users.status = ?)'];
   const bindings = [search, search, role, role, status, status]; const where = `WHERE ${conditions.join(' AND ')}`;
-  return json(await paged(DB, `SELECT users.id, users.first_name, users.last_name, users.email, users.phone, users.role, users.status, users.locale,
+  const data=await paged(DB, `SELECT users.id, users.first_name, users.last_name, users.email, users.phone, users.role, users.status, users.locale,
     users.email_verified, users.created_at, users.last_login_at, plans.name AS plan_name, subscriptions.status AS subscription_status
     FROM users LEFT JOIN subscriptions ON subscriptions.user_id = users.id AND subscriptions.status = 'active'
-    LEFT JOIN plans ON plans.id = subscriptions.plan_id ${where} ORDER BY users.id DESC`, `SELECT COUNT(*) count FROM users ${where}`, bindings, url));
+    LEFT JOIN plans ON plans.id = subscriptions.plan_id ${where} ORDER BY users.id DESC`, `SELECT COUNT(*) count FROM users ${where}`, bindings, url);
+  if(!hasPermission(actor,'users.read_full'))data.items=data.items.map(({phone,locale,plan_name,subscription_status,...item})=>item);
+  return json(data);
 }
 
-async function userDetail(DB, json, id) {
+async function userDetail(DB, json, id, actor) {
   const user = await DB.prepare(`SELECT users.id, users.first_name, users.last_name, users.email, users.phone, users.role, users.status,
     users.status_reason, users.locale, users.email_verified, users.created_at, users.last_login_at,
     subscriptions.id subscription_id, subscriptions.status subscription_status, subscriptions.current_period_end, plans.name plan_name
@@ -106,7 +110,8 @@ async function userDetail(DB, json, id) {
       FROM bike_incidents LEFT JOIN rides ON rides.id = bike_incidents.ride_id
       WHERE bike_incidents.reported_by_user_id = ? OR rides.user_id = ? ORDER BY bike_incidents.id DESC LIMIT 10`).bind(id, id)
   ]);
-  return json({ user, rides: rides.results || [], tickets: tickets.results || [], incidents: incidents.results || [] });
+  if(!hasPermission(actor,'users.read_full')){delete user.phone;delete user.status_reason;delete user.locale;delete user.subscription_id;delete user.current_period_end;}
+  return json({ user, rides: rides.results || [], tickets: tickets.results || [], incidents: hasPermission(actor,'users.read_full') ? (incidents.results || []) : [] });
 }
 
 async function userUpdate(request, DB, json, actor, context, id, readJson) {
@@ -114,6 +119,7 @@ async function userUpdate(request, DB, json, actor, context, id, readJson) {
   const existing = await DB.prepare('SELECT id, role, status FROM users WHERE id = ?').bind(id).first(); if (!existing) return missing(json, 'Utilisateur');
   const role = String(body.role ?? existing.role); const status = String(body.status ?? existing.status); const reason = text(body.statusReason ?? '', 300);
   if (!USER_ROLES.has(role) || !USER_STATUSES.has(status) || reason === null) return invalid(json);
+  if (role !== existing.role) return conflict(json, 'Les rôles employés se gèrent uniquement depuis la section Employés.');
   if (id !== actor.id && status !== existing.status) return conflict(json, 'Utilisez une commande forte du Control Center pour modifier ce statut.');
   if (id === actor.id && (role !== 'admin' || status !== 'active')) return conflict(json, 'Vous ne pouvez pas retirer votre propre acces administrateur.');
   const preservingActiveAdmin = role === 'admin' && status === 'active';
@@ -306,11 +312,16 @@ export async function handleAdminApi(request, env, actor, utilities) {
   const { json, readJson, requestId, ipHint, logEvent } = utilities; const DB = env.DB; const url = new URL(request.url); const path = url.pathname; const method = request.method; const context = { requestId, ipHint, logEvent };
   if (!DB) return json({ code:'DB_UNAVAILABLE', error:'Service temporairement indisponible.' },503);
   try {
+    if(method==='GET'&&path==='/api/admin/session')return json({user:{id:actor.id,first_name:actor.first_name,last_name:actor.last_name,email:actor.email,phone:actor.phone,role:actor.role,locale:actor.locale,employee_code:actor.employee_code,staff_id:actor.staff_id,hire_date:actor.hire_date,last_activity_at:actor.last_activity_at,permissions:[...actor.permissions].sort(),zones:actor.zones}});
+    const requiredPermission=adminRoutePermission(method,path);
+    const assignedRead=requiredPermission==='missions.read'&&hasPermission(actor,'missions.read_assigned');
+    if(!hasPermission(actor,requiredPermission)&&!assignedRead)return json({code:'FORBIDDEN',error:'Permission insuffisante.'},403);
+    const staffResponse=await handleStaffApi(request,DB,actor,{json,readJson,requestId,ipHint,logEvent});if(staffResponse)return staffResponse;
     const controlCenterResponse=await handleControlCenterApi(request,env,actor,{json,readJson,requestId,ipHint,logEvent});if(controlCenterResponse)return controlCenterResponse;
     const operationsResponse=await handleAdminOperationsApi(request,DB,actor,{json,readJson,requestId,ipHint});if(operationsResponse)return operationsResponse;
     if(method==='GET'&&path==='/api/admin/overview')return overview(DB,json);
-    if(method==='GET'&&path==='/api/admin/users')return usersList(DB,json,url);
-    let match=path.match(/^\/api\/admin\/users\/([1-9][0-9]*)$/);if(match&&method==='GET')return userDetail(DB,json,Number(match[1]));if(match&&method==='PATCH')return userUpdate(request,DB,json,actor,context,Number(match[1]),readJson);
+    if(method==='GET'&&path==='/api/admin/users')return usersList(DB,json,url,actor);
+    let match=path.match(/^\/api\/admin\/users\/([1-9][0-9]*)$/);if(match&&method==='GET')return userDetail(DB,json,Number(match[1]),actor);if(match&&method==='PATCH')return userUpdate(request,DB,json,actor,context,Number(match[1]),readJson);
     if(path==='/api/admin/stations'&&method==='GET')return stationsList(DB,json,url);if(path==='/api/admin/stations'&&method==='POST')return stationCreate(request,DB,json,actor,context,readJson);
     match=path.match(/^\/api\/admin\/stations\/([1-9][0-9]*)$/);if(match&&method==='GET')return stationDetail(DB,json,Number(match[1]));if(match&&method==='PATCH')return stationUpdate(request,DB,json,actor,context,Number(match[1]),readJson);if(match&&method==='DELETE')return stationDisable(DB,json,actor,context,Number(match[1]));
     if(path==='/api/admin/bikes'&&method==='GET')return bikesList(DB,json,url);if(path==='/api/admin/bikes'&&method==='POST')return bikeCreate(request,DB,json,actor,context,readJson);

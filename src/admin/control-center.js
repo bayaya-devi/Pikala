@@ -1,3 +1,4 @@
+import { CONTROL_ACTION_PERMISSIONS, hasPermission } from '../auth/rbac.js';
 const TERMINAL_MISSION_STATUSES = new Set(['completed', 'cancelled', 'failed']);
 const ACTIONS = new Set([
   'station.open', 'station.close', 'bike.block', 'bike.restore', 'bike.maintenance', 'bike.move',
@@ -87,7 +88,7 @@ async function controlOverview(DB, json, env) {
     DB.prepare("SELECT COUNT(*) count FROM missions WHERE status NOT IN ('completed','cancelled','failed') AND due_at IS NOT NULL AND due_at<datetime('now','-'||?||' minutes')").bind(thresholds.missionOverdueMinutes),
     DB.prepare("SELECT COUNT(*) count FROM network_alerts WHERE status IN ('open','acknowledged')"),
     DB.prepare("SELECT COUNT(*) count FROM devices WHERE status='offline' OR (status='online' AND last_seen_at<datetime('now','-'||?||' minutes'))").bind(thresholds.deviceOfflineMinutes),
-    DB.prepare("SELECT COUNT(*) count FROM employee_profiles WHERE status='active'"),
+    DB.prepare("SELECT COUNT(*) count FROM staff_members WHERE status='active'"),
     DB.prepare("SELECT COUNT(*) count FROM inspections WHERE status IN ('scheduled','in_progress') AND due_at<CURRENT_TIMESTAMP"),
     DB.prepare("SELECT COUNT(*) count FROM rebalancing_recommendations WHERE status='open'"),
     DB.prepare("SELECT COUNT(*) count FROM automation_rules WHERE enabled=1")
@@ -144,8 +145,8 @@ async function controlOverview(DB, json, env) {
 
 const LISTS = {
   employees: {
-    select: `SELECT employee_profiles.id,employee_profiles.employee_code,employee_profiles.job_role,employee_profiles.team_name,employee_profiles.status,employee_profiles.availability,employee_profiles.updated_at,users.id user_id,users.first_name,users.last_name,users.email FROM employee_profiles JOIN users ON users.id=employee_profiles.user_id`,
-    search: "lower(employee_profiles.employee_code||' '||users.email||' '||users.first_name||' '||users.last_name)", status: 'employee_profiles.status', order: 'employee_profiles.id'
+    select: `SELECT staff_members.id,staff_members.employee_code,staff_members.role,staff_members.status,staff_members.hire_date,staff_members.last_activity_at,staff_members.updated_at,users.id user_id,users.first_name,users.last_name,users.email,COALESCE((SELECT group_concat(staff_zones.name,', ') FROM staff_member_zones JOIN staff_zones ON staff_zones.id=staff_member_zones.zone_id WHERE staff_member_zones.staff_member_id=staff_members.id),'') zones FROM staff_members JOIN users ON users.id=staff_members.user_id`,
+    search: "lower(staff_members.employee_code||' '||users.email||' '||users.first_name||' '||users.last_name)", status: 'staff_members.status', order: 'staff_members.id'
   },
   docks: {
     select: `SELECT docks.id,docks.public_code,docks.position,docks.status,docks.updated_at,stations.id station_id,stations.name station_name,bikes.public_code bike_code FROM docks JOIN stations ON stations.id=docks.station_id LEFT JOIN bikes ON bikes.id=docks.bike_id`,
@@ -185,13 +186,14 @@ const LISTS = {
   }
 };
 
-async function controlList(DB, json, url, domain) {
+async function controlList(DB, json, url, domain, actor) {
   const config = LISTS[domain];
   if (!config) return error(json, 'CONTROL_DOMAIN_NOT_FOUND', 'Domaine Control Center introuvable.', 404);
   const search = String(url.searchParams.get('search') || '').trim().slice(0, 120);
   const status = String(url.searchParams.get('status') || '').trim().slice(0, 40);
-  const where = `WHERE (?='' OR ${config.search} LIKE '%'||lower(?)||'%') AND (?='' OR ${config.status}=?)`;
-  const bindings = [search, search, status, status];
+  const assignedOnly = domain === 'missions' && !hasPermission(actor, 'missions.read') && hasPermission(actor, 'missions.read_assigned');
+  const where = `WHERE (?='' OR ${config.search} LIKE '%'||lower(?)||'%') AND (?='' OR ${config.status}=?)${assignedOnly ? ' AND missions.assigned_to_user_id=?' : ''}`;
+  const bindings = [search, search, status, status, ...(assignedOnly ? [actor.id] : [])];
   return json(await paged(DB, `${config.select} ${where} ORDER BY ${config.order} DESC`, `SELECT COUNT(*) count FROM (${config.select} ${where})`, bindings, url));
 }
 
@@ -208,9 +210,9 @@ async function overrideLog(DB, actor, context, action, targetType, targetId, rea
 
 async function requireEmployee(DB, userId, roles = []) {
   if (!userId) return null;
-  const employee = await DB.prepare(`SELECT employee_profiles.*,users.email FROM employee_profiles JOIN users ON users.id=employee_profiles.user_id
-    WHERE employee_profiles.user_id=? AND employee_profiles.status='active' AND users.status='active'`).bind(userId).first();
-  return employee && (!roles.length || roles.includes(employee.job_role)) ? employee : null;
+  const employee = await DB.prepare(`SELECT staff_members.*,users.email FROM staff_members JOIN users ON users.id=staff_members.user_id
+    WHERE staff_members.user_id=? AND staff_members.status='active' AND users.status='active'`).bind(userId).first();
+  return employee && (!roles.length || roles.includes(employee.role)) ? employee : null;
 }
 
 async function applyAction(request, DB, json, actor, context, readJson) {
@@ -224,6 +226,8 @@ async function applyAction(request, DB, json, actor, context, readJson) {
   if (!ACTIONS.has(action) || !reason || !idempotencyKey || confirmation !== `PIKALA ${action.toUpperCase()}`) {
     return error(json, 'CONTROL_CONFIRMATION_REQUIRED', 'Action, motif ou confirmation forte invalide.');
   }
+  const requiredPermission = CONTROL_ACTION_PERMISSIONS[action];
+  if (!requiredPermission || !hasPermission(actor, requiredPermission)) return error(json, 'FORBIDDEN', 'Permission insuffisante pour cette commande.', 403);
   const duplicate = await DB.prepare('SELECT id,outcome,created_at FROM admin_overrides WHERE idempotency_key=?').bind(idempotencyKey).first();
   if (duplicate) return json({ success: duplicate.outcome === 'applied', idempotent: true, override: duplicate });
 
@@ -288,23 +292,16 @@ async function applyAction(request, DB, json, actor, context, readJson) {
     ]);
   } else if (action === 'maintenance.assign') {
     const employeeId = integer(data.userId);
-    if (!await requireEmployee(DB, employeeId, ['technician', 'supervisor', 'administrator'])) return error(json, 'EMPLOYEE_INVALID', 'Technicien actif requis.');
+    if (!await requireEmployee(DB, employeeId, ['technician','operations_manager','admin','super_admin'])) return error(json, 'EMPLOYEE_INVALID', 'Technicien actif requis.');
     result = await DB.prepare("UPDATE maintenance_records SET assigned_to_user_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('open','in_progress')").bind(employeeId, targetId).run();
     if (!result.meta.changes) return error(json, 'CONTROL_CONFLICT', 'Maintenance ouverte introuvable.', 409);
   } else if (action === 'employee.upsert') {
-    const userId = integer(data.userId); const employeeCode = text(data.employeeCode, 2, 40); const jobRole = String(data.jobRole || '');
-    if (!userId || !employeeCode || !['operator','technician','support','supervisor','finance','administrator'].includes(jobRole)) return error(json, 'CONTROL_INPUT_INVALID', 'Employé invalide.');
-    const user = await DB.prepare("SELECT id FROM users WHERE id=? AND status='active'").bind(userId).first();
-    if (!user) return error(json, 'CONTROL_CONFLICT', 'Compte utilisateur actif requis.', 409);
-    await DB.prepare(`INSERT INTO employee_profiles (user_id,employee_code,job_role,team_name,status,availability) VALUES (?,?,?,?, 'active','available')
-      ON CONFLICT(user_id) DO UPDATE SET employee_code=excluded.employee_code,job_role=excluded.job_role,team_name=excluded.team_name,status='active',updated_at=CURRENT_TIMESTAMP`)
-      .bind(userId, employeeCode, jobRole, text(data.teamName, 0, 80) || null).run();
-    resolvedTarget = userId; targetType = 'employee';
+    return error(json, 'STAFF_LEGACY_ROUTE_REMOVED', 'Utilisez la section Employés et la route /api/admin/staff.', 410);
   } else if (action === 'inspection.create') {
     const type = String(data.inspectionType || ''); const publicCode = `INSP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     const bikeId = integer(data.bikeId); const stationId = integer(data.stationId); const dockId = integer(data.dockId); const inspector = integer(data.userId);
     if (!['bike','station','dock','safety'].includes(type) || (!bikeId && !stationId && !dockId)) return error(json, 'CONTROL_INPUT_INVALID', 'Inspection invalide.');
-    if (inspector && !await requireEmployee(DB, inspector, ['technician','operator','supervisor','administrator'])) return error(json, 'EMPLOYEE_INVALID', 'Inspecteur actif requis.');
+    if (inspector && !await requireEmployee(DB, inspector, ['technician','field_agent','station_manager','operations_manager','admin','super_admin'])) return error(json, 'EMPLOYEE_INVALID', 'Inspecteur actif requis.');
     const inserted = await DB.prepare(`INSERT INTO inspections (public_code,inspection_type,bike_id,station_id,dock_id,inspector_user_id,due_at,notes)
       VALUES (?,?,?,?,?,?,?,?)`).bind(publicCode, type, bikeId, stationId, dockId, inspector, data.dueAt || null, reason).run();
     resolvedTarget = inserted.meta.last_row_id; targetType = 'inspection';
@@ -369,7 +366,7 @@ export async function handleControlCenterApi(request, env, actor, utilities) {
   const context = { requestId, ipHint, logEvent };
   if (request.method === 'GET' && url.pathname === '/api/admin/control-center') return controlOverview(DB, json, env);
   const listMatch = url.pathname.match(/^\/api\/admin\/control-center\/([a-z-]+)$/);
-  if (request.method === 'GET' && listMatch) return controlList(DB, json, url, listMatch[1]);
+  if (request.method === 'GET' && listMatch) return controlList(DB, json, url, listMatch[1], actor);
   if (request.method === 'POST' && url.pathname === '/api/admin/control-center/actions') return applyAction(request, DB, json, actor, context, readJson);
   return null;
 }

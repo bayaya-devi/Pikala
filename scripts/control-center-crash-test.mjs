@@ -41,7 +41,7 @@ async function createNormalUser() {
   check('vérification utilisateur', verified.status === 303, String(verified.status));
   value = await client.request('/api/login', { method:'POST', body:{ email, password:userPassword } });
   check('connexion utilisateur', value.response.status === 200 && value.data.user?.id, String(value.response.status));
-  return { client, userId:value.data.user.id, email };
+  return { client, userId:value.data.user.id, email, password:userPassword };
 }
 
 const admin = new Client();
@@ -66,12 +66,16 @@ check('confirmation forte obligatoire', value.response.status === 400 && value.d
 value = await admin.request('/api/admin/control-center/actions', { method:'POST', body:command('service.maintenance', null, 'court') });
 check('motif long obligatoire', value.response.status === 400, String(value.response.status));
 
-const employeeKey = crypto.randomUUID();
-value = await admin.request('/api/admin/control-center/actions', { method:'POST', body:command('employee.upsert', null, 'Création du profil agent pour les opérations', { userId:normal.userId, employeeCode:`EMP-${normal.userId}`, jobRole:'operator', teamName:'Rabat centre' }, employeeKey) });
-check('création employé', value.response.status === 201 && value.data.success, JSON.stringify(value.data));
-value = await admin.request('/api/admin/control-center/actions', { method:'POST', body:command('employee.upsert', null, 'Création du profil agent pour les opérations', { userId:normal.userId, employeeCode:`EMP-${normal.userId}`, jobRole:'operator', teamName:'Rabat centre' }, employeeKey) });
-check('idempotence override', value.response.status === 200 && value.data.idempotent, JSON.stringify(value.data));
-
+const employeeKey = `staff-${crypto.randomUUID()}`;
+const staffBody = { email:normal.email, employeeCode:`EMP-${normal.userId}`, role:'field_agent', hireDate:new Date().toISOString().slice(0,10), zoneIds:[1], reason:'Création du profil agent pour les opérations', idempotencyKey:employeeKey, confirmation:'PIKALA STAFF.CREATE' };
+value = await admin.request('/api/admin/staff', { method:'POST', body:staffBody });
+check('création employé RBAC', value.response.status === 201 && value.data.success, JSON.stringify(value.data));
+value = await admin.request('/api/admin/staff', { method:'POST', body:staffBody });
+check('idempotence employé RBAC', value.response.status === 200 && value.data.idempotent, JSON.stringify(value.data));
+value = await admin.request('/api/admin/control-center/actions', { method:'POST', body:command('employee.upsert', null, 'Tentative sur le flux employé historique', { userId:normal.userId, employeeCode:`OLD-${normal.userId}`, jobRole:'operator' }) });
+check('ancien flux employé neutralisé', value.response.status === 410 && value.data.code === 'STAFF_LEGACY_ROUTE_REMOVED', JSON.stringify(value.data));
+value = await normal.client.request('/api/login', { method:'POST', body:{ email:normal.email, password:normal.password } });
+check('reconnexion obligatoire après attribution du rôle', value.response.status === 200, JSON.stringify(value.data));
 const stations = await admin.request('/api/admin/stations?limit=100');
 const bikes = await admin.request('/api/admin/bikes?limit=100&status=available');
 const bike = bikes.data.items[0]; const station = stations.data.items.find((item) => item.id === bike?.station_id);
